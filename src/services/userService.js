@@ -105,10 +105,4 @@ export const userService = {
             body: JSON.stringify({ status }),
         });
     },
-
-    deleteUserByAdmin: async (id) => {
-        return apiClient(`/user/${id}`, {
-            method: 'DELETE',
-        });
-    },
 };

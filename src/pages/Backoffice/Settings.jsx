@@ -8,7 +8,9 @@ const Settings = () => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
-    // Draft values for rate-limit inputs (editable before save)
+    // Draft values for all editable fields
+    const [platformName, setPlatformName] = useState('AlgoArena');
+    const [supportEmail, setSupportEmail] = useState('support@algoarena.com');
     const [apiRateLimit, setApiRateLimit] = useState(1000);
     const [codeExecutionLimit, setCodeExecutionLimit] = useState(100);
 
@@ -18,6 +20,8 @@ const Settings = () => {
             setError(null);
             const data = await settingsService.getSettings();
             setSettings(data);
+            setPlatformName(data.platformName ?? 'AlgoArena');
+            setSupportEmail(data.supportEmail ?? 'support@algoarena.com');
             setApiRateLimit(data.apiRateLimit ?? 1000);
             setCodeExecutionLimit(data.codeExecutionLimit ?? 100);
         } catch (err) {
@@ -51,12 +55,14 @@ const Settings = () => {
         }
     };
 
-    // Save all (rate limits + toggles)
+    // Save all (platform info + rate limits + toggles)
     const handleSaveAll = async () => {
         try {
             setSaving(true);
             setError(null);
             const data = await settingsService.updateSettings({
+                platformName,
+                supportEmail,
                 userRegistration: settings.userRegistration,
                 aiBattles: settings.aiBattles,
                 maintenanceMode: settings.maintenanceMode,
@@ -78,6 +84,8 @@ const Settings = () => {
             setSaving(true);
             setError(null);
             const data = await settingsService.updateSettings({
+                platformName: 'AlgoArena',
+                supportEmail: 'support@algoarena.com',
                 userRegistration: true,
                 aiBattles: true,
                 maintenanceMode: false,
@@ -85,6 +93,8 @@ const Settings = () => {
                 codeExecutionLimit: 100,
             });
             setSettings(data);
+            setPlatformName('AlgoArena');
+            setSupportEmail('support@algoarena.com');
             setApiRateLimit(1000);
             setCodeExecutionLimit(100);
             showSuccess('Settings reset to defaults');
@@ -151,17 +161,27 @@ const Settings = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Platform Name</label>
-                                        <input type="text" defaultValue="AlgoArena" className="form-input w-full" />
+                                        <input
+                                            type="text"
+                                            value={platformName}
+                                            onChange={(e) => setPlatformName(e.target.value)}
+                                            className="form-input w-full"
+                                        />
                                     </div>
                                     <div>
                                         <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Support Email</label>
-                                        <input type="email" defaultValue="support@algoarena.com" className="form-input w-full" />
+                                        <input
+                                            type="email"
+                                            value={supportEmail}
+                                            onChange={(e) => setSupportEmail(e.target.value)}
+                                            className="form-input w-full"
+                                        />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Toggles */}
-                            <div className="pt-6 border-t ">
+                            <div className="pt-6 border-t " style={{ borderColor: 'var(--color-border)' }}>
                                 <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">Feature Toggles</h3>
                                 <div className="space-y-4">
                                     <ToggleItem
@@ -186,7 +206,7 @@ const Settings = () => {
                             </div>
 
                             {/* Rate Limits */}
-                            <div className="pt-6 border-t ">
+                            <div className="pt-6 border-t " style={{ borderColor: 'var(--color-border)' }}>
                                 <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">Rate Limits</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -213,7 +233,7 @@ const Settings = () => {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex items-center gap-4 pt-6 mt-6 border-t ">
+                            <div className="flex items-center gap-4 pt-6 mt-6 border-t " style={{ borderColor: 'var(--color-border)' }}>
                                 <button className="btn-primary" onClick={handleSaveAll} disabled={saving}>
                                     {saving ? 'Saving...' : 'Save Changes'}
                                 </button>
@@ -241,7 +261,13 @@ const NavButton = ({ active, icon, children }) => {
     };
 
     return (
-        <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all spotlight-hover ${active ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-gray-300 hover:bg-(--color-bg-input)'}`}>
+        <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all spotlight-hover ${active ? 'text-cyan-400' : ''}`}
+            style={{
+                background: active ? 'rgba(34,211,238,0.08)' : 'transparent',
+                color: active ? 'var(--color-cyan-400)' : 'var(--color-text-secondary)',
+                border: active ? '1px solid rgba(34,211,238,0.2)' : '1px solid transparent',
+            }}
+        >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {icons[icon]}
             </svg>
@@ -253,7 +279,11 @@ const NavButton = ({ active, icon, children }) => {
 const ToggleItem = ({ title, description, checked, onChange }) => {
     return (
         <div
-            className="flex items-center justify-between p-4 bg-(--color-bg-input) rounded-lg cursor-pointer hover:bg-(--color-bg-elevated) transition-colors border  hover: group"
+            className="flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors group"
+            style={{
+                background: 'var(--color-bg-input)',
+                border: '1px solid var(--color-border)',
+            }}
             onClick={onChange}
         >
             <div>

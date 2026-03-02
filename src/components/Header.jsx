@@ -330,8 +330,8 @@ const Header = () => {
                                         minW="220px"
                                     >
                                         {/* User info header */}
-                                        <Box px={4} py={3} mb={1} borderBottom="1px solid #334155">
-                                            <Text fontSize="sm" fontWeight="bold" color="white" mb={0.5}>
+                                        <Box px={4} py={3} mb={1} borderBottom="1px solid" borderColor="var(--color-border)">
+                                            <Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)" mb={0.5}>
                                                 {currentUser?.username}
                                             </Text>
                                             {currentUser?.rank && (
@@ -340,11 +340,11 @@ const Header = () => {
                                                         fontSize="xs"
                                                         fontWeight="semibold"
                                                         fontFamily="mono"
-                                                        color={RANK_META[currentUser.rank?.toUpperCase()]?.color || 'gray.400'}
+                                                        color={RANK_META[currentUser.rank?.toUpperCase()]?.color || 'var(--color-text-muted)'}
                                                     >
                                                         {RANK_META[currentUser.rank?.toUpperCase()]?.emoji} {currentUser.rank?.toUpperCase()}
                                                     </Text>
-                                                    <Box w="1px" h="10px" bg="#334155" />
+                                                    <Box w="1px" h="10px" bg="var(--color-border)" />
                                                     <Text fontSize="xs" fontFamily="mono" color="yellow.400">
                                                         {fmtXp(currentUser?.xp) ?? '0'} XP
                                                     </Text>

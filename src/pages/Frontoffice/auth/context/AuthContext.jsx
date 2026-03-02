@@ -97,27 +97,44 @@ export const AuthProvider = ({ children }) => {
         initAuth();
     }, []);
 
-    /* Proactive Background Token Refresh Loop */
+    /* Proactive Background Token Refresh Loop based on User Activity */
     useEffect(() => {
-        // Runs every 10 minutes (600,000 ms) while the browser tab is open
+        let lastActivity = Date.now();
+
+        const updateActivity = () => {
+            lastActivity = Date.now();
+        };
+
+        const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        activityEvents.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
+
+        // Runs every 10 minutes (600,000 ms)
         const refreshInterval = setInterval(async () => {
             const token = getToken();
             if (!token) return; // Not signed in, ignore
 
-            try {
-                const refreshResp = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
-                if (refreshResp.ok) {
-                    const data = await refreshResp.json();
-                    if (data?.access_token) {
-                        setToken(data.access_token);
+            const isTabVisible = document.visibilityState === 'visible';
+            const isUserActive = (Date.now() - lastActivity) < 15 * 60 * 1000; // Active within 15 minutes
+
+            if (isTabVisible && isUserActive) {
+                try {
+                    const refreshResp = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+                    if (refreshResp.ok) {
+                        const data = await refreshResp.json();
+                        if (data?.access_token) {
+                            setToken(data.access_token);
+                        }
                     }
+                } catch (error) {
+                    console.error("Proactive background refresh failed:", error);
                 }
-            } catch (error) {
-                console.error("Proactive background refresh failed:", error);
             }
         }, 10 * 60 * 1000);
 
-        return () => clearInterval(refreshInterval);
+        return () => {
+            clearInterval(refreshInterval);
+            activityEvents.forEach(event => window.removeEventListener(event, updateActivity));
+        };
     }, []);
 
     const isLoggedIn = !!currentUser;
