@@ -69,6 +69,7 @@ const Settings = lazy(() => import('./pages/Backoffice/Settings'));
 const Profile = lazy(() => import('./pages/Backoffice/Profile'));
 const AddAdmin = lazy(() => import('./pages/Backoffice/AddAdmin'));
 const Sessions = lazy(() => import('./pages/Backoffice/Sessions'));
+const ActivityLogs = lazy(() => import('./pages/Backoffice/ActivityLogs'));
 const PlaceholderPage = lazy(() => import('./pages/Backoffice/PlaceholderPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
@@ -200,11 +201,13 @@ function App() {
                             <Route path="system-health" element={<SystemHealth />} />
                             <Route path="settings" element={<Settings />} />
                             <Route path="sessions" element={<Sessions />} />
+                            <Route path="activity-logs" element={<ActivityLogs />} />
                             <Route path="profile" element={<Profile />} />
                             <Route path="add-admin" element={<AddAdmin />} />
-                            <Route path="*" element={<NotFoundPage />} />
+                            <Route path="*" element={<Navigate to="/notfound" replace />} />
                           </Route>
-                          <Route path="*" element={<NotFoundPage />} />
+                          <Route path="/notfound" element={<NotFoundPage />} />
+                          <Route path="*" element={<Navigate to="/notfound" replace />} />
                         </Routes>
                       </MaintenanceGate>
                     </Suspense>

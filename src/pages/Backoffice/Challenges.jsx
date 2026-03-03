@@ -1,27 +1,114 @@
 import React, { useState, useEffect } from 'react';
+import challengesService from '../../services/challengesService';
 
 const Challenges = () => {
     const [view, setView] = useState('list'); // 'list', 'manual', 'ai'
     const [aiGenerating, setAiGenerating] = useState(false);
     const [aiResult, setAiResult] = useState(null);
+    const [challenges, setChallenges] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    const handleGenerateAI = () => {
+    // Manual creation form state
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [difficulty, setDifficulty] = useState('EASY');
+    const [type, setType] = useState('ALGORITHMIC');
+    const [points, setPoints] = useState(100);
+    const [editingId, setEditingId] = useState(null);
+
+    // Search / filter
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterDifficulty, setFilterDifficulty] = useState('ALL');
+
+    const handleGenerateAI = async () => {
         setAiGenerating(true);
         setAiResult(null);
-
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            // Placeholder: call AI generation endpoint here when available
+            // e.g. const result = await aiService.generate(prompt)
+            // setAiResult(result);
+        } finally {
             setAiGenerating(false);
-            setAiResult({
-                title: "Longest Palindromic Substring",
-                description: "Given a string s, return the longest palindromic substring in s. A palindrome is a string that reads the same forward and backward.",
-                code: `function longestPalindrome(s) {\n  // Your code here\n  \n  return "";\n}`,
-                testCases: [
-                    { input: ' "babad"', output: ' "bab" or "aba"' },
-                    { input: ' "cbbd"', output: ' "bb"' }
-                ]
-            });
-        }, 2000);
+        }
+    };
+
+    useEffect(() => {
+        let mounted = true;
+        async function load() {
+            setLoading(true);
+            setError(null);
+            try {
+                const data = await challengesService.getChallenges();
+                if (mounted) setChallenges(data || []);
+            } catch (err) {
+                if (mounted) setError(err.message || 'Failed to load');
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        }
+        load();
+        return () => { mounted = false; };
+    }, []);
+
+    const refresh = async () => {
+        try {
+            const data = await challengesService.getChallenges();
+            setChallenges(data || []);
+        } catch (err) {
+            setError(err.message || 'Failed to refresh');
+        }
+    };
+
+    const handleSaveManual = async () => {
+        const payload = {
+            title: title.trim(),
+            description: description.trim(),
+            type,
+            difficulty,
+            maxScore: Number(points) || 0,
+        };
+        try {
+            if (editingId) {
+                await challengesService.updateChallenge(editingId, payload);
+            } else {
+                await challengesService.createChallenge(payload);
+            }
+            setTitle(''); setDescription(''); setPoints(100); setDifficulty('EASY'); setType('ALGORITHMIC'); setEditingId(null);
+            setView('list');
+            await refresh();
+        } catch (err) {
+            setError(err.message || 'Create/update failed');
+        }
+    };
+
+    const handleSaveAI = async () => {
+        if (!aiResult) return;
+        const payload = {
+            title: aiResult.title,
+            description: aiResult.description,
+            type: 'ALGORITHMIC',
+            difficulty: 'MEDIUM',
+            maxScore: 250,
+        };
+        try {
+            await challengesService.createChallenge(payload);
+            setAiResult(null);
+            setView('list');
+            await refresh();
+        } catch (err) {
+            setError(err.message || 'AI save failed');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Delete this challenge?')) return;
+        try {
+            await challengesService.deleteChallenge(id);
+            await refresh();
+        } catch (err) {
+            setError(err.message || 'Delete failed');
+        }
     };
 
     return (
@@ -35,19 +122,24 @@ const Challenges = () => {
             <div className="glass-panel rounded-2xl p-4 mb-6 shadow-custom">
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                     <div className="flex-1 relative search-wrapper w-full">
-                        <input type="text" placeholder="Search challenges..." className="search-input w-full" />
+                        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} type="text" placeholder="Search challenges..." className="search-input w-full" />
                         <svg className="w-5 h-5 search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
-                    <select className="form-select w-full md:w-40 bg-(--color-bg-input)">
-                        <option>All Difficulties</option>
-                        <option>Easy</option>
-                        <option>Medium</option>
-                        <option>Hard</option>
+                    <select value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)} className="form-select w-full md:w-40 bg-(--color-bg-input)">
+                        <option value="ALL">All Difficulties</option>
+                        <option value="EASY">Easy</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HARD">Hard</option>
                     </select>
                     <button
-                        onClick={() => setView(view === 'manual' ? 'list' : 'manual')}
+                        onClick={() => {
+                            if (view !== 'manual') {
+                                setTitle(''); setDescription(''); setDifficulty('EASY'); setType('ALGORITHMIC'); setPoints(100); setEditingId(null);
+                            }
+                            setView(view === 'manual' ? 'list' : 'manual');
+                        }}
                         className={`px-6 py-2.5 rounded-lg font-medium transition-colors whitespace-nowrap ${view === 'manual' ? 'bg-gray-700 text-white' : 'btn-secondary'}`}
                     >
                         {view === 'manual' ? 'Cancel' : 'Create Manually'}
@@ -77,45 +169,43 @@ const Challenges = () => {
                     <div className="space-y-6">
                         <div>
                             <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Challenge Title</label>
-                            <input type="text" placeholder="e.g., Two Sum Problem" className="form-input w-full" />
+                            <input value={title} onChange={e => setTitle(e.target.value)} type="text" placeholder="e.g., Two Sum Problem" className="form-input w-full" />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Type</label>
+                                <select value={type} onChange={e => setType(e.target.value)} className="form-select w-full">
+                                    <option value="ALGORITHMIC">Algorithmic</option>
+                                    <option value="LOGICAL">Logical</option>
+                                    <option value="DATA_STRUCTURES">Data Structures</option>
+                                    <option value="MATHEMATICAL">Mathematical</option>
+                                </select>
+                            </div>
                             <div>
                                 <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Difficulty</label>
-                                <select className="form-select w-full">
-                                    <option>Easy</option>
-                                    <option>Medium</option>
-                                    <option>Hard</option>
+                                <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="form-select w-full">
+                                    <option value="EASY">Easy</option>
+                                    <option value="MEDIUM">Medium</option>
+                                    <option value="HARD">Hard</option>
                                 </select>
                             </div>
                             <div>
                                 <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Points</label>
-                                <input type="number" placeholder="100" className="form-input w-full" />
+                                <input value={points} onChange={e => setPoints(e.target.value)} type="number" placeholder="100" className="form-input w-full" />
                             </div>
                         </div>
 
                         <div>
                             <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Description</label>
-                            <textarea rows="4" placeholder="Describe the challenge..." className="form-textarea w-full"></textarea>
+                            <textarea value={description} onChange={e => setDescription(e.target.value)} rows="4" placeholder="Describe the challenge..." className="form-textarea w-full"></textarea>
                         </div>
 
-                        <div>
-                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Code Template</label>
-                            <div className="bg-(--color-bg-input) border  rounded-lg p-4 font-mono text-sm">
-                                <pre style={{ color: 'var(--color-text-secondary)' }} className="">
-                                    {`function twoSum(nums, target) {
-  // Your code here
-  
-  return [];
-}`}
-                                </pre>
-                            </div>
-                        </div>
+                        
 
                         <div className="flex items-center gap-4 pt-4 border-t ">
-                            <button className="flex-1 btn-primary">Save & Publish</button>
-                            <button onClick={() => setView('list')} className="btn-secondary">Cancel</button>
+                            <button onClick={handleSaveManual} className="flex-1 btn-primary">Save & Publish</button>
+                            <button onClick={() => { setEditingId(null); setType('ALGORITHMIC'); setView('list'); }} className="btn-secondary">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -208,12 +298,7 @@ const Challenges = () => {
                                         <p style={{ color: 'var(--color-text-muted)' }} className="text-sm font-medium  mb-1">Description</p>
                                         <p style={{ color: 'var(--color-text-secondary)' }} className=" text-sm">{aiResult.description}</p>
                                     </div>
-                                    <div>
-                                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm font-medium  mb-1">Code Template</p>
-                                        <div className="bg-(--color-bg-sidebar) rounded-lg p-4 font-mono text-sm max-h-40 overflow-y-auto custom-scrollbar border ">
-                                            <pre style={{ color: 'var(--color-text-secondary)' }} className=" whitespace-pre-wrap">{aiResult.code}</pre>
-                                        </div>
-                                    </div>
+                                    
                                     <div>
                                         <p style={{ color: 'var(--color-text-muted)' }} className="text-sm font-medium  mb-2">Test Cases (2 preview)</p>
                                         <div className="space-y-2">
@@ -228,7 +313,7 @@ const Challenges = () => {
                                 </div>
 
                                 <div className="flex items-center gap-4 mt-6 pt-4 border-t ">
-                                    <button className="flex-1 btn-primary">Save & Publish</button>
+                                    <button onClick={handleSaveAI} className="flex-1 btn-primary">Save & Publish</button>
                                     <button onClick={handleGenerateAI} className="btn-secondary">Regenerate</button>
                                     <button onClick={() => setAiResult(null)} className="btn-secondary hover:text-red-400 hover:border-red-400/30">Discard</button>
                                 </div>
@@ -243,31 +328,43 @@ const Challenges = () => {
                 <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">Existing Challenges</h2>
                 <div className="space-y-3">
 
-                    <ChallengeItem
-                        title="Two Sum"
-                        subtitle="Array Manipulation • 100 points"
-                        difficulty="Easy"
-                        color="green"
-                    />
-                    <ChallengeItem
-                        title="Longest Palindromic Substring"
-                        subtitle="String Algorithms • 250 points"
-                        difficulty="Medium"
-                        color="yellow"
-                        aiGenerated={true}
-                    />
-                    <ChallengeItem
-                        title="Binary Search Tree Traversal"
-                        subtitle="Tree Algorithms • 300 points"
-                        difficulty="Medium"
-                        color="yellow"
-                    />
-                    <ChallengeItem
-                        title="Graph Shortest Path"
-                        subtitle="Graph Algorithms • 500 points"
-                        difficulty="Hard"
-                        color="red"
-                    />
+                    {loading && <p className="text-sm">Loading challenges...</p>}
+                    {error && <p className="text-sm text-red-400">{error}</p>}
+                    {!loading && !challenges.length && <p className="text-sm text-muted">No challenges yet.</p>}
+                    {(() => {
+                        const q = (searchQuery || '').trim().toLowerCase();
+                        return challenges
+                            .filter(c => {
+                                if (filterDifficulty !== 'ALL' && (c.difficulty || '').toUpperCase() !== filterDifficulty) return false;
+                                if (!q) return true;
+                                const inTitle = (c.title || '').toLowerCase().includes(q);
+                                const inDesc = (c.description || '').toLowerCase().includes(q);
+                                return inTitle || inDesc;
+                            })
+                            .map((c) => (
+                                <ChallengeItem
+                                    key={c._id || c.id}
+                                    id={c._id || c.id}
+                                    title={c.title}
+                                    subtitle={`${c.type} • ${c.maxScore} points`}
+                                    difficulty={c.difficulty}
+                                    color={c.difficulty === 'HARD' ? 'red' : c.difficulty === 'MEDIUM' ? 'yellow' : 'green'}
+                                    aiGenerated={false}
+                                    onDelete={handleDelete}
+                                    onEdit={(id) => {
+                                        const item = challenges.find(x => (x._id || x.id) === id);
+                                        if (!item) return;
+                                        setTitle(item.title || '');
+                                        setDescription(item.description || '');
+                                        setDifficulty(item.difficulty || 'EASY');
+                                        setType(item.type || 'ALGORITHMIC');
+                                        setPoints(item.maxScore || 0);
+                                        setEditingId(id);
+                                        setView('manual');
+                                    }}
+                                />
+                            ));
+                    })()}
 
                 </div>
             </div>
@@ -275,7 +372,7 @@ const Challenges = () => {
     );
 };
 
-const ChallengeItem = ({ title, subtitle, difficulty, color, aiGenerated }) => {
+const ChallengeItem = ({ id, title, subtitle, difficulty, color, aiGenerated, onDelete, onEdit }) => {
     const colorClasses = {
         green: "bg-green-500/10 text-green-400 border-green-500/20",
         yellow: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
@@ -299,12 +396,12 @@ const ChallengeItem = ({ title, subtitle, difficulty, color, aiGenerated }) => {
                 </div>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button title="Edit" className="action-btn action-btn-edit">
+                <button title="Edit" onClick={() => onEdit && onEdit(id)} className="action-btn action-btn-edit">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                     </svg>
                 </button>
-                <button title="Delete" className="action-btn action-btn-delete">
+                <button title="Delete" onClick={() => onDelete && onDelete(id)} className="action-btn action-btn-delete">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>

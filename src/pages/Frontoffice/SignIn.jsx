@@ -76,7 +76,7 @@ const SignIn = () => {
 
     const inputStyles = {
         bg: 'var(--color-bg-input)', border: '1px solid', borderColor: 'var(--color-border)', borderRadius: '10px',
-        color: 'var(--color-text-primary)', h: '52px', fontSize: '15px', pl: '2.75rem', pr: '1rem',
+        color: 'var(--color-text-primary)', h: '52px', fontSize: '15px', pl: '52px', pr: '1.25rem',
         boxShadow: '0 2px 4px var(--color-glass-border)',
         _placeholder: { color: 'var(--color-text-muted)', fontWeight: 'medium' },
         _focus: { borderColor: 'var(--color-cyan-400)', boxShadow: '0 0 0 4px var(--color-focus-glow), inset 0 2px 4px var(--color-glass-border)', outline: 'none', bg: 'var(--color-bg-elevated)' },
@@ -104,7 +104,7 @@ const SignIn = () => {
                                 <Box w="100%">
                                     <Text fontSize="xs" fontWeight="semibold" color={labelColor} textTransform="uppercase" letterSpacing="wider" ml={1} mb={1}>Username</Text>
                                     <InputGroup>
-                                        <InputLeftElement pointerEvents="none" h="100%">
+                                        <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
                                         </InputLeftElement>
                                         <Input type="text" placeholder="dev_algoarena" value={username} onChange={(e) => setUsername(e.target.value)} {...inputStyles} />
@@ -117,11 +117,11 @@ const SignIn = () => {
                                         <Text fontSize="xs" fontWeight="semibold" color={labelColor} textTransform="uppercase" letterSpacing="wider">Password</Text>
                                     </Flex>
                                     <InputGroup>
-                                        <InputLeftElement pointerEvents="none" h="100%">
+                                        <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                                         </InputLeftElement>
-                                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} pr="3rem" />
-                                        <InputRightElement h="100%" w="3rem" right="0" display="flex" alignItems="center" justify="center">
+                                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} pr="52px" />
+                                        <InputRightElement h="100%" w="52px" right="0" display="flex" alignItems="center" justifyContent="center">
                                             <IconButton
                                                 variant="unstyled"
                                                 size="sm"

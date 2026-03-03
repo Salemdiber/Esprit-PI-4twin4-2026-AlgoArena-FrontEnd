@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useThemePreference } from '../shared/context/ThemeContext';
 
 /* ─── Motion wrapper ─── */
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 /* ─── SVG Icons (inline, no external deps) ─── */
 

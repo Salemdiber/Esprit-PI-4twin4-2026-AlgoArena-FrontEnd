@@ -198,7 +198,8 @@ const ChallengeHeader = () => {
             backdropFilter="blur(12px)"
             bg="var(--color-bg-secondary)"
             borderBottom="1px solid"
-            borderColor={useColorModeValue("gray.200","gray.700")}
+            borderColor={useColorModeValue("gray.200", "gray.700")}
+            backdropFilter="blur(12px)"
             px={4}
             py={2.5}
             align="center"
@@ -212,13 +213,15 @@ const ChallengeHeader = () => {
                     variant="ghost"
                     color={useColorModeValue("gray.500","gray.400")}
                     _hover={{ color: 'gray.100', bg: 'rgba(255,255,255,0.06)' }}
+                    color={useColorModeValue("gray.500", "gray.400")}
+                    _hover={{ color: useColorModeValue("gray.800", "gray.100"), bg: useColorModeValue("blackAlpha.50", "whiteAlpha.50") }}
                     onClick={() => navigate('/challenges')}
                     aria-label="Back to challenges"
                     size="sm"
                     flexShrink={0}
                 />
                 <Box minW={0}>
-                    <Text fontFamily="heading" fontWeight="bold" color="gray.100" fontSize="sm" noOfLines={1}>
+                    <Text fontFamily="heading" fontWeight="bold" color={useColorModeValue("gray.800", "gray.100")} fontSize="sm" noOfLines={1}>
                         {selectedChallenge.title}
                     </Text>
                     <HStack spacing={2} mt={0.5}>
@@ -236,7 +239,7 @@ const ChallengeHeader = () => {
                             {diffMeta.label}
                         </Box>
                         {selectedChallenge.tags?.slice(0, 2).map(tag => (
-                            <Text key={tag} fontSize="10px" color="gray.600" fontFamily="mono">
+                            <Text key={tag} fontSize="10px" color={useColorModeValue("gray.500", "gray.400")} fontFamily="mono">
                                 #{tag}
                             </Text>
                         ))}
@@ -255,6 +258,15 @@ const ChallengeHeader = () => {
                     bg="var(--color-tag-bg)"
                     color={useColorModeValue('gray.600', 'gray.300')}
                     _hover={{ bg: 'gray.600' }}
+                <Box w="1px" h="28px" bg={useColorModeValue("gray.300", "rgba(255,255,255,0.07)")} />
+
+                <Button
+                    size="sm"
+                    bg={useColorModeValue("gray.100", "rgba(255,255,255,0.05)")}
+                    color={useColorModeValue("gray.600", "gray.400")}
+                    border="1px solid"
+                    borderColor={useColorModeValue("transparent", "rgba(255,255,255,0.1)")}
+                    _hover={{ bg: useColorModeValue("gray.200", "rgba(255,255,255,0.1)"), color: useColorModeValue("gray.800", "gray.200") }}
                     fontWeight="semibold"
                     fontSize="xs"
                     onClick={resetCode}
@@ -270,7 +282,7 @@ const ChallengeHeader = () => {
                     fontSize="xs"
                     onClick={submitCode}
                     isLoading={isSubmitting}
-                    loadingText="Submitting"
+                    loadingText="Submitting..."
                     h="30px"
                     boxShadow="0 0 16px rgba(34,211,238,0.25)"
                 >
