@@ -111,7 +111,6 @@ const ChallengePlayPage = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
             h="100vh"
-            bg="#0f172a"
             minH="100vh"
             maxH="100vh"
             bg="var(--color-bg-primary)"

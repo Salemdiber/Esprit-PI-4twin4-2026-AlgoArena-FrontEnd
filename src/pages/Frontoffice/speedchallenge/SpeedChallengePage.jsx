@@ -44,7 +44,7 @@ const PHASE = {
 };
 
 // ─── Intro screen ────────────────────────────────────────────────
-const IntroScreen = ({ onStart }) => (
+const IntroScreen = ({ onStart, loading = false }) => (
     <Box
         minH="100vh"
         bg="#0f172a"
@@ -250,6 +250,8 @@ const IntroScreen = ({ onStart }) => (
                         w="100%"
                         h="52px"
                         onClick={onStart}
+                        isDisabled={loading}
+                        isLoading={loading}
                         bgGradient="linear(to-r, brand.500, cyan.400)"
                         color="#0f172a"
                         fontWeight="bold"
@@ -588,7 +590,7 @@ const ChallengeArena = ({
 // ─── SpeedChallengePage ───────────────────────────────────────────
 const SpeedChallengePage = () => {
     const navigate = useNavigate();
-    const { updateCurrentUser } = useAuth();
+    const { updateCurrentUser, currentUser } = useAuth();
     const [phase, setPhase] = useState(PHASE.INTRO);
     const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -596,6 +598,10 @@ const SpeedChallengePage = () => {
     const [placement, setPlacement] = useState(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const timerRef = useRef(null);
+
+    const [generatedProblems, setGeneratedProblems] = useState(null);
+    const [loadingProblems, setLoadingProblems] = useState(false);
+    const [aiAnalysis, setAiAnalysis] = useState(null); // null = not started, false = loading, object = done
 
     // Codes per problem
     const [codes, setCodes] = useState(() =>
@@ -608,6 +614,15 @@ const SpeedChallengePage = () => {
     const [languages, setLanguages] = useState(() =>
         Object.fromEntries(SPEED_CHALLENGE_PROBLEMS.map((p) => [p.id, 'javascript']))
     );
+
+    const activeProblems = generatedProblems || SPEED_CHALLENGE_PROBLEMS;
+
+    // When generated problems are loaded initialize codes/languages
+    useEffect(() => {
+        if (!generatedProblems) return;
+        setCodes(Object.fromEntries(generatedProblems.map((p) => [p.id, (p.starterCode && p.starterCode.javascript) || '// start here'])));
+        setLanguages(Object.fromEntries(generatedProblems.map((p) => [p.id, 'javascript'])));
+    }, [generatedProblems]);
 
     // Start timer on challenge phase
     useEffect(() => {
@@ -626,45 +641,142 @@ const SpeedChallengePage = () => {
         return () => clearInterval(timerRef.current);
     }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleStart = () => {
-        setPhase(PHASE.CHALLENGE);
-        setSecondsLeft(TOTAL_SECONDS);
-        setElapsedSeconds(0);
-        setSolvedIds([]);
-        setCurrentIndex(0);
+    const mapServerToProblem = (item, idx) => {
+        const id = `gen-${idx + 1}`;
+        const samples = item.samples || item.tests || item.examples || [];
+        const examples = samples.map((s) => ({ input: s.input || '', output: s.output || '', explanation: s.explanation || '' }));
+        const testCases = samples.map((s) => ({ input: s.input || '', expected: s.output || '' }));
+        return {
+            id,
+            index: idx + 1,
+            difficulty: (item.difficulty || 'Easy').toUpperCase(),
+            difficultyColor: item.difficulty === 'Hard' ? '#ef4444' : item.difficulty === 'Medium' ? '#facc15' : '#22c55e',
+            title: item.title || `Generated Problem ${idx + 1}`,
+            description: item.statement || item.description || '',
+            examples,
+            constraints: Array.isArray(item.constraints) ? item.constraints : (item.constraints ? [String(item.constraints)] : []),
+            starterCode: { javascript: '// write your solution here' },
+            testCases,
+            xpReward: item.difficulty === 'Hard' ? 250 : item.difficulty === 'Medium' ? 120 : 50,
+        };
+    };
+
+    const handleStart = async () => {
+        setLoadingProblems(true);
+        try {
+            // If the logged-in user has placementProblems saved, use them
+            const userProblems = currentUser?.placementProblems;
+            console.debug('SpeedChallenge: currentUser placementProblems:', Array.isArray(userProblems) ? userProblems.length : userProblems);
+            let mapped = [];
+            if (userProblems && Array.isArray(userProblems) && userProblems.length) {
+                mapped = userProblems.slice(0, 3).map((it, i) => mapServerToProblem(it, i));
+                console.debug('Using placementProblems from user, mapped count=', mapped.length);
+            } else {
+                const resp = await fetch('/api/onboarding-test');
+                const json = await resp.json();
+                const items = json?.problems || [];
+                console.debug('/api/onboarding-test returned', items.length, 'items, encoding=', json?.encoding);
+                mapped = items.slice(0, 3).map((it, i) => mapServerToProblem(it, i));
+                console.debug('Mapped server problems count=', mapped.length);
+            }
+
+            // If mapping produced no problems, fallback to static set
+            if (!mapped || !mapped.length) {
+                console.warn('No generated problems available, falling back to static problems');
+                setGeneratedProblems(null);
+            } else {
+                setGeneratedProblems(mapped);
+            }
+
+            // reset timers and progress
+            setPhase(PHASE.CHALLENGE);
+            setSecondsLeft(TOTAL_SECONDS);
+            setElapsedSeconds(0);
+            setSolvedIds([]);
+            setCurrentIndex(0);
+        } catch (e) {
+            console.error('Failed to load generated problems', e);
+            // fallback to static problems
+            setGeneratedProblems(null);
+            setPhase(PHASE.CHALLENGE);
+        } finally {
+            setLoadingProblems(false);
+        }
     };
 
     const handleFinish = useCallback(
         (timeout = false) => {
             clearInterval(timerRef.current);
             const used = TOTAL_SECONDS - (timeout ? 0 : secondsLeft);
-            const result = computePlacement(solvedIds, used);
 
-            // Persist to backend (fire-and-forget; errors don't block the result screen)
-            userService.updatePlacement({
-                rank: result.rank,
-                xp: result.xp,
-                level: result.rank,
-            }).then(() => {
-                // Immediately reflect rank + XP in the navbar
-                updateCurrentUser({ rank: result.rank, xp: result.xp, level: result.rank });
-            }).catch(() => { /* silent — user still sees result */ });
-
-            // Also keep in localStorage as a local cache
-            try {
-                localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify({
-                    rank: result.rank,
-                    label: result.label,
-                    color: result.color,
-                    xp: result.xp,
-                    message: result.message,
-                }));
-            } catch (_) { }
-            setPlacement(result);
+            // Immediate fallback placement (shown while AI analyses)
+            const fallback = computePlacement(solvedIds, used);
+            setPlacement(fallback);
             setElapsedSeconds(used);
+            setAiAnalysis(false); // false = loading
             setPhase(PHASE.RESULT);
+
+            // ── AI classification (async, non-blocking) ──────────────────────
+            const solutions = activeProblems.map((p) => ({
+                problemId: p.id,
+                title: p.title,
+                difficulty: p.difficulty,
+                code: codes[p.id] || '',
+                language: languages[p.id] || 'javascript',
+                solved: solvedIds.includes(p.id),
+            }));
+
+            fetch('/api/classify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ solutions, totalSeconds: used }),
+            })
+                .then((r) => r.json())
+                .then((aiResult) => {
+                    setAiAnalysis(aiResult);
+                    // Use AI rank as the authoritative placement
+                    const authoritative = {
+                        rank: aiResult.rank,
+                        label: aiResult.label,
+                        color: aiResult.color,
+                        gradient: aiResult.gradient,
+                        xp: aiResult.xp,
+                        message: aiResult.message,
+                    };
+                    setPlacement(authoritative);
+
+                    // Persist AI-derived rank to backend
+                    userService.updatePlacement({
+                        rank: aiResult.rank,
+                        xp: aiResult.xp,
+                        level: aiResult.rank,
+                    }).then(() => {
+                        updateCurrentUser({ rank: aiResult.rank, xp: aiResult.xp, level: aiResult.rank });
+                    }).catch(() => { });
+
+                    try {
+                        localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify(authoritative));
+                    } catch (_) { }
+                })
+                .catch(() => {
+                    // AI failed — keep fallback placement, mark analysis as unavailable
+                    setAiAnalysis(null);
+                    userService.updatePlacement({
+                        rank: fallback.rank,
+                        xp: fallback.xp,
+                        level: fallback.rank,
+                    }).then(() => {
+                        updateCurrentUser({ rank: fallback.rank, xp: fallback.xp, level: fallback.rank });
+                    }).catch(() => { });
+                    try {
+                        localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify({
+                            rank: fallback.rank, label: fallback.label,
+                            color: fallback.color, xp: fallback.xp, message: fallback.message,
+                        }));
+                    } catch (_) { }
+                });
         },
-        [secondsLeft, solvedIds]
+        [secondsLeft, solvedIds, activeProblems, codes, languages]
     );
 
     const handleMarkSolved = useCallback((id) => {
@@ -679,14 +791,14 @@ const SpeedChallengePage = () => {
         setLanguages((prev) => ({ ...prev, [id]: lang }));
         setCodes((prev) => ({
             ...prev,
-            [id]: SPEED_CHALLENGE_PROBLEMS.find((p) => p.id === id)?.starterCode[lang] || '',
+            [id]: activeProblems.find((p) => p.id === id)?.starterCode?.[lang] || '',
         }));
-    }, []);
+    }, [activeProblems]);
 
     const handleDone = () => navigate('/', { replace: true });
 
     // ── Render ──
-    if (phase === PHASE.INTRO) return <IntroScreen onStart={handleStart} />;
+    if (phase === PHASE.INTRO) return <IntroScreen onStart={handleStart} loading={loadingProblems} />;
 
     if (phase === PHASE.RESULT) {
         return (
@@ -694,7 +806,8 @@ const SpeedChallengePage = () => {
                 placement={placement}
                 solvedIds={solvedIds}
                 totalSeconds={elapsedSeconds}
-                problems={SPEED_CHALLENGE_PROBLEMS}
+                problems={activeProblems}
+                aiAnalysis={aiAnalysis}
                 onDone={handleDone}
             />
         );
@@ -702,7 +815,7 @@ const SpeedChallengePage = () => {
 
     return (
         <ChallengeArena
-            problems={SPEED_CHALLENGE_PROBLEMS}
+            problems={activeProblems}
             currentIndex={currentIndex}
             setCurrentIndex={setCurrentIndex}
             codes={codes}

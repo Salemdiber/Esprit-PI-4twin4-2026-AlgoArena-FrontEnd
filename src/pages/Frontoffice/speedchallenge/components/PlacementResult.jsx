@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Text, VStack, Button } from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, Button, HStack } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion.create(Box);
@@ -41,7 +41,171 @@ const ScoreRing = ({ solved, total = 3, color }) => {
     );
 };
 
-const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, onDone }) => {
+/** Animated score bar */
+const ScoreBar = ({ label, value, color }) => (
+    <Box w="100%">
+        <Flex justify="space-between" mb={1}>
+            <Text fontSize="xs" fontFamily="mono" color="gray.400" textTransform="uppercase" letterSpacing="0.08em">
+                {label}
+            </Text>
+            <Text fontSize="xs" fontFamily="mono" fontWeight="bold" color={color}>
+                {value}<Text as="span" color="gray.600">/100</Text>
+            </Text>
+        </Flex>
+        <Box h="6px" borderRadius="full" bg="rgba(255,255,255,0.06)" overflow="hidden">
+            <MotionBox
+                h="100%"
+                borderRadius="full"
+                bg={color}
+                initial={{ width: 0 }}
+                animate={{ width: `${value}%` }}
+                transition={{ duration: 0.9, ease: 'easeOut' }}
+                style={{ boxShadow: `0 0 8px ${color}88` }}
+            />
+        </Box>
+    </Box>
+);
+
+/** Difficulty color helper */
+const diffColor = (d) =>
+    d === 'HARD' ? '#ef4444' : d === 'MEDIUM' ? '#facc15' : '#22c55e';
+
+/** AI analysis section */
+const AIAnalysisSection = ({ aiAnalysis }) => {
+    // aiAnalysis: false = loading, null = failed/unavailable, object = done
+    if (aiAnalysis === null) return null;
+
+    if (aiAnalysis === false) {
+        return (
+            <Box w="100%" p={4} borderRadius="12px" bg="rgba(255,255,255,0.03)" border="1px solid rgba(255,255,255,0.07)">
+                <HStack spacing={2} mb={3}>
+                    <Box w="8px" h="8px" borderRadius="full" bg="cyan.400"
+                        className="animate-pulse-glow" />
+                    <Text fontSize="xs" fontFamily="mono" color="cyan.400" letterSpacing="0.1em" textTransform="uppercase">
+                        AI Analysis — analysing your code…
+                    </Text>
+                </HStack>
+                <VStack spacing={2}>
+                    {['Exactitude', 'Complexity', 'Style'].map((label) => (
+                        <Box key={label} w="100%">
+                            <Flex justify="space-between" mb={1}>
+                                <Text fontSize="xs" fontFamily="mono" color="gray.600" textTransform="uppercase">{label}</Text>
+                                <Text fontSize="xs" fontFamily="mono" color="gray.700">—</Text>
+                            </Flex>
+                            <Box h="6px" borderRadius="full" bg="rgba(255,255,255,0.04)" overflow="hidden" position="relative">
+                                <Box
+                                    position="absolute"
+                                    top={0} left={0}
+                                    h="100%" w="40%"
+                                    borderRadius="full"
+                                    bg="rgba(34,211,238,0.18)"
+                                    className="shimmer-bar"
+                                />
+                            </Box>
+                        </Box>
+                    ))}
+                </VStack>
+            </Box>
+        );
+    }
+
+    const { aiScores, breakdown, totalScore } = aiAnalysis;
+
+    return (
+        <Box w="100%">
+            {/* Section header */}
+            <HStack spacing={2} mb={3}>
+                <Text fontSize="xs" fontFamily="mono" color="gray.500"
+                    textTransform="uppercase" letterSpacing="0.1em">
+                    🤖 AI Analysis
+                </Text>
+                <Box flex={1} h="1px" bg="rgba(255,255,255,0.06)" />
+                <Text fontSize="xs" fontFamily="mono" color="gray.500">
+                    Score{' '}
+                    <Text as="span" fontWeight="bold" color="white">{totalScore}</Text>
+                    /100
+                </Text>
+            </HStack>
+
+            {/* Aggregate score bars */}
+            <Box p={4} borderRadius="12px" bg="rgba(255,255,255,0.03)" border="1px solid rgba(255,255,255,0.07)" mb={3}>
+                <VStack spacing={3} align="stretch">
+                    <ScoreBar label="Exactitude" value={aiScores.exactitude} color="#22c55e" />
+                    <ScoreBar label="Complexity" value={aiScores.complexity} color="#22d3ee" />
+                    <ScoreBar label="Style" value={aiScores.style} color="#a855f7" />
+                </VStack>
+            </Box>
+
+            {/* Per-problem breakdown */}
+            {breakdown?.length > 0 && (
+                <VStack spacing={2} align="stretch">
+                    {breakdown.map((b) => (
+                        <Box
+                            key={b.problemId}
+                            p={3}
+                            borderRadius="10px"
+                            bg={
+                                b.composite > 0
+                                    ? 'rgba(34,211,238,0.04)'
+                                    : 'rgba(255,255,255,0.02)'
+                            }
+                            border="1px solid"
+                            borderColor={
+                                b.composite > 0
+                                    ? 'rgba(34,211,238,0.12)'
+                                    : 'rgba(255,255,255,0.05)'
+                            }
+                        >
+                            <Flex align="center" justify="space-between" mb={b.composite > 0 ? 2 : 0}>
+                                <HStack spacing={2}>
+                                    <Text fontSize="xs" fontWeight="semibold" color="white">
+                                        {b.title}
+                                    </Text>
+                                    <Text fontSize="9px" fontFamily="mono" color={diffColor(b.difficulty)}
+                                        textTransform="uppercase" letterSpacing="0.06em">
+                                        {b.difficulty}
+                                    </Text>
+                                </HStack>
+                                {b.composite > 0 ? (
+                                    <Text fontSize="xs" fontFamily="mono" fontWeight="bold" color="white">
+                                        {b.composite}<Text as="span" color="gray.600">/100</Text>
+                                    </Text>
+                                ) : (
+                                    <Text fontSize="xs" fontFamily="mono" color="gray.600">skipped</Text>
+                                )}
+                            </Flex>
+
+                            {b.composite > 0 && (
+                                <>
+                                    <Flex gap={2} mb={2}>
+                                        {[
+                                            { label: 'Exact.', val: b.exactitude, color: '#22c55e' },
+                                            { label: 'Cmplx.', val: b.complexity, color: '#22d3ee' },
+                                            { label: 'Style', val: b.style, color: '#a855f7' },
+                                        ].map(({ label, val, color }) => (
+                                            <Box key={label} flex={1} textAlign="center"
+                                                px={1} py={1} borderRadius="6px" bg="rgba(255,255,255,0.04)">
+                                                <Text fontSize="9px" color="gray.500" fontFamily="mono">{label}</Text>
+                                                <Text fontSize="xs" fontWeight="bold" color={color}>{val}</Text>
+                                            </Box>
+                                        ))}
+                                    </Flex>
+                                    {b.notes && (
+                                        <Text fontSize="10px" color="gray.500" fontStyle="italic" lineHeight="1.5">
+                                            {b.notes}
+                                        </Text>
+                                    )}
+                                </>
+                            )}
+                        </Box>
+                    ))}
+                </VStack>
+            )}
+        </Box>
+    );
+};
+
+const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnalysis, onDone }) => {
     const visual = RANK_VISUALS[placement.rank] || RANK_VISUALS.BRONZE;
     const minutesUsed = Math.floor(totalSeconds / 60);
     const secsUsed = totalSeconds % 60;
@@ -221,6 +385,9 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, onDone 
                                 {placement.message}
                             </Text>
                         </Box>
+
+                        {/* AI Analysis */}
+                        <AIAnalysisSection aiAnalysis={aiAnalysis} />
 
                         {/* Solved problems */}
                         {solvedIds.length > 0 && (

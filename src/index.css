@@ -462,6 +462,17 @@ body {
     animation: float 6s ease-in-out infinite;
 }
 
+/* AI analysis loading shimmer */
+@keyframes shimmer {
+    0% { transform: translateX(-100%); opacity: 0.4; }
+    50% { opacity: 0.9; }
+    100% { transform: translateX(200%); opacity: 0.4; }
+}
+
+.shimmer-bar {
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* Rotate Slow */
 @keyframes rotate {
     from {

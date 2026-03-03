@@ -48,6 +48,7 @@ const Settings = () => {
             if (field === 'userRegistration') data = await settingsService.toggleUserRegistration(!currentValue);
             else if (field === 'aiBattles') data = await settingsService.toggleAiBattles(!currentValue);
             else if (field === 'maintenanceMode') data = await settingsService.toggleMaintenanceMode(!currentValue);
+            else if (field === 'ollamaEnabled') data = await settingsService.toggleOllamaEnabled(!currentValue);
             setSettings(data);
             showSuccess(`${field} updated successfully`);
         } catch (err) {
@@ -66,6 +67,7 @@ const Settings = () => {
                 userRegistration: settings.userRegistration,
                 aiBattles: settings.aiBattles,
                 maintenanceMode: settings.maintenanceMode,
+                ollamaEnabled: settings.ollamaEnabled,
                 apiRateLimit: Number(apiRateLimit),
                 codeExecutionLimit: Number(codeExecutionLimit),
             });
@@ -89,6 +91,7 @@ const Settings = () => {
                 userRegistration: true,
                 aiBattles: true,
                 maintenanceMode: false,
+                ollamaEnabled: true,
                 apiRateLimit: 1000,
                 codeExecutionLimit: 100,
             });
@@ -202,6 +205,13 @@ const Settings = () => {
                                         checked={settings?.maintenanceMode ?? false}
                                         onChange={() => handleToggle('maintenanceMode', settings?.maintenanceMode)}
                                     />
+                                    <ToggleItem
+                                        title="Ollama AI Classification"
+                                        description="Enable AI-powered code analysis and rank classification after placement test (disable on machines without Ollama)"
+                                        checked={settings?.ollamaEnabled ?? true}
+                                        onChange={() => handleToggle('ollamaEnabled', settings?.ollamaEnabled)}
+                                        accent="purple"
+                                    />
                                 </div>
                             </div>
 
@@ -276,7 +286,10 @@ const NavButton = ({ active, icon, children }) => {
     );
 };
 
-const ToggleItem = ({ title, description, checked, onChange }) => {
+const ToggleItem = ({ title, description, checked, onChange, accent }) => {
+    const accentClass = accent === 'purple'
+        ? 'group-hover:text-purple-400'
+        : 'group-hover:text-cyan-400';
     return (
         <div
             className="flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors group"
@@ -287,7 +300,7 @@ const ToggleItem = ({ title, description, checked, onChange }) => {
             onClick={onChange}
         >
             <div>
-                <p style={{ color: 'var(--color-text-secondary)' }} className="font-medium  group-hover:text-cyan-400 transition-colors">{title}</p>
+                <p style={{ color: 'var(--color-text-secondary)' }} className={`font-medium  ${accentClass} transition-colors`}>{title}</p>
                 <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{description}</p>
             </div>
             <div className={`toggle-switch ${checked ? 'active' : ''}`} />

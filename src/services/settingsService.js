@@ -61,6 +61,16 @@ export const settingsService = {
     },
 
     // ------------------------------------
+    // PATCH /settings/ollama-enabled → Toggle Ollama AI classification (admin only)
+    // ------------------------------------
+    toggleOllamaEnabled: async (value) => {
+        return apiClient('/settings/ollama-enabled', {
+            method: 'PATCH',
+            body: JSON.stringify({ ollamaEnabled: value }),
+        });
+    },
+
+    // ------------------------------------
     // PATCH /settings/code-execution-limit → Update code execution limit (admin only)
     // ------------------------------------
     updateCodeExecutionLimit: async (value) => {

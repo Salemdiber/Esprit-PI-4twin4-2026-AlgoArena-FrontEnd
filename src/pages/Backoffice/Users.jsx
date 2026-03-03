@@ -202,6 +202,10 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                             {firstLetter}
                         </div>
                     )}
+                    <div>
+                        <p className="text-sm font-medium text-gray-200">@{username}</p>
+                        {bio && <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">{bio}</p>}
+                    </div>
                     <span className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>@{username}</span>
                 </div>
             </td>
@@ -224,6 +228,16 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                     <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>—</span>
                 )}
             </td>
+
+            {/* ── XP ── */}
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-cyan-400">
+                {typeof xp === 'number' ? (
+                    <span className="text-sm font-mono font-semibold" style={{ color: '#facc15' }}>
+                        {xp >= 1000 ? `${(xp / 1000).toFixed(1).replace(/\.0$/, '')}k` : xp}
+                    </span>
+                ) : (
+                    <span className="text-gray-600 text-xs font-mono">0</span>
+                )}
             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--color-text-secondary)' }}>
                 {xp != null ? xp.toLocaleString() : '—'}
             </td>
