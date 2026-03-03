@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { userService } from '../../services/userService';
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // ── Edit Modal ──────────────────────────────────────────────────────────
 const EditUserModal = ({ user, onClose, onSave }) => {
@@ -159,8 +159,8 @@ const ConfirmToggleModal = ({ user, isCurrentlyActive, onClose, onConfirm, proce
                     onClick={(e) => { e.stopPropagation(); onConfirm(); }}
                     disabled={processing}
                     className={`px-4 py-2 text-sm rounded-lg font-semibold transition-colors disabled:opacity-50 ${isCurrentlyActive
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
-                            : 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
+                        : 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
                         }`}
                 >
                     {processing ? 'Processing...' : isCurrentlyActive ? 'Disable Account' : 'Reactivate Account'}
@@ -212,8 +212,8 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--color-text-secondary)' }}>{email}</td>
             <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${role === 'Admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                        role === 'Premium' ? 'bg-amber-500/10  text-amber-400  border border-amber-500/20' :
-                            'bg-cyan-500/10   text-cyan-400   border border-cyan-500/20'
+                    role === 'Premium' ? 'bg-amber-500/10  text-amber-400  border border-amber-500/20' :
+                        'bg-cyan-500/10   text-cyan-400   border border-cyan-500/20'
                     }`}>
                     {role || 'Player'}
                 </span>
@@ -243,8 +243,8 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${isActive
-                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                    : 'bg-red-500/10 text-red-400 border-red-500/20'
                     }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
                     {displayStatus}
@@ -263,8 +263,8 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                     <button
                         title={isActive ? 'Disable Account' : 'Reactivate Account'}
                         className={`action-btn ${isActive
-                                ? 'text-amber-400 hover:bg-amber-500/10 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                                : 'text-green-400 hover:bg-green-500/10 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)]'
+                            ? 'text-amber-400 hover:bg-amber-500/10 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                            : 'text-green-400 hover:bg-green-500/10 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)]'
                             }`}
                         onClick={() => onToggleStatus({ _id, username, status })}
                     >
@@ -472,7 +472,7 @@ const Users = () => {
                 u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—',
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: 44,
                 head: [columns],
                 body: rows,

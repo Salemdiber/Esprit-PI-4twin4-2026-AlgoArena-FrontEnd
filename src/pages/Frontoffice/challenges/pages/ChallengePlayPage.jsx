@@ -78,6 +78,14 @@ const ChallengePlayPage = () => {
         return () => clearTimeout(timer);
     }, [id]);
 
+    // Top-level hooks for color mode to avoid conditional hook execution
+    const notFoundHeadingColor = useColorModeValue("gray.800", "gray.100");
+    const notFoundTextColor = useColorModeValue("gray.500", "gray.400");
+    const headerBorderColor = useColorModeValue("gray.200", "gray.700");
+    const menuIconColor = useColorModeValue("gray.600", "gray.300");
+    const drawerTextColor = useColorModeValue("gray.800", "gray.100");
+    const drawerCloseIconColor = useColorModeValue("gray.500", "gray.400");
+
     // Show skeleton during loading
     if (isLoading) {
         return <ChallengePlaySkeleton />;
@@ -93,10 +101,10 @@ const ChallengePlayPage = () => {
                 justifyContent="center"
             >
                 <Box textAlign="center">
-                    <Text fontSize="2xl" fontWeight="bold" color={useColorModeValue("gray.800","gray.100")} mb={4}>
+                    <Text fontSize="2xl" fontWeight="bold" color={notFoundHeadingColor} mb={4}>
                         Challenge Not Found
                     </Text>
-                    <Text color={useColorModeValue("gray.500","gray.400")} mb={6}>The requested challenge doesn't exist.</Text>
+                    <Text color={notFoundTextColor} mb={6}>The requested challenge doesn't exist.</Text>
                     <Button variant="primary" onClick={() => navigate('/challenges')}>
                         Back to Challenges
                     </Button>
@@ -127,12 +135,12 @@ const ChallengePlayPage = () => {
                 p={2}
                 bg="var(--color-bg-secondary)"
                 borderBottom="1px solid"
-                borderColor={useColorModeValue("gray.200","gray.700")}
+                borderColor={headerBorderColor}
             >
                 <Button
                     size="sm"
                     variant="ghost"
-                    color={useColorModeValue("gray.600","gray.300")}
+                    color={menuIconColor}
                     leftIcon={<MenuIcon w={4} h={4} />}
                     onClick={onOpen}
                 >
@@ -143,8 +151,8 @@ const ChallengePlayPage = () => {
             {/* Mobile Drawer */}
             <Drawer isOpen={isOpen} onClose={onClose} placement="left" size="full">
                 <DrawerOverlay />
-                <DrawerContent bg="var(--color-bg-primary)" color={useColorModeValue("gray.800","gray.100")}>
-                    <DrawerCloseButton color={useColorModeValue("gray.500","gray.400")} />
+                <DrawerContent bg="var(--color-bg-primary)" color={drawerTextColor}>
+                    <DrawerCloseButton color={drawerCloseIconColor} />
                     <DrawerBody pt={12} px={6} overflowY="auto">
                         <ProblemTabs />
                         <ProblemDescription />
@@ -161,7 +169,7 @@ const ChallengePlayPage = () => {
                     w={{ lg: '40%' }}
                     bg="var(--color-bg-primary)"
                     borderRight="1px solid"
-                    borderColor={useColorModeValue("gray.200","gray.700")}
+                    borderColor={headerBorderColor}
                     overflow="hidden"
                 >
                     <Box

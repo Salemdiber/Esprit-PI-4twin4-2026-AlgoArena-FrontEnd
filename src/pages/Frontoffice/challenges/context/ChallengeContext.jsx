@@ -1,25 +1,26 @@
 /**
  * ChallengeContext – centralised state for the Challenges feature.
  *
- * Holds:
- *  • challenge catalogue + user progress
- *  • selected challenge + editor state
- *  • execution results & active tab
- *  • derived computed helpers
+ * Fetches PUBLISHED challenges from backend API.
+ * No mock data fallback — only real backend data is displayed.
  */
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect } from 'react';
 import {
-    mockChallenges,
-    mockUserProgress,
-    mockCurrentUser,
     ChallengeUserStatus,
+    Difficulty,
     RANK_META,
     RANK_RECOMMENDATIONS,
     LANGUAGES,
+    DIFFICULTY_META,
+    ALL_TAGS,
+    Rank,
 } from '../data/mockChallenges';
+import { challengeService } from '../../../../services/challengeService';
 
 // ─── Action types ─────────────────────────────────────────────────
 const ActionTypes = {
+    SET_CHALLENGES: 'SET_CHALLENGES',
+    SET_LOADING: 'SET_LOADING',
     SELECT_CHALLENGE: 'SELECT_CHALLENGE',
     DESELECT_CHALLENGE: 'DESELECT_CHALLENGE',
     SET_CODE: 'SET_CODE',
@@ -34,50 +35,76 @@ const ActionTypes = {
     RESET_CODE: 'RESET_CODE',
 };
 
+// Map backend difficulty values to our enum
+const normalizeDifficulty = (d) => {
+    if (!d) return Difficulty.MEDIUM;
+    const upper = d.toUpperCase();
+    return Difficulty[upper] || Difficulty.MEDIUM;
+};
+
+// Transform backend challenge to frontend format
+const transformChallenge = (ch) => ({
+    id: ch._id || ch.id,
+    title: ch.title,
+    difficulty: normalizeDifficulty(ch.difficulty),
+    tags: ch.tags || [],
+    description: ch.description || '',
+    examples: (ch.examples || []).map(e => ({
+        input: e.input || '',
+        output: e.output || '',
+        explanation: e.explanation || '',
+    })),
+    constraints: ch.constraints || [],
+    hints: ch.hints || [],
+    xpReward: ch.xpReward || 50,
+    acceptanceRate: ch.acceptanceRate || 0,
+    estimatedTime: ch.estimatedTime || 15,
+    solvedCount: ch.solvedCount || 0,
+    starterCode: ch.starterCode || {
+        javascript: `// Solution for: ${ch.title}\nfunction solution() {\n  // Write your code here\n}\n`,
+    },
+    testCases: (ch.testCases || []).map((tc, i) => ({
+        id: `tc-${i + 1}`,
+        input: tc.input || '',
+        expected: tc.output || tc.expected || '',
+    })),
+    aiGenerated: ch.aiGenerated || false,
+    status: ch.status || 'published',
+    createdAt: ch.createdAt,
+});
+
 // ─── Initial state ────────────────────────────────────────────────
 const initialState = {
-    challenges: mockChallenges,
-    userProgress: mockUserProgress,
-    user: { ...mockCurrentUser },
+    challenges: [],
+    userProgress: [],
+    user: { name: 'User', rank: Rank.GOLD, xp: 2450, streak: 7 },
+    isLoadingChallenges: true,
 
-    // Play view state
     selectedChallengeId: null,
     code: '',
     language: LANGUAGES[0].value,
-    activeTab: 0, // 0 = Description, 1 = Discussion, 2 = Submissions
-
-    // Execution
+    activeTab: 0,
     testResults: [],
     isRunning: false,
     isSubmitting: false,
-    executionState: 'idle', // 'idle' | 'running' | 'success' | 'failure'
+    executionState: 'idle',
 };
 
 // ─── Reducer ──────────────────────────────────────────────────────
 function challengeReducer(state, action) {
     switch (action.type) {
+        case ActionTypes.SET_CHALLENGES:
+            return { ...state, challenges: action.payload, isLoadingChallenges: false };
+        case ActionTypes.SET_LOADING:
+            return { ...state, isLoadingChallenges: action.payload };
         case ActionTypes.SELECT_CHALLENGE: {
             const ch = state.challenges.find(c => c.id === action.payload);
             if (!ch) return state;
             const starterCode = ch.starterCode?.[state.language] || '// Start coding here\n';
-            return {
-                ...state,
-                selectedChallengeId: action.payload,
-                code: starterCode,
-                testResults: [],
-                executionState: 'idle',
-                activeTab: 0,
-            };
+            return { ...state, selectedChallengeId: action.payload, code: starterCode, testResults: [], executionState: 'idle', activeTab: 0 };
         }
         case ActionTypes.DESELECT_CHALLENGE:
-            return {
-                ...state,
-                selectedChallengeId: null,
-                code: '',
-                testResults: [],
-                executionState: 'idle',
-                activeTab: 0,
-            };
+            return { ...state, selectedChallengeId: null, code: '', testResults: [], executionState: 'idle', activeTab: 0 };
         case ActionTypes.SET_CODE:
             return { ...state, code: action.payload };
         case ActionTypes.SET_LANGUAGE: {
@@ -88,11 +115,7 @@ function challengeReducer(state, action) {
         case ActionTypes.SET_ACTIVE_TAB:
             return { ...state, activeTab: action.payload };
         case ActionTypes.SET_TEST_RESULTS:
-            return {
-                ...state,
-                testResults: action.payload.results,
-                executionState: action.payload.allPassed ? 'success' : 'failure',
-            };
+            return { ...state, testResults: action.payload.results, executionState: action.payload.allPassed ? 'success' : 'failure' };
         case ActionTypes.SET_RUNNING:
             return { ...state, isRunning: action.payload, executionState: action.payload ? 'running' : state.executionState };
         case ActionTypes.SET_SUBMITTING:
@@ -101,9 +124,7 @@ function challengeReducer(state, action) {
             return { ...state, testResults: [], executionState: 'idle' };
         case ActionTypes.MARK_SOLVED: {
             const existing = state.userProgress.find(p => p.challengeId === action.payload.challengeId);
-            const avgRuntime = action.payload.avgRuntime;
-            const avgMemory = action.payload.avgMemory;
-            const xp = action.payload.xp;
+            const { avgRuntime, avgMemory, xp } = action.payload;
             if (existing) {
                 return {
                     ...state,
@@ -116,16 +137,7 @@ function challengeReducer(state, action) {
             }
             return {
                 ...state,
-                userProgress: [
-                    ...state.userProgress,
-                    {
-                        challengeId: action.payload.challengeId,
-                        status: ChallengeUserStatus.SOLVED,
-                        bestRuntime: avgRuntime,
-                        bestMemory: avgMemory,
-                        earnedXp: xp,
-                    },
-                ],
+                userProgress: [...state.userProgress, { challengeId: action.payload.challengeId, status: ChallengeUserStatus.SOLVED, bestRuntime: avgRuntime, bestMemory: avgMemory, earnedXp: xp }],
             };
         }
         case ActionTypes.ADD_XP:
@@ -146,6 +158,28 @@ const ChallengeContext = createContext(null);
 export const ChallengeProvider = ({ children }) => {
     const [state, dispatch] = useReducer(challengeReducer, initialState);
 
+    // ── Fetch published challenges from API only ──────────────
+    useEffect(() => {
+        let cancelled = false;
+        const fetchChallenges = async () => {
+            dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+            try {
+                const apiChallenges = await challengeService.getPublished();
+                if (!cancelled && Array.isArray(apiChallenges)) {
+                    const transformed = apiChallenges.map(transformChallenge);
+                    dispatch({ type: ActionTypes.SET_CHALLENGES, payload: transformed });
+                } else if (!cancelled) {
+                    dispatch({ type: ActionTypes.SET_CHALLENGES, payload: [] });
+                }
+            } catch {
+                // API unreachable — show empty state
+                if (!cancelled) dispatch({ type: ActionTypes.SET_CHALLENGES, payload: [] });
+            }
+        };
+        fetchChallenges();
+        return () => { cancelled = true; };
+    }, []);
+
     // ── Actions ──────────────────────────────────────────────
     const selectChallenge = useCallback((id) => dispatch({ type: ActionTypes.SELECT_CHALLENGE, payload: id }), []);
     const deselectChallenge = useCallback(() => dispatch({ type: ActionTypes.DESELECT_CHALLENGE }), []);
@@ -154,48 +188,23 @@ export const ChallengeProvider = ({ children }) => {
     const setActiveTab = useCallback((idx) => dispatch({ type: ActionTypes.SET_ACTIVE_TAB, payload: idx }), []);
     const clearResults = useCallback(() => dispatch({ type: ActionTypes.CLEAR_RESULTS }), []);
     const resetCode = useCallback(() => dispatch({ type: ActionTypes.RESET_CODE }), []);
-
-    const setTestResults = useCallback((results, allPassed) => {
-        dispatch({ type: ActionTypes.SET_TEST_RESULTS, payload: { results, allPassed } });
-    }, []);
-
+    const setTestResults = useCallback((results, allPassed) => dispatch({ type: ActionTypes.SET_TEST_RESULTS, payload: { results, allPassed } }), []);
     const markSolved = useCallback((challengeId, avgRuntime, avgMemory, xp) => {
         dispatch({ type: ActionTypes.MARK_SOLVED, payload: { challengeId, avgRuntime, avgMemory, xp } });
         dispatch({ type: ActionTypes.ADD_XP, payload: xp });
     }, []);
-
     const setRunning = useCallback((v) => dispatch({ type: ActionTypes.SET_RUNNING, payload: v }), []);
     const setSubmitting = useCallback((v) => dispatch({ type: ActionTypes.SET_SUBMITTING, payload: v }), []);
 
     // ── Derived ──────────────────────────────────────────────
-    const selectedChallenge = useMemo(
-        () => state.challenges.find(c => c.id === state.selectedChallengeId) || null,
-        [state.challenges, state.selectedChallengeId]
-    );
-
-    const getUserProgress = useCallback(
-        (challengeId) => state.userProgress.find(p => p.challengeId === challengeId) || null,
-        [state.userProgress]
-    );
-
+    const selectedChallenge = useMemo(() => state.challenges.find(c => c.id === state.selectedChallengeId) || null, [state.challenges, state.selectedChallengeId]);
+    const getUserProgress = useCallback((challengeId) => state.userProgress.find(p => p.challengeId === challengeId) || null, [state.userProgress]);
     const rankMeta = useMemo(() => RANK_META[state.user.rank], [state.user.rank]);
     const xpToNextRank = useMemo(() => rankMeta?.xpCeil || 10000, [rankMeta]);
-    const progressPercent = useMemo(
-        () => Math.min(100, Math.round((state.user.xp / xpToNextRank) * 100)),
-        [state.user.xp, xpToNextRank]
-    );
+    const progressPercent = useMemo(() => Math.min(100, Math.round((state.user.xp / xpToNextRank) * 100)), [state.user.xp, xpToNextRank]);
+    const recommendedDifficulties = useMemo(() => RANK_RECOMMENDATIONS[state.user.rank] || [], [state.user.rank]);
+    const isRecommended = useCallback((challenge) => recommendedDifficulties.includes(challenge.difficulty), [recommendedDifficulties]);
 
-    const recommendedDifficulties = useMemo(
-        () => RANK_RECOMMENDATIONS[state.user.rank] || [],
-        [state.user.rank]
-    );
-
-    const isRecommended = useCallback(
-        (challenge) => recommendedDifficulties.includes(challenge.difficulty),
-        [recommendedDifficulties]
-    );
-
-    // Pack everything
     const value = useMemo(() => ({
         ...state,
         selectedChallenge,
@@ -205,38 +214,12 @@ export const ChallengeProvider = ({ children }) => {
         progressPercent,
         recommendedDifficulties,
         isRecommended,
-
-        selectChallenge,
-        deselectChallenge,
-        setCode,
-        setLanguage,
-        setActiveTab,
-        setTestResults,
-        markSolved,
-        clearResults,
-        resetCode,
-        setRunning,
-        setSubmitting,
+        selectChallenge, deselectChallenge, setCode, setLanguage, setActiveTab,
+        setTestResults, markSolved, clearResults, resetCode, setRunning, setSubmitting,
     }), [
-        state,
-        selectedChallenge,
-        getUserProgress,
-        rankMeta,
-        xpToNextRank,
-        progressPercent,
-        recommendedDifficulties,
-        isRecommended,
-        selectChallenge,
-        deselectChallenge,
-        setCode,
-        setLanguage,
-        setActiveTab,
-        setTestResults,
-        markSolved,
-        clearResults,
-        resetCode,
-        setRunning,
-        setSubmitting,
+        state, selectedChallenge, getUserProgress, rankMeta, xpToNextRank, progressPercent,
+        recommendedDifficulties, isRecommended, selectChallenge, deselectChallenge, setCode,
+        setLanguage, setActiveTab, setTestResults, markSolved, clearResults, resetCode, setRunning, setSubmitting,
     ]);
 
     return (

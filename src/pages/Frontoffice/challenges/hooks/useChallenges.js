@@ -10,12 +10,14 @@ import { ChallengeUserStatus } from '../data/mockChallenges';
 
 const SORT_OPTIONS = [
     { value: 'recommended', label: 'Recommended' },
+    { value: 'newest', label: 'Newest' },
     { value: 'difficulty', label: 'Difficulty' },
     { value: 'acceptance', label: 'Acceptance Rate' },
     { value: 'xp', label: 'XP Reward' },
+    { value: 'popularity', label: 'Popularity' },
 ];
 
-const DIFFICULTY_ORDER = { EASY: 0, MEDIUM: 1, HARD: 2, EXPERT: 3 };
+const DIFFICULTY_ORDER = { EASY: 0, Easy: 0, MEDIUM: 1, Medium: 1, HARD: 2, Hard: 2, EXPERT: 3, Expert: 3 };
 
 export default function useChallenges() {
     const {
@@ -23,6 +25,7 @@ export default function useChallenges() {
         userProgress,
         getUserProgress,
         isRecommended,
+        isLoadingChallenges,
     } = useChallengeContext();
 
     // ── Filter state ─────────────────────────────────────────
@@ -61,27 +64,21 @@ export default function useChallenges() {
     // ── Counts (for sidebar) ─────────────────────────────────
     const difficultyCounts = useMemo(() => {
         const counts = {};
-        challenges.forEach(c => {
-            counts[c.difficulty] = (counts[c.difficulty] || 0) + 1;
-        });
+        challenges.forEach(c => { counts[c.difficulty] = (counts[c.difficulty] || 0) + 1; });
         return counts;
     }, [challenges]);
 
     const tagCounts = useMemo(() => {
         const counts = {};
-        challenges.forEach(c => {
-            c.tags.forEach(t => {
-                counts[t] = (counts[t] || 0) + 1;
-            });
-        });
+        challenges.forEach(c => { c.tags.forEach(t => { counts[t] = (counts[t] || 0) + 1; }); });
         return counts;
     }, [challenges]);
 
     // ── Filtered + sorted list ───────────────────────────────
     const filteredChallenges = useMemo(() => {
-        let result = challenges;
+        let result = [...challenges];
 
-        // Difficulty
+        // Difficulty filter
         if (selectedDifficulties.length > 0) {
             result = result.filter(c => selectedDifficulties.includes(c.difficulty));
         }
@@ -106,73 +103,61 @@ export default function useChallenges() {
             const q = searchQuery.trim().toLowerCase();
             result = result.filter(c =>
                 c.title.toLowerCase().includes(q) ||
-                c.tags.some(t => t.toLowerCase().includes(q))
+                c.tags.some(t => t.toLowerCase().includes(q)) ||
+                (c.description && c.description.toLowerCase().includes(q))
             );
         }
 
         // Sort
         switch (sortOption) {
+            case 'newest':
+                result.sort((a, b) => {
+                    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return dateB - dateA;
+                });
+                break;
             case 'difficulty':
-                result = [...result].sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty]);
+                result.sort((a, b) => (DIFFICULTY_ORDER[a.difficulty] || 0) - (DIFFICULTY_ORDER[b.difficulty] || 0));
                 break;
             case 'acceptance':
-                result = [...result].sort((a, b) => b.acceptanceRate - a.acceptanceRate);
+                result.sort((a, b) => (b.acceptanceRate || 0) - (a.acceptanceRate || 0));
                 break;
             case 'xp':
-                result = [...result].sort((a, b) => b.xpReward - a.xpReward);
+                result.sort((a, b) => (b.xpReward || 0) - (a.xpReward || 0));
+                break;
+            case 'popularity':
+                result.sort((a, b) => (b.solvedCount || 0) - (a.solvedCount || 0));
                 break;
             case 'recommended':
             default:
-                // recommended first, then by difficulty
-                result = [...result].sort((a, b) => {
+                result.sort((a, b) => {
                     const aRec = isRecommended(a) ? 0 : 1;
                     const bRec = isRecommended(b) ? 0 : 1;
                     if (aRec !== bRec) return aRec - bRec;
-                    return DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty];
+                    return (DIFFICULTY_ORDER[a.difficulty] || 0) - (DIFFICULTY_ORDER[b.difficulty] || 0);
                 });
                 break;
         }
 
         return result;
     }, [
-        challenges,
-        selectedDifficulties,
-        selectedTags,
-        selectedStatuses,
-        recommendedOnly,
-        searchQuery,
-        sortOption,
-        getChallengeStatus,
-        isRecommended,
+        challenges, selectedDifficulties, selectedTags, selectedStatuses,
+        recommendedOnly, searchQuery, sortOption, getChallengeStatus, isRecommended,
     ]);
 
     return {
         filteredChallenges,
         totalCount: challenges.length,
         filteredCount: filteredChallenges.length,
+        isLoadingChallenges,
 
-        // Filter state
-        selectedDifficulties,
-        selectedTags,
-        selectedStatuses,
-        recommendedOnly,
-        searchQuery,
-        sortOption,
+        selectedDifficulties, selectedTags, selectedStatuses, recommendedOnly,
+        searchQuery, sortOption,
 
-        // Filter setters
-        toggleDifficulty,
-        toggleTag,
-        toggleStatus,
-        setRecommendedOnly,
-        setSearchQuery,
-        setSortOption,
+        toggleDifficulty, toggleTag, toggleStatus, setRecommendedOnly,
+        setSearchQuery, setSortOption,
 
-        // Constants
-        SORT_OPTIONS,
-        difficultyCounts,
-        tagCounts,
-
-        // Helpers
-        getChallengeStatus,
+        SORT_OPTIONS, difficultyCounts, tagCounts, getChallengeStatus,
     };
 }

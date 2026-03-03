@@ -14,6 +14,8 @@ const ACTION_META = {
     ADMIN_ROLE_UPDATED: { icon: '⚙️', label: 'Admin Role Updated', color: '#a78bfa', entity: 'admin' },
     PERMISSION_CHANGED: { icon: '🔐', label: 'Permission Changed', color: '#fbbf24', entity: 'admin' },
     CHALLENGE_CREATED: { icon: '📝', label: 'Challenge Created', color: '#34d399', entity: 'challenge' },
+    CHALLENGE_PUBLISHED: { icon: '🚀', label: 'Challenge Published', color: '#22c55e', entity: 'challenge' },
+    CHALLENGE_UNPUBLISHED: { icon: '📦', label: 'Challenge Unpublished', color: '#f59e0b', entity: 'challenge' },
     CHALLENGE_EDITED: { icon: '✏️', label: 'Challenge Edited', color: '#60a5fa', entity: 'challenge' },
     CHALLENGE_DELETED: { icon: '🗑️', label: 'Challenge Deleted', color: '#f87171', entity: 'challenge' },
     DIFFICULTY_CHANGED: { icon: '📊', label: 'Difficulty Changed', color: '#fbbf24', entity: 'challenge' },
@@ -186,8 +188,10 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
 const ConfirmModal = ({ title, message, onConfirm, onClose, variant = 'confirm' }) => {
     const isWarning = variant === 'rollback';
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-fade-in-up text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}
+            style={{ margin: 0, padding: 0, top: 0, left: 0, width: '100vw', height: '100vh' }}>
+            <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-scale-in text-center" onClick={(e) => e.stopPropagation()}
+                style={{ position: 'relative', margin: 'auto' }}>
                 <div className={`mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center ${isWarning ? 'bg-yellow-500/10' : 'bg-green-500/10'}`}>
                     <span className="text-xl">{isWarning ? '⚠️' : '✅'}</span>
                 </div>

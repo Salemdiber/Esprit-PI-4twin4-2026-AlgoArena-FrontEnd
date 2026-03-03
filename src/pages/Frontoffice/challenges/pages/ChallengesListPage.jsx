@@ -8,7 +8,7 @@
  *  • Sort dropdown & count
  *  • Loading skeleton state
  */
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Box,
     Flex,
@@ -26,12 +26,10 @@ import ChallengesListSkeleton from '../../../../shared/skeletons/ChallengesListS
 const MotionBox = motion.create(Box);
 
 const ChallengesListPage = () => {
-    // Loading state (simulated – will be replaced with real API call)
-    const [isLoading, setIsLoading] = useState(true);
-
     const {
         filteredChallenges,
         filteredCount,
+        isLoadingChallenges,
         selectedDifficulties,
         toggleDifficulty,
         selectedTags,
@@ -49,17 +47,8 @@ const ChallengesListPage = () => {
         tagCounts,
     } = useChallenges();
 
-    // Simulate data fetching
-    useEffect(() => {
-        // In production: replace with actual API call
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, [selectedDifficulties, selectedTags, selectedStatuses]);
-
     // Show skeleton during loading
-    if (isLoading) {
+    if (isLoadingChallenges) {
         return <ChallengesListSkeleton />;
     }
 
