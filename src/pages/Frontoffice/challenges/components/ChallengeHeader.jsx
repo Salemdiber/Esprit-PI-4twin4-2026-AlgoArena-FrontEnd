@@ -248,8 +248,6 @@ const ChallengeHeader = () => {
             <HStack spacing={3} flexShrink={0}>
                 <Stopwatch challengeId={selectedChallenge.id} />
 
-                <Box w="1px" h="28px" bg="rgba(255,255,255,0.07)" />
-
                 <Box w="1px" h="28px" bg={useColorModeValue("gray.300", "rgba(255,255,255,0.07)")} />
 
                 <Button

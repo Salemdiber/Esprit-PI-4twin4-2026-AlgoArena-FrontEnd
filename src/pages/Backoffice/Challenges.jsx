@@ -1,414 +1,1194 @@
-import React, { useState, useEffect } from 'react';
-import challengesService from '../../services/challengesService';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { challengeService } from '../../services/challengeService';
+import { importChallengeFile } from '../../services/challengeImporter';
+import { aiService } from '../../services/aiService';
 
+
+const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'];
+const TOPICS = ['Arrays', 'Strings', 'Hash Table', 'Dynamic Programming', 'Graphs', 'Trees'];
+const XP_MAP = { Easy: 50, Medium: 120, Hard: 250, Expert: 400 };
+const TIME_MAP = { Easy: 15, Medium: 25, Hard: 40, Expert: 50 };
+const DIFF_COLORS = {
+    Easy: { bg: 'rgba(34,197,94,0.1)', text: '#22c55e', border: 'rgba(34,197,94,0.25)' },
+    Medium: { bg: 'rgba(250,204,21,0.1)', text: '#facc15', border: 'rgba(250,204,21,0.25)' },
+    Hard: { bg: 'rgba(239,68,68,0.1)', text: '#ef4444', border: 'rgba(239,68,68,0.25)' },
+    Expert: { bg: 'rgba(168,85,247,0.1)', text: '#a855f7', border: 'rgba(168,85,247,0.25)' },
+};
+
+const EMPTY_MANUAL = {
+    title: '', description: '', difficulty: 'Medium', topic: 'Arrays',
+    constraints: [''], examples: [{ input: '', output: '', explanation: '' }],
+    testCases: [{ input: '', output: '' }], hints: [''],
+    xpReward: 120, estimatedTime: 25, starterCode: { javascript: '' },
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════════ */
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
+    const c = type === 'success'
+        ? { bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)', text: '#22c55e', icon: '✓' }
+        : { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', text: '#ef4444', icon: '✕' };
+    return (
+        <div className="fixed top-6 right-6 z-50 animate-scale-in" style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: '12px', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px', backdropFilter: 'blur(12px)', maxWidth: '400px' }}>
+            <span style={{ color: c.text, fontWeight: 700, fontSize: '16px' }}>{c.icon}</span>
+            <span style={{ color: c.text, fontSize: '14px', fontWeight: 500 }}>{message}</span>
+        </div>
+    );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIRM MODAL — fixed positioning, no scroll issue
+   ═══════════════════════════════════════════════════════════════════ */
+const ConfirmModal = ({ title, message, onConfirm, onClose }) => (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        onClick={onClose} style={{ margin: 0, top: 0, left: 0, width: '100vw', height: '100vh' }}>
+        <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-scale-in text-center"
+            onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center bg-red-500/10">
+                <span className="text-xl">⚠️</span>
+            </div>
+            <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>{title}</h2>
+            <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>{message}</p>
+            <div className="flex justify-center gap-3">
+                <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+                <button onClick={onConfirm} className="px-4 py-2 text-sm rounded-lg font-semibold"
+                    style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════════════════════════════════ */
 const Challenges = () => {
-    const [view, setView] = useState('list'); // 'list', 'manual', 'ai'
+    const [view, setView] = useState('list'); // 'list' | 'ai' | 'manual'
+    const [challenges, setChallenges] = useState([]);
+    const [drafts, setDrafts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterDifficulty, setFilterDifficulty] = useState('');
+    const [toast, setToast] = useState(null);
+    const [deleteModal, setDeleteModal] = useState(null);
+    const [previewForm, setPreviewForm] = useState(null); // for preview modal
+
+    // AI state
+    const [aiForm, setAiForm] = useState({ description: '', difficulty: 'Medium', topic: 'Arrays', testCases: 5 });
     const [aiGenerating, setAiGenerating] = useState(false);
     const [aiResult, setAiResult] = useState(null);
-    const [challenges, setChallenges] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [aiError, setAiError] = useState('');
+    const [publishing, setPublishing] = useState(false);
 
-    // Manual creation form state
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [difficulty, setDifficulty] = useState('EASY');
-    const [type, setType] = useState('ALGORITHMIC');
-    const [points, setPoints] = useState(100);
-    const [editingId, setEditingId] = useState(null);
+    // Manual state
+    const [manualForm, setManualForm] = useState({ ...EMPTY_MANUAL });
+    const [manualErrors, setManualErrors] = useState({});
+    const [manualSaving, setManualSaving] = useState(false);
+    const [importHighlight, setImportHighlight] = useState({});
+    const [importErrors, setImportErrors] = useState([]);
+    const [editingDraftId, setEditingDraftId] = useState(null); // ID of draft being edited
+    const fileInputRef = useRef(null);
 
-    // Search / filter
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterDifficulty, setFilterDifficulty] = useState('ALL');
+    // AI Assist removed from manual flow — manual creation is 100% manual
+
+    // ── Fetch ─────────────────────────────────────────────────────
+    const fetchChallenges = useCallback(async () => {
+        try {
+            setLoading(true);
+            const data = await challengeService.getAll({ search: searchQuery, difficulty: filterDifficulty });
+            const all = data.challenges || [];
+            setDrafts(all.filter(c => c.status !== 'published'));
+            setChallenges(all.filter(c => c.status === 'published'));
+        } catch (err) { console.error('Failed to fetch challenges:', err); }
+        finally { setLoading(false); }
+    }, [searchQuery, filterDifficulty]);
+
+    useEffect(() => { fetchChallenges(); }, [fetchChallenges]);
+
+    // ── AI handlers ───────────────────────────────────────────────
+    const handleAiFormChange = (f, v) => setAiForm(p => ({ ...p, [f]: v }));
 
     const handleGenerateAI = async () => {
-        setAiGenerating(true);
-        setAiResult(null);
+        if (!aiForm.description || aiForm.description.trim().length < 10) {
+            setAiError('Please provide a description of at least 10 characters.'); return;
+        }
+        setAiGenerating(true); setAiResult(null); setAiError('');
         try {
-            // Placeholder: call AI generation endpoint here when available
-            // e.g. const result = await aiService.generate(prompt)
-            // setAiResult(result);
-        } finally {
-            setAiGenerating(false);
+            const result = await aiService.generateChallenge({
+                description: aiForm.description.trim(), difficulty: aiForm.difficulty,
+                topic: aiForm.topic, testCases: Number(aiForm.testCases),
+            });
+            setAiResult(result);
+        } catch (err) { setAiError(err.message || 'Something went wrong.'); }
+        finally { setAiGenerating(false); }
+    };
+
+    const handleSaveAndPublish = async (draft) => {
+        const result = draft || aiResult;
+        if (!result) return;
+        setPublishing(true);
+        try {
+            const payload = {
+                title: result.title, description: result.description, difficulty: aiForm.difficulty,
+                tags: [aiForm.topic], constraints: result.constraints || [], examples: result.examples || [],
+                testCases: result.testCases || [], xpReward: XP_MAP[aiForm.difficulty] || 50,
+                estimatedTime: TIME_MAP[aiForm.difficulty] || 15,
+                starterCode: result.starterCode || { javascript: `// Solution for: ${result.title}\nfunction solution() {\n  // Write your code here\n}\n` },
+                aiGenerated: true, status: 'published',
+            };
+            await challengeService.create(payload);
+            setToast({ message: `"${result.title}" published successfully!`, type: 'success' });
+            setAiResult(null); setAiForm({ description: '', difficulty: 'Medium', topic: 'Arrays', testCases: 5 });
+            setView('list'); fetchChallenges();
+        } catch (err) { setToast({ message: err.message || 'Failed to publish.', type: 'error' }); }
+        finally { setPublishing(false); }
+    };
+
+    const handleSaveAsDraft = async (draft) => {
+        const result = draft || aiResult;
+        if (!result) return;
+        setPublishing(true);
+        try {
+            const payload = {
+                title: result.title, description: result.description, difficulty: aiForm.difficulty,
+                tags: [aiForm.topic], constraints: result.constraints || [], examples: result.examples || [],
+                testCases: result.testCases || [], xpReward: XP_MAP[aiForm.difficulty] || 50,
+                estimatedTime: TIME_MAP[aiForm.difficulty] || 15,
+                starterCode: result.starterCode || { javascript: '' },
+                aiGenerated: true, status: 'draft',
+            };
+            await challengeService.create(payload);
+            setToast({ message: `"${result.title}" saved as draft.`, type: 'success' });
+            setAiResult(null); fetchChallenges();
+        } catch (err) { setToast({ message: err.message || 'Failed to save draft.', type: 'error' }); }
+        finally { setPublishing(false); }
+    };
+
+    // ── Import handler ────────────────────────────────────────────
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        e.target.value = '';
+        const { data, errors } = await importChallengeFile(file);
+        if (errors.length > 0) setImportErrors(errors);
+        else setImportErrors([]);
+        if (data) {
+            setManualForm(prev => ({ ...prev, ...data }));
+            const hl = {};
+            Object.keys(data).forEach(k => { if (data[k] && (typeof data[k] === 'string' ? data[k].trim() : true)) hl[k] = true; });
+            setImportHighlight(hl);
+            setTimeout(() => setImportHighlight({}), 4000);
+            if (!errors.length) setToast({ message: `Imported "${data.title || 'challenge'}" successfully!`, type: 'success' });
+            setView('manual');
         }
     };
 
-    useEffect(() => {
-        let mounted = true;
-        async function load() {
-            setLoading(true);
-            setError(null);
-            try {
-                const data = await challengesService.getChallenges();
-                if (mounted) setChallenges(data || []);
-            } catch (err) {
-                if (mounted) setError(err.message || 'Failed to load');
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        }
-        load();
-        return () => { mounted = false; };
-    }, []);
 
-    const refresh = async () => {
-        try {
-            const data = await challengesService.getChallenges();
-            setChallenges(data || []);
-        } catch (err) {
-            setError(err.message || 'Failed to refresh');
-        }
+    // ── Edit draft ─────────────────────────────────────────────
+    const handleEditDraft = (ch) => {
+        // Map the existing draft back into the manual form
+        setManualForm({
+            title: ch.title || '',
+            description: ch.description || '',
+            difficulty: ch.difficulty || 'Medium',
+            topic: ch.tags?.[0] || 'Arrays',
+            constraints: ch.constraints?.length ? ch.constraints : [''],
+            examples: ch.examples?.length ? ch.examples : [{ input: '', output: '', explanation: '' }],
+            testCases: ch.testCases?.length ? ch.testCases : [{ input: '', output: '' }],
+            hints: ch.hints?.length ? ch.hints : [''],
+            xpReward: ch.xpReward || XP_MAP[ch.difficulty] || 120,
+            estimatedTime: ch.estimatedTime || TIME_MAP[ch.difficulty] || 25,
+            starterCode: ch.starterCode || { javascript: '' },
+        });
+        setEditingDraftId(ch._id);
+        setManualErrors({});
+        setImportErrors([]);
+        setView('manual');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleSaveManual = async () => {
-        const payload = {
-            title: title.trim(),
-            description: description.trim(),
-            type,
-            difficulty,
-            maxScore: Number(points) || 0,
-        };
+    // ── Manual save (create or update draft) ───────────────────
+    const updateManual = (field, value) => setManualForm(p => ({ ...p, [field]: value }));
+    const updateManualArray = (field, idx, value) => {
+        setManualForm(p => {
+            const arr = [...p[field]]; arr[idx] = value; return { ...p, [field]: arr };
+        });
+    };
+    const addManualArrayItem = (field, template) => setManualForm(p => ({ ...p, [field]: [...p[field], template] }));
+    const removeManualArrayItem = (field, idx) => {
+        setManualForm(p => ({ ...p, [field]: p[field].filter((_, i) => i !== idx) }));
+    };
+
+    const validateManual = () => {
+        const errs = {};
+        if (!manualForm.title.trim()) errs.title = 'Title is required';
+        if (!manualForm.description.trim()) errs.description = 'Description is required';
+        const validTcs = manualForm.testCases.filter(tc => tc.input?.trim() && tc.output?.trim());
+        if (validTcs.length === 0) errs.testCases = 'At least 1 complete test case (input & output) required';
+        else if (manualForm.testCases.length > 10) errs.testCases = 'Max 10 test cases';
+        setManualErrors(errs);
+        return Object.keys(errs).length === 0;
+    };
+
+    const handleManualSave = async (status) => {
+        if (!validateManual()) return;
+        setManualSaving(true);
         try {
-            if (editingId) {
-                await challengesService.updateChallenge(editingId, payload);
+            const payload = {
+                title: manualForm.title.trim(), description: manualForm.description.trim(),
+                difficulty: manualForm.difficulty, tags: [manualForm.topic],
+                constraints: manualForm.constraints.filter(c => c.trim()),
+                examples: manualForm.examples.filter(e => e.input.trim()),
+                testCases: manualForm.testCases.filter(t => t.input.trim()),
+                hints: manualForm.hints.filter(h => h.trim()),
+                xpReward: manualForm.xpReward, estimatedTime: manualForm.estimatedTime,
+                starterCode: manualForm.starterCode, aiGenerated: false, status,
+            };
+            if (editingDraftId) {
+                await challengeService.update(editingDraftId, payload);
+                setToast({ message: `"${payload.title}" ${status === 'published' ? 'published' : 'updated'}!`, type: 'success' });
             } else {
-                await challengesService.createChallenge(payload);
+                await challengeService.create(payload);
+                setToast({ message: `"${payload.title}" ${status === 'published' ? 'published' : 'saved as draft'}!`, type: 'success' });
             }
-            setTitle(''); setDescription(''); setPoints(100); setDifficulty('EASY'); setType('ALGORITHMIC'); setEditingId(null);
-            setView('list');
-            await refresh();
-        } catch (err) {
-            setError(err.message || 'Create/update failed');
-        }
+            setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setView('list'); fetchChallenges();
+        } catch (err) { setToast({ message: err.message || 'Failed to save.', type: 'error' }); }
+        finally { setManualSaving(false); }
     };
 
-    const handleSaveAI = async () => {
-        if (!aiResult) return;
-        const payload = {
-            title: aiResult.title,
-            description: aiResult.description,
-            type: 'ALGORITHMIC',
-            difficulty: 'MEDIUM',
-            maxScore: 250,
-        };
+    // ── Toggle publish / Delete ───────────────────────────────────
+    const handleTogglePublish = async (ch) => {
         try {
-            await challengesService.createChallenge(payload);
-            setAiResult(null);
-            setView('list');
-            await refresh();
-        } catch (err) {
-            setError(err.message || 'AI save failed');
-        }
+            if (ch.status === 'published') {
+                await challengeService.unpublish(ch._id);
+                setToast({ message: `"${ch.title}" unpublished.`, type: 'success' });
+            } else {
+                await challengeService.publish(ch._id);
+                setToast({ message: `"${ch.title}" published!`, type: 'success' });
+            }
+            fetchChallenges();
+        } catch (err) { setToast({ message: err.message || 'Failed to update status.', type: 'error' }); }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('Delete this challenge?')) return;
+    const handlePublishDraft = async (ch) => {
         try {
-            await challengesService.deleteChallenge(id);
-            await refresh();
-        } catch (err) {
-            setError(err.message || 'Delete failed');
-        }
+            await challengeService.publish(ch._id);
+            setToast({ message: `"${ch.title}" published successfully!`, type: 'success' });
+            fetchChallenges();
+        } catch (err) { setToast({ message: err.message || 'Failed to publish.', type: 'error' }); }
+    };
+
+    const handleDeleteChallenge = (ch) => {
+        setDeleteModal({
+            title: 'Delete Challenge',
+            message: `Are you sure you want to delete "${ch.title}"? This cannot be undone.`,
+            onConfirm: async () => {
+                try {
+                    await challengeService.remove(ch._id);
+                    setToast({ message: `"${ch.title}" deleted.`, type: 'success' });
+                    fetchChallenges();
+                } catch (err) { setToast({ message: err.message || 'Failed to delete.', type: 'error' }); }
+                setDeleteModal(null);
+            },
+        });
     };
 
     return (
         <div className="space-y-6 animate-fade-in-up">
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {deleteModal && <ConfirmModal title={deleteModal.title} message={deleteModal.message}
+                onConfirm={deleteModal.onConfirm} onClose={() => setDeleteModal(null)} />}
+            {previewForm && typeof previewForm === 'object' && 'difficulty' in previewForm && (
+                <PreviewModal form={previewForm} onClose={() => setPreviewForm(null)}
+                    onPublish={() => { setPreviewForm(null); handleManualSave('published'); }} />
+            )}
+
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">Challenge Management</h1>
-                <p style={{ color: 'var(--color-text-muted)' }} className="">Create and manage coding challenges with AI assistance</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold mb-2">Challenge Management</h1>
+                <p style={{ color: 'var(--color-text-muted)' }}>Create and manage coding challenges with AI assistance or manually</p>
             </div>
 
-            {/* Control Bar */}
+            {/* ── Control Bar ──────────────────────────── */}
             <div className="glass-panel rounded-2xl p-4 mb-6 shadow-custom">
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                    <div className="flex-1 relative search-wrapper w-full">
-                        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} type="text" placeholder="Search challenges..." className="search-input w-full" />
+                {/* Row 1 — Search + Difficulty filter */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-3">
+                    <div className="flex-1 relative search-wrapper">
+                        <input type="text" placeholder="Search challenges..." className="search-input w-full"
+                            value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                         <svg className="w-5 h-5 search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
-                    <select value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)} className="form-select w-full md:w-40 bg-(--color-bg-input)">
-                        <option value="ALL">All Difficulties</option>
-                        <option value="EASY">Easy</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HARD">Hard</option>
+                    <select className="form-select sm:w-44 bg-(--color-bg-input)"
+                        value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)}>
+                        <option value="">All Difficulties</option>
+                        {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
-                    <button
-                        onClick={() => {
-                            if (view !== 'manual') {
-                                setTitle(''); setDescription(''); setDifficulty('EASY'); setType('ALGORITHMIC'); setPoints(100); setEditingId(null);
-                            }
-                            setView(view === 'manual' ? 'list' : 'manual');
-                        }}
-                        className={`px-6 py-2.5 rounded-lg font-medium transition-colors whitespace-nowrap ${view === 'manual' ? 'bg-gray-700 text-white' : 'btn-secondary'}`}
-                    >
-                        {view === 'manual' ? 'Cancel' : 'Create Manually'}
+                </div>
+
+                {/* Row 2 — Action buttons (wrap on mobile) */}
+                <input type="file" ref={fileInputRef} className="hidden" accept=".json,.xlsx,.xls" onChange={handleImportFile} />
+                <div className="flex flex-wrap gap-2">
+                    {/* Import */}
+                    <button onClick={() => fileInputRef.current?.click()}
+                        className="btn-secondary flex items-center gap-2 min-w-max group/imp hover:border-purple-400/50"
+                        style={{ transition: 'all 0.2s ease' }}>
+                        <svg className="w-4 h-4 shrink-0 transition-transform group-hover/imp:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <span>Import Challenge</span>
                     </button>
-                    <button
-                        onClick={() => setView(view === 'ai' ? 'list' : 'ai')}
-                        className={`btn-primary flex items-center gap-2 whitespace-nowrap ${view === 'ai' ? 'ring-2 ring-cyan-300' : ''}`}
-                    >
-                        {view === 'ai' ? (
-                            <>Close AI</>
+
+                    {/* Create Manually */}
+                    <button onClick={() => { setView(view === 'manual' ? 'list' : 'manual'); setImportErrors([]); }}
+                        className={`btn-secondary flex items-center gap-2 min-w-max ${view === 'manual' ? 'ring-2 ring-green-400' : ''}`}>
+                        {view === 'manual' ? (
+                            <>
+                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <span>Close Manual</span>
+                            </>
                         ) : (
                             <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                                 </svg>
-                                Create with AI
+                                <span>Create Manually</span>
+                            </>
+                        )}
+                    </button>
+
+                    {/* Generate with AI */}
+                    <button onClick={() => setView(view === 'ai' ? 'list' : 'ai')}
+                        className={`btn-primary flex items-center gap-2 min-w-max ${view === 'ai' ? 'ring-2 ring-cyan-300' : ''}`}>
+                        {view === 'ai' ? (
+                            <>
+                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <span>Close AI</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                                <span>Generate with AI</span>
                             </>
                         )}
                     </button>
                 </div>
             </div>
 
-            {/* Manual Editor */}
-            {view === 'manual' && (
-                <div className="glass-panel rounded-2xl p-6 shadow-custom mb-6 animate-fade-in-up">
-                    <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">Create New Challenge Manually</h2>
-                    <div className="space-y-6">
-                        <div>
-                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Challenge Title</label>
-                            <input value={title} onChange={e => setTitle(e.target.value)} type="text" placeholder="e.g., Two Sum Problem" className="form-input w-full" />
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Type</label>
-                                <select value={type} onChange={e => setType(e.target.value)} className="form-select w-full">
-                                    <option value="ALGORITHMIC">Algorithmic</option>
-                                    <option value="LOGICAL">Logical</option>
-                                    <option value="DATA_STRUCTURES">Data Structures</option>
-                                    <option value="MATHEMATICAL">Mathematical</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Difficulty</label>
-                                <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="form-select w-full">
-                                    <option value="EASY">Easy</option>
-                                    <option value="MEDIUM">Medium</option>
-                                    <option value="HARD">Hard</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Points</label>
-                                <input value={points} onChange={e => setPoints(e.target.value)} type="number" placeholder="100" className="form-input w-full" />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Description</label>
-                            <textarea value={description} onChange={e => setDescription(e.target.value)} rows="4" placeholder="Describe the challenge..." className="form-textarea w-full"></textarea>
-                        </div>
-
-                        
-
-                        <div className="flex items-center gap-4 pt-4 border-t ">
-                            <button onClick={handleSaveManual} className="flex-1 btn-primary">Save & Publish</button>
-                            <button onClick={() => { setEditingId(null); setType('ALGORITHMIC'); setView('list'); }} className="btn-secondary">Cancel</button>
-                        </div>
-                    </div>
+            {/* ── Manual Creator ────────────────────────── */}
+            {importErrors.length > 0 && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm mb-4 animate-fade-in-up">
+                    <div className="flex items-center gap-2 font-semibold mb-1"><span>⚠️</span> Import Warnings</div>
+                    <ul className="list-disc list-inside space-y-0.5 text-xs">{importErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>
                 </div>
             )}
+            {view === 'manual' && (
+                <ManualChallengeForm form={manualForm} errors={manualErrors} saving={manualSaving}
+                    onUpdate={updateManual} onUpdateArray={updateManualArray}
+                    onAddItem={addManualArrayItem} onRemoveItem={removeManualArrayItem}
+                    onSaveDraft={() => handleManualSave('draft')}
+                    onSavePublish={() => handleManualSave('published')}
+                    onPreview={() => setPreviewForm(JSON.parse(JSON.stringify(manualForm)))}
+                    onCancel={() => { setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setImportErrors([]); setView('list'); }}
+                    highlight={importHighlight} editingDraftId={editingDraftId} />
+            )}
 
-            {/* AI Generator */}
+            {/* ── AI Generator ────────────────────────── */}
             {view === 'ai' && (
                 <div className="glass-panel rounded-2xl p-6 shadow-custom mb-6 animate-fade-in-up">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold ">AI Challenge Generator</h2>
+                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold">AI Challenge Generator</h2>
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                            </svg>
-                            AI Powered
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            Powered by the AlgoArena Experts
                         </span>
                     </div>
-
                     <div className="space-y-6">
                         <div>
-                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Describe the challenge you want to create</label>
-                            <textarea rows="4" placeholder="Example: Create a medium difficulty challenge about finding the longest palindromic substring in a string. Include edge cases and optimize for time complexity." className="form-textarea w-full"></textarea>
+                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-2">Describe the challenge</label>
+                            <textarea rows="4" placeholder="Example: Create a challenge about finding the longest palindromic substring..."
+                                className="form-textarea w-full" value={aiForm.description}
+                                onChange={e => handleAiFormChange('description', e.target.value)} disabled={aiGenerating} maxLength={500} />
+                            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{aiForm.description.length}/500</p>
                         </div>
-
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Difficulty</label>
-                                <select className="form-select w-full">
-                                    <option>Easy</option>
-                                    <option defaultValue>Medium</option>
-                                    <option>Hard</option>
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-2">Difficulty</label>
+                                <select className="form-select w-full" value={aiForm.difficulty}
+                                    onChange={e => handleAiFormChange('difficulty', e.target.value)} disabled={aiGenerating}>
+                                    {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Topic</label>
-                                <select className="form-select w-full">
-                                    <option>Arrays</option>
-                                    <option>Strings</option>
-                                    <option>Trees</option>
-                                    <option>Graphs</option>
-                                    <option>Dynamic Programming</option>
-                                    <option>Sorting</option>
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-2">Topic</label>
+                                <select className="form-select w-full" value={aiForm.topic}
+                                    onChange={e => handleAiFormChange('topic', e.target.value)} disabled={aiGenerating}>
+                                    {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Test Cases</label>
-                                <input type="number" defaultValue="5" min="3" max="10" className="form-input w-full" />
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-2">Test Cases (max 10)</label>
+                                <input type="number" min="1" max="10" value={aiForm.testCases}
+                                    onChange={e => handleAiFormChange('testCases', Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                                    className="form-input w-full" disabled={aiGenerating} />
                             </div>
                         </div>
-
-                        <button
-                            onClick={handleGenerateAI}
-                            disabled={aiGenerating}
-                            className="w-full btn-primary disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            <span className="flex items-center justify-center gap-2">
-                                {aiGenerating ? (
-                                    <>
-                                        <div className="flex gap-1">
-                                            <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
-                                            <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                                            <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
-                                        </div>
-                                        Generating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                        </svg>
-                                        Generate Challenge with AI
-                                    </>
-                                )}
-                            </span>
-                        </button>
-
-                        {aiResult && (
-                            <div className="mt-6 p-6 bg-(--color-bg-input)/50 border border-cyan-400/30 rounded-xl animate-fade-in-up">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-heading text-lg font-bold text-cyan-400">AI Generated Challenge</h3>
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">Generated Successfully</span>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm font-medium  mb-1">Title</p>
-                                        <p style={{ color: 'var(--color-text-secondary)' }} className=" font-medium">{aiResult.title}</p>
-                                    </div>
-                                    <div>
-                                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm font-medium  mb-1">Description</p>
-                                        <p style={{ color: 'var(--color-text-secondary)' }} className=" text-sm">{aiResult.description}</p>
-                                    </div>
-                                    
-                                    <div>
-                                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm font-medium  mb-2">Test Cases (2 preview)</p>
-                                        <div className="space-y-2">
-                                            {aiResult.testCases.map((tc, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 bg-(--color-bg-sidebar) rounded-lg border /50">
-                                                    <span style={{ color: 'var(--color-text-secondary)' }} className="text-sm ">Input: {tc.input}</span>
-                                                    <span className="text-sm text-cyan-400">Output: {tc.output}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4 mt-6 pt-4 border-t ">
-                                    <button onClick={handleSaveAI} className="flex-1 btn-primary">Save & Publish</button>
-                                    <button onClick={handleGenerateAI} className="btn-secondary">Regenerate</button>
-                                    <button onClick={() => setAiResult(null)} className="btn-secondary hover:text-red-400 hover:border-red-400/30">Discard</button>
-                                </div>
+                        {aiError && (
+                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start gap-3">
+                                <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>{aiError}</span>
                             </div>
                         )}
+                        <button onClick={handleGenerateAI} disabled={aiGenerating} className="w-full btn-primary disabled:opacity-70 disabled:cursor-not-allowed">
+                            <span className="flex items-center justify-center gap-2">
+                                {aiGenerating ? (<><div className="flex gap-1.5">
+                                    <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                                    <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                                    <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                                </div>Generating...</>) : (<>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>Generate Challenge with AI</>)}
+                            </span>
+                        </button>
+                        {aiResult && <AIResultCard aiResult={aiResult} aiForm={aiForm} publishing={publishing}
+                            onPublish={handleSaveAndPublish} onSaveDraft={handleSaveAsDraft}
+                            onRegenerate={handleGenerateAI} onDiscard={() => setAiResult(null)} aiGenerating={aiGenerating} />}
                     </div>
                 </div>
             )}
 
-            {/* Existing Challenges List */}
+            {/* ── Draft Challenges Section ───────────────────────── */}
+            {drafts.length > 0 && (
+                <div className="glass-panel rounded-2xl p-6 shadow-custom" style={{ border: '1px solid rgba(250,204,21,0.2)' }}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(250,204,21,0.1)' }}>
+                                <svg className="w-4 h-4" fill="none" stroke="#facc15" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </div>
+                            <h2 className="font-heading text-lg font-bold" style={{ color: 'var(--color-text-heading)' }}>
+                                Draft Challenges <span className="ml-2 text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>({drafts.length})</span>
+                            </h2>
+                        </div>
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.25)' }}>Not visible to users</span>
+                    </div>
+                    <div className="space-y-2">
+                        {drafts.map(ch => (
+                            <DraftRow key={ch._id} challenge={ch}
+                                onEdit={handleEditDraft}
+                                onPublish={() => handlePublishDraft(ch)}
+                                onDelete={() => handleDeleteChallenge(ch)} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Published Challenges List ───────────────────────── */}
             <div className="glass-panel rounded-2xl p-6 shadow-custom">
-                <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">Existing Challenges</h2>
-                <div className="space-y-3">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold">
+                        Published <span className="ml-2 text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>({challenges.length})</span>
+                    </h2>
+                </div>
+                {loading ? (
+                    <div className="space-y-3">{[1, 2, 3].map(i => (
+                        <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: 'var(--color-bg-input)' }} />
+                    ))}</div>
+                ) : challenges.length === 0 ? (
+                    <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>
+                        <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="font-medium">No published challenges yet</p>
+                        <p className="text-sm mt-1">Use the AI generator or create manually to add your first challenge.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {challenges.map(ch => (
+                            <ChallengeRow key={ch._id} challenge={ch}
+                                onTogglePublish={() => handleTogglePublish(ch)}
+                                onDelete={() => handleDeleteChallenge(ch)} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
-                    {loading && <p className="text-sm">Loading challenges...</p>}
-                    {error && <p className="text-sm text-red-400">{error}</p>}
-                    {!loading && !challenges.length && <p className="text-sm text-muted">No challenges yet.</p>}
-                    {(() => {
-                        const q = (searchQuery || '').trim().toLowerCase();
-                        return challenges
-                            .filter(c => {
-                                if (filterDifficulty !== 'ALL' && (c.difficulty || '').toUpperCase() !== filterDifficulty) return false;
-                                if (!q) return true;
-                                const inTitle = (c.title || '').toLowerCase().includes(q);
-                                const inDesc = (c.description || '').toLowerCase().includes(q);
-                                return inTitle || inDesc;
-                            })
-                            .map((c) => (
-                                <ChallengeItem
-                                    key={c._id || c.id}
-                                    id={c._id || c.id}
-                                    title={c.title}
-                                    subtitle={`${c.type} • ${c.maxScore} points`}
-                                    difficulty={c.difficulty}
-                                    color={c.difficulty === 'HARD' ? 'red' : c.difficulty === 'MEDIUM' ? 'yellow' : 'green'}
-                                    aiGenerated={false}
-                                    onDelete={handleDelete}
-                                    onEdit={(id) => {
-                                        const item = challenges.find(x => (x._id || x.id) === id);
-                                        if (!item) return;
-                                        setTitle(item.title || '');
-                                        setDescription(item.description || '');
-                                        setDifficulty(item.difficulty || 'EASY');
-                                        setType(item.type || 'ALGORITHMIC');
-                                        setPoints(item.maxScore || 0);
-                                        setEditingId(id);
-                                        setView('manual');
-                                    }}
-                                />
-                            ));
-                    })()}
+/* ═══════════════════════════════════════════════════════════════════
+   PREVIEW MODAL — full challenge preview before publish
+   ═══════════════════════════════════════════════════════════════════ */
+const PreviewModal = ({ form, onClose, onPublish }) => {
+    // Lock body scroll to keep the page exactly where the admin is
+    useEffect(() => {
+        const scrollY = window.scrollY;
+        const body = document.body;
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollY}px`;
+        body.style.left = '0';
+        body.style.right = '0';
+        body.style.overflowY = 'scroll'; // keep scrollbar width so layout doesn't shift
+        return () => {
+            body.style.position = '';
+            body.style.top = '';
+            body.style.left = '';
+            body.style.right = '';
+            body.style.overflowY = '';
+            window.scrollTo({ top: scrollY, behavior: 'instant' });
+        };
+    }, []);
 
+    // Guard: form must be a valid challenge object
+    const isValidChallenge = (
+        form &&
+        typeof form === 'object' &&
+        typeof form.title === 'string' &&
+        typeof form.description === 'string' &&
+        typeof form.difficulty === 'string' &&
+        DIFF_COLORS[form.difficulty]
+    );
+
+    if (!isValidChallenge) {
+        return (
+            <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                onClick={onClose}>
+                <div className="w-full max-w-sm mx-4 rounded-2xl p-8 text-center animate-scale-in"
+                    style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}
+                    onClick={e => e.stopPropagation()}>
+                    <p className="text-4xl mb-4">📭</p>
+                    <p className="font-semibold mb-2" style={{ color: 'var(--color-text-heading)' }}>No preview data available</p>
+                    <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>
+                        Please fill in the Title, Description, and at least one Test Case before previewing.
+                    </p>
+                    <button onClick={onClose} className="btn-secondary">Back to Form</button>
+                </div>
+            </div>
+        );
+    }
+
+    const dc = DIFF_COLORS[form.difficulty];
+    return (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={onClose}>
+            <div className="w-full max-w-3xl mx-4 rounded-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col"
+                style={{ maxHeight: '90vh', background: 'var(--color-bg-card, var(--color-bg-sidebar))', border: '1px solid var(--color-border)' }}
+                onClick={e => e.stopPropagation()}>
+                {/* Modal Header */}
+                <div className="flex items-center justify-between px-6 py-4 shrink-0"
+                    style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-elevated, var(--color-bg-sidebar))' }}>
+                    <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5" fill="none" stroke="#67e8f9" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        <span className="font-semibold text-sm" style={{ color: 'var(--color-text-heading)' }}>Challenge Preview</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>As seen in Front Office</span>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:opacity-80 transition-opacity"
+                        style={{ background: 'var(--color-bg-input)', color: 'var(--color-text-muted)' }}>✕</button>
+                </div>
+
+                {/* Scrollable content */}
+                <div className="overflow-y-auto flex-1 p-6 space-y-5">
+                    {/* Title + Badges */}
+                    <div>
+                        <div className="flex items-center gap-3 flex-wrap mb-2">
+                            <h1 className="font-heading text-2xl font-bold" style={{ color: 'var(--color-text-heading)' }}>{form.title || 'Untitled Challenge'}</h1>
+                            <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '8px', padding: '3px 12px', fontSize: '12px', fontWeight: 600 }}>{form.difficulty}</span>
+                            <span style={{ background: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', padding: '3px 10px', fontSize: '12px' }}>{form.topic}</span>
+                        </div>
+                        <div className="flex items-center gap-5 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                            <span>⚡ {form.xpReward} XP</span>
+                            <span>⏱ ~{form.estimatedTime} min</span>
+                            <span>🧪 {form.testCases?.filter(t => t.input || t.output).length || 0} test cases</span>
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="p-4 rounded-xl" style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)' }}>
+                        <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}>Problem Statement</p>
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>{form.description || <span className="opacity-40 italic">No description provided</span>}</p>
+                    </div>
+
+                    {/* Constraints */}
+                    {form.constraints?.filter(c => c.trim()).length > 0 && (
+                        <div className="p-4 rounded-xl" style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)' }}>
+                            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>Constraints</p>
+                            <ul className="space-y-1.5">
+                                {form.constraints.filter(c => c.trim()).map((c, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-sm">
+                                        <span className="text-cyan-400 font-bold mt-px shrink-0">›</span>
+                                        <code className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>{c}</code>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Examples */}
+                    {form.examples?.filter(e => e.input || e.output).length > 0 && (
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>Examples</p>
+                            <div className="space-y-3">
+                                {form.examples.filter(e => e.input || e.output).map((ex, i) => (
+                                    <div key={i} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+                                        <div className="px-4 py-2 text-xs font-bold text-cyan-400 uppercase tracking-wider" style={{ background: 'rgba(6,182,212,0.05)', borderBottom: '1px solid var(--color-border)' }}>Example {i + 1}</div>
+                                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 mb-1 font-semibold">INPUT</p>
+                                                <code className="text-xs font-mono" style={{ color: 'var(--color-text-primary)' }}>{ex.input}</code>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-green-500 mb-1 font-semibold">OUTPUT</p>
+                                                <code className="text-xs font-mono text-green-400">{ex.output}</code>
+                                            </div>
+                                        </div>
+                                        {ex.explanation && <div className="px-4 pb-3 text-xs" style={{ color: 'var(--color-text-muted)' }}><span className="font-semibold">↳</span> {ex.explanation}</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Test Cases */}
+                    {form.testCases?.filter(t => t.input || t.output).length > 0 && (
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>Test Cases</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {form.testCases.filter(t => t.input || t.output).map((tc, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg text-xs font-mono" style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)' }}>
+                                        <span className="font-bold text-cyan-400 shrink-0">#{i + 1}</span>
+                                        <span className="truncate flex-1" style={{ color: 'var(--color-text-secondary)' }}>{tc.input}</span>
+                                        <span className="shrink-0 text-green-400">→ {tc.output}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Hints */}
+                    {form.hints?.filter(h => h.trim()).length > 0 && (
+                        <div className="p-4 rounded-xl" style={{ background: 'rgba(250,204,21,0.05)', border: '1px solid rgba(250,204,21,0.2)' }}>
+                            <p className="text-xs font-bold uppercase tracking-wider mb-3 text-yellow-400">Hints</p>
+                            {form.hints.filter(h => h.trim()).map((h, i) => (
+                                <p key={i} className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}><span className="text-yellow-400 font-bold">{i + 1}.</span> {h}</p>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Starter Code */}
+                    {form.starterCode?.javascript?.trim() && (
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}>{'</>'} Starter Code</p>
+                            <pre className="text-xs font-mono p-4 rounded-xl overflow-x-auto" style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>{form.starterCode.javascript}</pre>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <button onClick={onPublish} className="flex-1 btn-primary flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                        Looks Good — Save & Publish
+                    </button>
+                    <button onClick={onClose} className="btn-secondary">Back to Edit</button>
                 </div>
             </div>
         </div>
     );
 };
 
-const ChallengeItem = ({ id, title, subtitle, difficulty, color, aiGenerated, onDelete, onEdit }) => {
-    const colorClasses = {
-        green: "bg-green-500/10 text-green-400 border-green-500/20",
-        yellow: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-        red: "bg-red-500/10 text-red-400 border-red-500/20"
-    };
+/* ═══════════════════════════════════════════════════════════════════
+   DRAFT ROW — shown in the Draft Challenges section
+   ═══════════════════════════════════════════════════════════════════ */
+const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
+    const dc = DIFF_COLORS[ch.difficulty] || DIFF_COLORS.Medium;
+    return (
+        <div className="flex items-center gap-4 p-3 rounded-xl transition-all"
+            style={{ background: 'var(--color-bg-input)', border: '1px solid rgba(250,204,21,0.15)' }}>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{ch.title}</span>
+                    <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '6px', padding: '1px 8px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>{ch.difficulty}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.2)' }}>DRAFT</span>
+                </div>
+                <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                    <span>{ch.tags?.[0] || 'General'}</span>
+                    {ch.updatedAt && <span>Updated {new Date(ch.updatedAt).toLocaleDateString()}</span>}
+                    {ch.testCases?.length > 0 && <span>🧪 {ch.testCases.length} tests</span>}
+                </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => onEdit(ch)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    Edit
+                </button>
+                <button onClick={onPublish}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                    Publish
+                </button>
+                <button onClick={onDelete}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+    );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   MANUAL CHALLENGE FORM
+   ═══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   AI ASSIST BUTTON — modern branded
+   ═══════════════════════════════════════════════════════════════════ */
+const AiAssistBtn = ({ section, ready, loading, onAssist }) => (
+    <div className="relative group/ai inline-block">
+        <button
+            onClick={() => onAssist(section)}
+            disabled={!ready || loading}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+                background: ready ? 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(139,92,246,0.1))' : 'rgba(100,116,139,0.1)',
+                color: ready ? '#67e8f9' : 'var(--color-text-muted)',
+                border: ready ? '1px solid rgba(6,182,212,0.3)' : '1px solid var(--color-border)',
+                boxShadow: ready ? '0 0 8px rgba(6,182,212,0.1)' : 'none',
+                transform: 'translateY(0)',
+            }}
+        >
+            {loading ? (
+                <span className="w-3 h-3 border border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                </svg>
+            )}
+            <span>AI Assist</span>
+        </button>
+        {/* Tooltip */}
+        {ready && !loading && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover/ai:opacity-100 transition-opacity duration-150 z-10"
+                style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                Generate {section} with AI
+            </div>
+        )}
+    </div>
+);
+
+const SectionHeader = ({ label, required, error, highlight }) => (
+    <div className="flex items-center gap-2 mb-2">
+        <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>{label}{required && ' *'}</label>
+        {error && <span className="text-red-400 text-xs">{error}</span>}
+        {highlight && <span className="text-[10px] text-green-400 font-semibold animate-pulse">✓ imported</span>}
+    </div>
+);
+
+const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, onAddItem, onRemoveItem, onSaveDraft, onSavePublish, onCancel, onPreview, highlight = {}, editingDraftId }) => {
+    const [collapsed, setCollapsed] = useState({});
+    const toggle = (s) => setCollapsed(p => ({ ...p, [s]: !p[s] }));
+
+    const hlStyle = (field) => highlight[field] ? { boxShadow: '0 0 0 2px rgba(34,197,94,0.4)', transition: 'box-shadow 0.5s ease' } : {};
 
     return (
-        <div className="flex items-center justify-between p-4 bg-(--color-bg-input) rounded-lg border  hover:border-cyan-400/30 transition-all group spotlight-hover table-row-hover">
-            <div className="flex items-center gap-4">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${colorClasses[color]}`}>
-                    {difficulty}
-                </span>
-                <div>
-                    <div className="flex items-center gap-2">
-                        <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm font-medium  group-hover:text-cyan-400 transition-colors">{title}</p>
-                        {aiGenerated && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase tracking-wide">AI Generated</span>
-                        )}
+        <div className="glass-panel rounded-2xl p-6 shadow-custom mb-6 animate-fade-in-up">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold">
+                        {editingDraftId ? 'Edit Draft' : 'Create Challenge'}
+                    </h2>
+                    {editingDraftId && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.25)' }}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            Editing Draft
+                        </span>
+                    )}
+                </div>
+                {!editingDraftId && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">✎ Manual</span>
+                )}
+            </div>
+
+            <div className="space-y-5">
+                {/* ── STEP 1: Basic Fields ── */}
+                <div className="p-4 rounded-xl" style={{ background: 'var(--color-bg-sidebar)', border: '1px solid var(--color-border)' }}>
+                    <div className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--color-text-muted)' }}>Step 1 — Basic Information</div>
+                    <div className="space-y-4">
+                        <div style={hlStyle('title')}>
+                            <SectionHeader label="Title" required error={errors.title} />
+                            <input className={`form-input w-full ${errors.title ? 'border-red-500' : ''}`} placeholder="e.g. Two Sum Advanced"
+                                value={form.title} onChange={e => onUpdate('title', e.target.value)} />
+                        </div>
+                        <div style={hlStyle('description')}>
+                            <SectionHeader label="Description" required error={errors.description} />
+                            <textarea rows="4" className={`form-textarea w-full ${errors.description ? 'border-red-500' : ''}`}
+                                placeholder="Clear problem statement..." value={form.description} onChange={e => onUpdate('description', e.target.value)} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={hlStyle('difficulty')}>
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>Difficulty</label>
+                                <select className="form-select w-full" value={form.difficulty}
+                                    onChange={e => { onUpdate('difficulty', e.target.value); onUpdate('xpReward', XP_MAP[e.target.value]); onUpdate('estimatedTime', TIME_MAP[e.target.value]); }}>
+                                    {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>Topic</label>
+                                <select className="form-select w-full" value={form.topic} onChange={e => onUpdate('topic', e.target.value)}>
+                                    {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>XP Reward</label>
+                                <input type="number" min="0" className="form-input w-full" value={form.xpReward} onChange={e => onUpdate('xpReward', +e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>Est. Time (min)</label>
+                                <input type="number" min="1" className="form-input w-full" value={form.estimatedTime} onChange={e => onUpdate('estimatedTime', +e.target.value)} />
+                            </div>
+                        </div>
                     </div>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">{subtitle}</p>
+                </div>
+
+                {/* ── STEP 2: Challenge Details (collapsible) ── */}
+                <div className="p-4 rounded-xl" style={{ background: 'var(--color-bg-sidebar)', border: '1px solid var(--color-border)' }}>
+                    <div className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--color-text-muted)' }}>Step 2 — Challenge Details</div>
+
+                    {/* Constraints */}
+                    <div className="mb-4" style={hlStyle('constraints')}>
+                        <div className="flex items-center justify-between cursor-pointer" onClick={() => toggle('constraints')}>
+                            <SectionHeader label="Constraints" highlight={highlight.constraints} />
+                            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collapsed.constraints ? '▸' : '▾'}</span>
+                        </div>
+                        {!collapsed.constraints && <ArrayField items={form.constraints} placeholder="e.g. 1 <= n <= 10^5"
+                            onChange={(i, v) => onUpdateArray('constraints', i, v)}
+                            onAdd={() => onAddItem('constraints', '')} onRemove={(i) => onRemoveItem('constraints', i)} />}
+                    </div>
+
+                    {/* Examples */}
+                    <div className="mb-4" style={hlStyle('examples')}>
+                        <div className="flex items-center justify-between cursor-pointer" onClick={() => toggle('examples')}>
+                            <SectionHeader label="Examples" highlight={highlight.examples} />
+                            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collapsed.examples ? '▸' : '▾'}</span>
+                        </div>
+                        {!collapsed.examples && (<>
+                            {form.examples.map((ex, i) => (
+                                <div key={i} className="p-3 rounded-lg mb-2" style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)' }}>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-bold text-cyan-400">Example {i + 1}</span>
+                                        {form.examples.length > 1 && <button onClick={() => onRemoveItem('examples', i)} className="text-xs text-red-400 hover:text-red-300">Remove</button>}
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                                        <input className="form-input w-full text-xs" placeholder="Input" value={ex.input} onChange={e => onUpdateArray('examples', i, { ...ex, input: e.target.value })} />
+                                        <input className="form-input w-full text-xs" placeholder="Output" value={ex.output} onChange={e => onUpdateArray('examples', i, { ...ex, output: e.target.value })} />
+                                    </div>
+                                    <input className="form-input w-full text-xs" placeholder="Explanation (optional)" value={ex.explanation} onChange={e => onUpdateArray('examples', i, { ...ex, explanation: e.target.value })} />
+                                </div>
+                            ))}
+                            <button onClick={() => onAddItem('examples', { input: '', output: '', explanation: '' })} className="text-xs text-cyan-400 hover:text-cyan-300 mt-1">+ Add Example</button>
+                        </>)}
+                    </div>
+
+                    {/* Test Cases */}
+                    <div className="mb-4" style={hlStyle('testCases')}>
+                        <div className="flex items-center justify-between cursor-pointer" onClick={() => toggle('testCases')}>
+                            <SectionHeader label="Test Cases" required error={errors.testCases} highlight={highlight.testCases} />
+                            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collapsed.testCases ? '▸' : '▾'}</span>
+                        </div>
+                        {!collapsed.testCases && (<>
+                            {form.testCases.map((tc, i) => (
+                                <div key={i} className="flex gap-2 mb-2 items-center">
+                                    <span className="text-xs font-bold text-cyan-400 shrink-0">#{i + 1}</span>
+                                    <input className="form-input flex-1 text-xs" placeholder="Input" value={tc.input} onChange={e => onUpdateArray('testCases', i, { ...tc, input: e.target.value })} />
+                                    <input className="form-input flex-1 text-xs" placeholder="Output" value={tc.output} onChange={e => onUpdateArray('testCases', i, { ...tc, output: e.target.value })} />
+                                    {form.testCases.length > 1 && <button onClick={() => onRemoveItem('testCases', i)} className="text-red-400 hover:text-red-300 text-xs">✕</button>}
+                                </div>
+                            ))}
+                            {form.testCases.length < 10 && <button onClick={() => onAddItem('testCases', { input: '', output: '' })} className="text-xs text-cyan-400 hover:text-cyan-300 mt-1">+ Add Test Case</button>}
+                        </>)}
+                    </div>
+
+                    {/* Hints */}
+                    <div className="mb-4" style={hlStyle('hints')}>
+                        <div className="flex items-center justify-between cursor-pointer" onClick={() => toggle('hints')}>
+                            <SectionHeader label="Hints" highlight={highlight.hints} />
+                            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collapsed.hints ? '▸' : '▾'}</span>
+                        </div>
+                        {!collapsed.hints && <ArrayField items={form.hints} placeholder="Hint text..."
+                            onChange={(i, v) => onUpdateArray('hints', i, v)}
+                            onAdd={() => onAddItem('hints', '')} onRemove={(i) => onRemoveItem('hints', i)} />}
+                    </div>
+
+                    {/* Starter Code */}
+                    <div style={hlStyle('starterCode')}>
+                        <div className="flex items-center justify-between cursor-pointer" onClick={() => toggle('starterCode')}>
+                            <SectionHeader label="Starter Code (JavaScript)" highlight={highlight.starterCode} />
+                            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collapsed.starterCode ? '▸' : '▾'}</span>
+                        </div>
+                        {!collapsed.starterCode && <textarea rows="4" className="form-textarea w-full font-mono text-xs"
+                            placeholder="function solution() {\n  // ...\n}" value={form.starterCode.javascript}
+                            onChange={e => onUpdate('starterCode', { ...form.starterCode, javascript: e.target.value })} />}
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 flex-wrap pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <button onClick={onPreview} disabled={saving} title="Preview before publishing"
+                        className="btn-secondary disabled:opacity-60 flex items-center gap-2 hover:border-cyan-400/50"
+                        style={{ transition: 'all 0.2s' }}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        Preview
+                    </button>
+                    <button onClick={onSavePublish} disabled={saving} className="flex-1 btn-primary disabled:opacity-60 flex items-center justify-center gap-2">
+                        {saving ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
+                            : <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Save & Publish</>}
+                    </button>
+                    <button onClick={onSaveDraft} disabled={saving} className="btn-secondary disabled:opacity-60">Save Draft</button>
+                    <button onClick={onCancel} disabled={saving} className="btn-secondary hover:text-red-400 disabled:opacity-60">Cancel</button>
                 </div>
             </div>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button title="Edit" onClick={() => onEdit && onEdit(id)} className="action-btn action-btn-edit">
+        </div>
+    );
+};
+
+const ArrayField = ({ items, placeholder, onChange, onAdd, onRemove }) => (
+    <div>
+        {items.map((item, i) => (
+            <div key={i} className="flex gap-2 mb-2">
+                <input className="form-input flex-1 text-xs" placeholder={placeholder} value={item}
+                    onChange={e => onChange(i, e.target.value)} />
+                {items.length > 1 && <button onClick={() => onRemove(i)} className="text-red-400 hover:text-red-300 text-xs">✕</button>}
+            </div>
+        ))}
+        <button onClick={onAdd} className="text-xs text-cyan-400 hover:text-cyan-300 mt-1">+ Add</button>
+    </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   AI RESULT CARD — Editable Preview Panel
+   Admin must explicitly confirm before saving. No auto-publish.
+   ═══════════════════════════════════════════════════════════════════ */
+const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, onRegenerate, onDiscard, aiGenerating }) => {
+    const dc = DIFF_COLORS[aiForm.difficulty] || DIFF_COLORS.Medium;
+    // Local editable copy
+    const [draft, setDraft] = useState({ ...aiResult });
+    const updateDraft = (field, val) => setDraft(p => ({ ...p, [field]: val }));
+    const updateDraftTc = (i, key, val) => setDraft(p => {
+        const arr = [...p.testCases]; arr[i] = { ...arr[i], [key]: val }; return { ...p, testCases: arr };
+    });
+    const updateDraftEx = (i, key, val) => setDraft(p => {
+        const arr = [...p.examples]; arr[i] = { ...arr[i], [key]: val }; return { ...p, examples: arr };
+    });
+    const updateDraftConstraint = (i, val) => setDraft(p => {
+        const arr = [...p.constraints]; arr[i] = val; return { ...p, constraints: arr };
+    });
+    // Pass edited draft back to parent handlers
+    const handlePublish = () => onPublish(draft);
+    const handleDraft = () => onSaveDraft(draft);
+
+    return (
+        <div className="mt-6 animate-fade-in-up rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(6,182,212,0.25)', background: 'var(--color-bg-card, var(--color-bg-input))' }}>
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(139,92,246,0.06))', borderBottom: '1px solid rgba(6,182,212,0.15)', padding: '16px 24px' }}>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                            </svg>
+                            <span className="text-xs font-semibold" style={{ color: '#67e8f9' }}>AI Generated Preview</span>
+                        </div>
+                        <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '8px', padding: '2px 10px', fontSize: '11px', fontWeight: 600 }}>{aiForm.difficulty}</span>
+                        <span style={{ background: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', padding: '2px 10px', fontSize: '11px' }}>{aiForm.topic}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>⚡ {XP_MAP[aiForm.difficulty]} XP</span>
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>⏱ ~{TIME_MAP[aiForm.difficulty]} min</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">✏️ Editable</span>
+                    </div>
+                </div>
+                <p className="text-[10px] mt-2" style={{ color: 'var(--color-text-muted)' }}>Review and edit the generated content before saving. Changes are applied before submission.</p>
+            </div>
+
+            {/* Editable Body */}
+            <div className="p-6 space-y-5" style={{ maxHeight: '65vh', overflowY: 'auto' }}>
+
+                {/* Title */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>📋 Title</span>
+                    </div>
+                    <input className="form-input w-full font-semibold" value={draft.title} onChange={e => updateDraft('title', e.target.value)} />
+                </div>
+
+                {/* Description */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>📄 Description</span>
+                    </div>
+                    <textarea rows={4} className="form-textarea w-full text-sm" value={draft.description} onChange={e => updateDraft('description', e.target.value)} />
+                </div>
+
+                {/* Constraints */}
+                {draft.constraints?.length > 0 && (
+                    <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>📐 Constraints</span>
+                        {draft.constraints.map((c, i) => (
+                            <div key={i} className="flex gap-2 mb-1.5">
+                                <span className="text-cyan-400 font-bold mt-2 text-xs shrink-0">›</span>
+                                <input className="form-input flex-1 text-xs font-mono" value={c} onChange={e => updateDraftConstraint(i, e.target.value)} />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Examples */}
+                {draft.examples?.length > 0 && (
+                    <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>💡 Examples</span>
+                        {draft.examples.map((ex, i) => (
+                            <div key={i} className="p-3 rounded-lg mb-2" style={{ background: 'var(--color-bg-sidebar)', border: '1px solid var(--color-border)' }}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-[10px] font-bold text-cyan-400 uppercase">Example {i + 1}</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-1.5">
+                                    <div>
+                                        <span className="text-[10px] text-gray-500 block mb-1">Input</span>
+                                        <input className="form-input w-full text-xs font-mono" value={ex.input} onChange={e => updateDraftEx(i, 'input', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] text-green-500 block mb-1">Output</span>
+                                        <input className="form-input w-full text-xs font-mono" value={ex.output} onChange={e => updateDraftEx(i, 'output', e.target.value)} />
+                                    </div>
+                                </div>
+                                {ex.explanation && (
+                                    <input className="form-input w-full text-xs" placeholder="Explanation" value={ex.explanation} onChange={e => updateDraftEx(i, 'explanation', e.target.value)} />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Test Cases */}
+                {draft.testCases?.length > 0 && (
+                    <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>🧪 Test Cases ({draft.testCases.length})</span>
+                        <div className="space-y-1.5">
+                            {draft.testCases.map((tc, i) => (
+                                <div key={i} className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-cyan-400 shrink-0 w-5">#{i + 1}</span>
+                                    <input className="form-input flex-1 text-xs font-mono" placeholder="Input" value={tc.input} onChange={e => updateDraftTc(i, 'input', e.target.value)} />
+                                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>→</span>
+                                    <input className="form-input flex-1 text-xs font-mono" placeholder="Expected Output" value={tc.output} onChange={e => updateDraftTc(i, 'output', e.target.value)} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Starter Code */}
+                {draft.starterCode?.javascript && (
+                    <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>{'</>'} Starter Code</span>
+                        <textarea rows={5} className="form-textarea w-full font-mono text-xs"
+                            value={draft.starterCode.javascript}
+                            onChange={e => updateDraft('starterCode', { javascript: e.target.value })} />
+                    </div>
+                )}
+            </div>
+
+            {/* Action Footer */}
+            <div style={{ padding: '14px 24px', borderTop: '1px solid var(--color-border)', background: 'rgba(6,182,212,0.03)' }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <button onClick={handlePublish} disabled={publishing || aiGenerating}
+                        className="flex-1 btn-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        {publishing ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Publishing...</>
+                            : <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Save & Publish</>}
+                    </button>
+                    <button onClick={handleDraft} disabled={publishing} className="btn-secondary disabled:opacity-60">Save Draft</button>
+                    <button onClick={onRegenerate} disabled={publishing || aiGenerating} className="btn-secondary disabled:opacity-60">↺ Regenerate</button>
+                    <button onClick={onDiscard} disabled={publishing} className="btn-secondary hover:text-red-400 disabled:opacity-60">Discard</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHALLENGE ROW
+   ═══════════════════════════════════════════════════════════════════ */
+const ChallengeRow = ({ challenge, onTogglePublish, onDelete }) => {
+    const dc = DIFF_COLORS[challenge.difficulty] || DIFF_COLORS.Medium;
+    const isPublished = challenge.status === 'published';
+    return (
+        <div className="flex items-center justify-between p-4 rounded-xl transition-all group spotlight-hover table-row-hover"
+            style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)' }}>
+            <div className="flex items-center gap-4 min-w-0">
+                <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '8px', padding: '3px 12px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {challenge.difficulty}
+                </span>
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium group-hover:text-cyan-400 transition-colors truncate" style={{ color: 'var(--color-text-secondary)' }}>{challenge.title}</p>
+                        {challenge.aiGenerated && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase tracking-wide shrink-0">AI</span>
+                        )}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 ${isPublished ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'}`}>
+                            {isPublished ? 'Published' : 'Draft'}
+                        </span>
+                    </div>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                        {challenge.tags?.join(' • ')} • {challenge.xpReward || 0} XP
+                    </p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <button title={isPublished ? 'Unpublish' : 'Publish'} onClick={onTogglePublish}
+                    className="action-btn action-btn-edit" style={{ color: isPublished ? '#facc15' : '#22c55e' }}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        {isPublished
+                            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />}
                     </svg>
                 </button>
-                <button title="Delete" onClick={() => onDelete && onDelete(id)} className="action-btn action-btn-delete">
+                <button title="Delete" onClick={onDelete} className="action-btn action-btn-delete">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                 </button>
             </div>
         </div>
     );
 };
+
+/* ── Small Helpers ─────────────────────────────────────────────── */
+const SectionLabel = ({ icon, text }) => (
+    <div className="flex items-center gap-2">
+        <span>{icon}</span>
+        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{text}</span>
+    </div>
+);
+
+const IOBlock = ({ label, value, color }) => (
+    <div>
+        <span className="text-xs font-semibold block mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+        <code className="text-xs font-mono block p-2.5 rounded-lg" style={{ background: 'var(--color-bg-input)', color, border: '1px solid var(--color-border)' }}>{value}</code>
+    </div>
+);
 
 export default Challenges;

@@ -8,7 +8,7 @@
  *  • Sort dropdown & count
  *  • Loading skeleton state
  */
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Box,
     Flex,
@@ -26,12 +26,10 @@ import ChallengesListSkeleton from '../../../../shared/skeletons/ChallengesListS
 const MotionBox = motion.create(Box);
 
 const ChallengesListPage = () => {
-    // Loading state (simulated – will be replaced with real API call)
-    const [isLoading, setIsLoading] = useState(true);
-
     const {
         filteredChallenges,
         filteredCount,
+        isLoadingChallenges,
         selectedDifficulties,
         toggleDifficulty,
         selectedTags,
@@ -49,17 +47,8 @@ const ChallengesListPage = () => {
         tagCounts,
     } = useChallenges();
 
-    // Simulate data fetching
-    useEffect(() => {
-        // In production: replace with actual API call
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, [selectedDifficulties, selectedTags, selectedStatuses]);
-
     // Show skeleton during loading
-    if (isLoading) {
+    if (isLoadingChallenges) {
         return <ChallengesListSkeleton />;
     }
 
@@ -128,8 +117,18 @@ const ChallengesListPage = () => {
                             <Select
                                 value={sortOption}
                                 onChange={(e) => setSortOption(e.target.value)}
-                                className="form-select"
                                 w="220px"
+                                size="md"
+                                borderRadius="lg"
+                                borderColor="var(--color-border)"
+                                bg="var(--color-bg-input)"
+                                color="var(--color-text-primary)"
+                                _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)' }}
+                                _hover={{ borderColor: 'var(--color-border)' }}
+                                iconColor="var(--color-text-muted)"
+                                cursor="pointer"
+                                fontWeight="medium"
+                                fontSize="sm"
                             >
                                 {SORT_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>

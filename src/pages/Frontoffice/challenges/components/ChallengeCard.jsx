@@ -192,7 +192,7 @@ const ChallengeCard = ({ challenge }) => {
                     <Text fontSize="xs" color={isSolved ? 'green.400' : 'gray.500'}>
                         {isSolved
                             ? `Earned +${progress.earnedXp} XP`
-                            : `Solved by ${challenge.solvedCount.toLocaleString()} users`}
+                            : `Solved by ${(challenge.solvedCount || 0).toLocaleString()} users`}
                     </Text>
                 </Flex>
             </Flex>
