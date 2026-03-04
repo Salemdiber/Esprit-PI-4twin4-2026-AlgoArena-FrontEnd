@@ -13,8 +13,10 @@ import { authService } from '../../../../services/authService';
 import { userService } from '../../../../services/userService';
 import { setToken, removeToken, getToken } from '../../../../services/cookieUtils';
 import { useToast } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
+const AUTH_CHANNEL_NAME = 'auth_sync_channel';
 
 
 const STORAGE_KEY = 'fo_auth';
@@ -70,6 +72,42 @@ export const AuthProvider = ({ children }) => {
         return stored ? stored.user : null;
     });
     const toast = useToast();
+    const navigate = useNavigate();
+    const authChannel = React.useRef(null);
+
+    /* Cross-tab Auth Synchronization using BroadcastChannel */
+    useEffect(() => {
+        authChannel.current = new BroadcastChannel(AUTH_CHANNEL_NAME);
+        authChannel.current.onmessage = (event) => {
+            const { type, payload } = event.data;
+            if (type === 'LOGOUT') {
+                writeStorage(null);
+                setCurrentUser(null);
+                toast({
+                    title: 'Session Expired',
+                    description: 'You have been signed out. Please log in again to continue.',
+                    status: 'warning',
+                    duration: 5000,
+                    isClosable: true,
+                });
+                navigate('/signin');
+            } else if (type === 'LOGIN') {
+                const stored = readStorage();
+                if (stored?.user) {
+                    setCurrentUser(stored.user);
+                } else if (payload?.user) {
+                    setCurrentUser(payload.user);
+                }
+                // Optional: redirect to protected page or just let UI update
+            }
+        };
+
+        return () => {
+            if (authChannel.current) {
+                authChannel.current.close();
+            }
+        };
+    }, [toast, navigate]);
 
     /* Rehydrate on mount */
     useEffect(() => {
@@ -124,6 +162,16 @@ export const AuthProvider = ({ children }) => {
                         if (data?.access_token) {
                             setToken(data.access_token);
                         }
+                    } else if (refreshResp.status === 401) {
+                        // Refresh token invalid -> Logout cleanly across all tabs
+                        logout();
+                        toast({
+                            title: 'Session Expired',
+                            description: 'Your session has expired. Please log in again.',
+                            status: 'warning',
+                            duration: 5000,
+                            isClosable: true,
+                        });
                     }
                 } catch (error) {
                     console.error("Proactive background refresh failed:", error);
@@ -157,6 +205,10 @@ export const AuthProvider = ({ children }) => {
                 setCurrentUser(user);
                 writeStorage({ user });
 
+                if (authChannel.current) {
+                    authChannel.current.postMessage({ type: 'LOGIN', payload: { user } });
+                }
+
                 toast({ title: 'Welcome Back!', status: 'success', duration: 3000, isClosable: true });
                 return user;
             }
@@ -186,7 +238,11 @@ export const AuthProvider = ({ children }) => {
     const logout = useCallback(() => {
         setCurrentUser(null);
         writeStorage(null);
-    }, []);
+        if (authChannel.current) {
+            authChannel.current.postMessage({ type: 'LOGOUT' });
+        }
+        navigate('/signin');
+    }, [navigate]);
 
     /**
      * updateCurrentUser – partial-patch the persisted user.

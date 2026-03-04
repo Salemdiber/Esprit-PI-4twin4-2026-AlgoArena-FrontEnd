@@ -199,7 +199,6 @@ const ChallengeHeader = () => {
             bg="var(--color-bg-secondary)"
             borderBottom="1px solid"
             borderColor={useColorModeValue("gray.200", "gray.700")}
-            backdropFilter="blur(12px)"
             px={4}
             py={2.5}
             align="center"
@@ -211,8 +210,6 @@ const ChallengeHeader = () => {
                 <IconButton
                     icon={<ArrowLeftIcon w={5} h={5} />}
                     variant="ghost"
-                    color={useColorModeValue("gray.500","gray.400")}
-                    _hover={{ color: 'gray.100', bg: 'rgba(255,255,255,0.06)' }}
                     color={useColorModeValue("gray.500", "gray.400")}
                     _hover={{ color: useColorModeValue("gray.800", "gray.100"), bg: useColorModeValue("blackAlpha.50", "whiteAlpha.50") }}
                     onClick={() => navigate('/challenges')}
@@ -251,13 +248,6 @@ const ChallengeHeader = () => {
             <HStack spacing={3} flexShrink={0}>
                 <Stopwatch challengeId={selectedChallenge.id} />
 
-                <Box w="1px" h="28px" bg="rgba(255,255,255,0.07)" />
-
-                <Button
-                    size="sm"
-                    bg="var(--color-tag-bg)"
-                    color={useColorModeValue('gray.600', 'gray.300')}
-                    _hover={{ bg: 'gray.600' }}
                 <Box w="1px" h="28px" bg={useColorModeValue("gray.300", "rgba(255,255,255,0.07)")} />
 
                 <Button

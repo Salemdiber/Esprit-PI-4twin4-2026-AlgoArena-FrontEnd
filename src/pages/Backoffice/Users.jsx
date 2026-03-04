@@ -238,8 +238,6 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                 ) : (
                     <span className="text-gray-600 text-xs font-mono">0</span>
                 )}
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-                {xp != null ? xp.toLocaleString() : '—'}
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${isActive

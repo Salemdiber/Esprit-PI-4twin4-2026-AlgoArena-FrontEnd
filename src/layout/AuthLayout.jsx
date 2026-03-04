@@ -35,7 +35,7 @@ const AuthLayout = ({ children, activeTab = 'signin' }) => {
             {/* Nav */}
             <Flex as="nav" position="relative" zIndex={50} w="100%" p={6} justify="space-between" align="center" maxW="7xl" mx="auto">
                 <HStack as={RouterLink} to="/" spacing={2} _hover={{ textDecoration: 'none' }}>
-                    <Image src={Logo} alt="AlgoArena" h="40px" objectFit="contain" />
+                    <Image src={Logo} alt="AlgoArena" h={{ base: '48px', md: '56px' }} objectFit="contain" />
                 </HStack>
                 <HStack spacing={0} bg={pillBg} backdropFilter="blur(12px)" p={1} borderRadius="lg" border="1px solid" borderColor={pillBorder}>
                     <Button as={RouterLink} to="/signin" size="sm" px={4} borderRadius="md" fontSize="sm" fontWeight="medium"

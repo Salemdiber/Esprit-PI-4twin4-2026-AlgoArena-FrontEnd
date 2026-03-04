@@ -16,11 +16,13 @@ import {
     Rank,
 } from '../data/mockChallenges';
 import { challengeService } from '../../../../services/challengeService';
+import { fetchRankStats } from '../../../../services/userStatsService';
 
 // ─── Action types ─────────────────────────────────────────────────
 const ActionTypes = {
     SET_CHALLENGES: 'SET_CHALLENGES',
     SET_LOADING: 'SET_LOADING',
+    SET_USER_STATS: 'SET_USER_STATS',
     SELECT_CHALLENGE: 'SELECT_CHALLENGE',
     DESELECT_CHALLENGE: 'DESELECT_CHALLENGE',
     SET_CODE: 'SET_CODE',
@@ -77,8 +79,10 @@ const transformChallenge = (ch) => ({
 const initialState = {
     challenges: [],
     userProgress: [],
-    user: { name: 'User', rank: Rank.GOLD, xp: 2450, streak: 7 },
+    // user stats — populated from API, null until loaded
+    user: { rank: null, xp: 0, streak: 0 },
     isLoadingChallenges: true,
+    isLoadingStats: true,
 
     selectedChallengeId: null,
     code: '',
@@ -97,6 +101,20 @@ function challengeReducer(state, action) {
             return { ...state, challenges: action.payload, isLoadingChallenges: false };
         case ActionTypes.SET_LOADING:
             return { ...state, isLoadingChallenges: action.payload };
+        case ActionTypes.SET_USER_STATS:
+            return {
+                ...state,
+                user: {
+                    ...state.user,
+                    rank: action.payload.rank,
+                    xp: action.payload.xp,
+                    streak: action.payload.streak,
+                    nextRankXp: action.payload.nextRankXp,
+                    progressPercentage: action.payload.progressPercentage,
+                    isMaxRank: action.payload.isMaxRank,
+                },
+                isLoadingStats: false,
+            };
         case ActionTypes.SELECT_CHALLENGE: {
             const ch = state.challenges.find(c => c.id === action.payload);
             if (!ch) return state;
@@ -161,22 +179,34 @@ export const ChallengeProvider = ({ children }) => {
     // ── Fetch published challenges from API only ──────────────
     useEffect(() => {
         let cancelled = false;
-        const fetchChallenges = async () => {
+        const loadChallenges = async () => {
             dispatch({ type: ActionTypes.SET_LOADING, payload: true });
             try {
                 const apiChallenges = await challengeService.getPublished();
                 if (!cancelled && Array.isArray(apiChallenges)) {
-                    const transformed = apiChallenges.map(transformChallenge);
-                    dispatch({ type: ActionTypes.SET_CHALLENGES, payload: transformed });
+                    dispatch({ type: ActionTypes.SET_CHALLENGES, payload: apiChallenges.map(transformChallenge) });
                 } else if (!cancelled) {
                     dispatch({ type: ActionTypes.SET_CHALLENGES, payload: [] });
                 }
             } catch {
-                // API unreachable — show empty state
                 if (!cancelled) dispatch({ type: ActionTypes.SET_CHALLENGES, payload: [] });
             }
         };
-        fetchChallenges();
+
+        const loadRankStats = async () => {
+            const stats = await fetchRankStats();
+            if (!cancelled) {
+                if (stats) {
+                    dispatch({ type: ActionTypes.SET_USER_STATS, payload: stats });
+                } else {
+                    // API unavailable or not authenticated — mark done with defaults
+                    dispatch({ type: ActionTypes.SET_USER_STATS, payload: { rank: null, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false } });
+                }
+            }
+        };
+
+        loadChallenges();
+        loadRankStats();
         return () => { cancelled = true; };
     }, []);
 
@@ -199,10 +229,20 @@ export const ChallengeProvider = ({ children }) => {
     // ── Derived ──────────────────────────────────────────────
     const selectedChallenge = useMemo(() => state.challenges.find(c => c.id === state.selectedChallengeId) || null, [state.challenges, state.selectedChallengeId]);
     const getUserProgress = useCallback((challengeId) => state.userProgress.find(p => p.challengeId === challengeId) || null, [state.userProgress]);
-    const rankMeta = useMemo(() => RANK_META[state.user.rank], [state.user.rank]);
-    const xpToNextRank = useMemo(() => rankMeta?.xpCeil || 10000, [rankMeta]);
-    const progressPercent = useMemo(() => Math.min(100, Math.round((state.user.xp / xpToNextRank) * 100)), [state.user.xp, xpToNextRank]);
-    const recommendedDifficulties = useMemo(() => RANK_RECOMMENDATIONS[state.user.rank] || [], [state.user.rank]);
+
+    // rankMeta is derived from the live user.rank (from API)
+    const rankMeta = useMemo(() => {
+        const r = state.user.rank;
+        return r ? (RANK_META[r] ?? RANK_META[Rank.BRONZE]) : null;
+    }, [state.user.rank]);
+
+    // Use API-provided values when available; fall back to local computation
+    const xpToNextRank = useMemo(() => state.user.nextRankXp ?? rankMeta?.xpCeil ?? 500, [state.user.nextRankXp, rankMeta]);
+    const progressPercent = useMemo(
+        () => state.user.progressPercentage ?? Math.min(100, Math.round((state.user.xp / xpToNextRank) * 100)),
+        [state.user.progressPercentage, state.user.xp, xpToNextRank]
+    );
+    const recommendedDifficulties = useMemo(() => state.user.rank ? (RANK_RECOMMENDATIONS[state.user.rank] || []) : [], [state.user.rank]);
     const isRecommended = useCallback((challenge) => recommendedDifficulties.includes(challenge.difficulty), [recommendedDifficulties]);
 
     const value = useMemo(() => ({

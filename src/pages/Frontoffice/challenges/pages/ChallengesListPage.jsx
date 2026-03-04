@@ -117,8 +117,18 @@ const ChallengesListPage = () => {
                             <Select
                                 value={sortOption}
                                 onChange={(e) => setSortOption(e.target.value)}
-                                className="form-select"
                                 w="220px"
+                                size="md"
+                                borderRadius="lg"
+                                borderColor="var(--color-border)"
+                                bg="var(--color-bg-input)"
+                                color="var(--color-text-primary)"
+                                _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)' }}
+                                _hover={{ borderColor: 'var(--color-border)' }}
+                                iconColor="var(--color-text-muted)"
+                                cursor="pointer"
+                                fontWeight="medium"
+                                fontSize="sm"
                             >
                                 {SORT_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>
