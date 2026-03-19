@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { getReCaptchaV3Token } from '../../services/recaptchaV3';
-import { Box, Heading, Text, Button, VStack, HStack, Input, Checkbox, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon, useColorModeValue } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
+import { Box, Heading, Text, Button, VStack, HStack, Input, Checkbox, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
@@ -28,12 +28,23 @@ const SignIn = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [recaptchaToken, setRecaptchaToken] = useState(null);
     const [errorMsg, setErrorMsg] = useState('');
     const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        if (!RECAPTCHA_SITE_KEY) return;
+
+        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+            // Token fetch will still surface submit-time errors if loading fails
+        });
+
+        return () => {
+            unmountReCaptchaV3();
+        };
+    }, [RECAPTCHA_SITE_KEY]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -42,7 +53,6 @@ const SignIn = () => {
         try {
             // Obtenir le token reCAPTCHA v3 dynamiquement
             const token = await getReCaptchaV3Token(RECAPTCHA_SITE_KEY, 'signin');
-            setRecaptchaToken(token);
             const user = await login(username, password, token);
 
             // New user coming from SignUp — redirect to Speed Challenge placement test
@@ -59,7 +69,7 @@ const SignIn = () => {
                 from = fallbackPath;
             }
             navigate(from, { replace: true });
-        } catch (err) {
+        } catch {
             // Error is handled in context via toast
         } finally {
             setIsLoading(false);
@@ -68,7 +78,6 @@ const SignIn = () => {
 
     const headingColor = 'var(--color-text-heading)';
     const labelColor = 'var(--color-text-secondary)';
-    const inputTextColor = 'var(--color-text-primary)';
     const socialBtnBg = 'var(--color-bg-input)';
     const socialBtnColor = 'var(--color-text-primary)';
     const socialBtnHoverBg = 'var(--color-bg-elevated)';

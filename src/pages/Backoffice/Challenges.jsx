@@ -1,7 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { challengeService } from '../../services/challengeService';
 import { importChallengeFile } from '../../services/challengeImporter';
 import { aiService } from '../../services/aiService';
+import {
+    AlertTriangle,
+    Bot,
+    BrainCircuit,
+    Check,
+    Eye,
+    FileSpreadsheet,
+    FileUp,
+    Plus,
+    Sparkles,
+    Upload,
+    WandSparkles,
+    X,
+} from 'lucide-react';
 
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'];
@@ -22,17 +37,30 @@ const EMPTY_MANUAL = {
     xpReward: 120, estimatedTime: 25, starterCode: { javascript: '' },
 };
 
+const ACTION_ICON_BUTTON = 'inline-flex items-center gap-2 rounded-lg text-[13px] font-semibold transition-all duration-200';
+const ACTION_COMPACT_STYLE = {
+    height: '38px',
+    minHeight: '38px',
+    padding: '0.4rem 0.75rem',
+    width: 'fit-content',
+    minWidth: '0',
+    flex: '0 0 auto',
+};
+
 /* ═══════════════════════════════════════════════════════════════════
    TOAST
    ═══════════════════════════════════════════════════════════════════ */
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
     const c = type === 'success'
-        ? { bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)', text: '#22c55e', icon: '✓' }
-        : { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', text: '#ef4444', icon: '✕' };
+        ? { bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)', text: '#22c55e', icon: Check }
+        : { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', text: '#ef4444', icon: X };
+    const Icon = c.icon;
     return (
         <div className="fixed top-6 right-6 z-50 animate-scale-in" style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: '12px', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px', backdropFilter: 'blur(12px)', maxWidth: '400px' }}>
-            <span style={{ color: c.text, fontWeight: 700, fontSize: '16px' }}>{c.icon}</span>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full" style={{ color: c.text, background: 'rgba(15,23,42,0.08)' }}>
+                <Icon size={16} strokeWidth={2.4} />
+            </span>
             <span style={{ color: c.text, fontSize: '14px', fontWeight: 500 }}>{message}</span>
         </div>
     );
@@ -47,7 +75,7 @@ const ConfirmModal = ({ title, message, onConfirm, onClose }) => (
         <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-scale-in text-center"
             onClick={e => e.stopPropagation()}>
             <div className="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center bg-red-500/10">
-                <span className="text-xl">⚠️</span>
+                <AlertTriangle size={22} strokeWidth={2.2} className="text-red-400" />
             </div>
             <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>{title}</h2>
             <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>{message}</p>
@@ -331,52 +359,69 @@ const Challenges = () => {
 
                 {/* Row 2 — Action buttons (wrap on mobile) */}
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json,.xlsx,.xls" onChange={handleImportFile} />
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col items-start gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
                     {/* Import */}
-                    <button onClick={() => fileInputRef.current?.click()}
-                        className="btn-secondary flex items-center gap-2 min-w-max group/imp hover:border-purple-400/50"
-                        style={{ transition: 'all 0.2s ease' }}>
-                        <svg className="w-4 h-4 shrink-0 transition-transform group-hover/imp:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        <span>Import Challenge</span>
-                    </button>
+                    <div className="flex flex-col gap-1">
+                        <button onClick={() => fileInputRef.current?.click()}
+                            className={`${ACTION_ICON_BUTTON} btn-secondary group/imp justify-start whitespace-nowrap`}
+                            style={{ ...ACTION_COMPACT_STYLE, transition: 'all 0.2s ease', borderColor: 'rgba(96,165,250,0.28)', background: 'linear-gradient(180deg, rgba(96,165,250,0.12), rgba(96,165,250,0.04))' }}>
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-transform group-hover/imp:scale-105" style={{ borderColor: 'rgba(96,165,250,0.24)', background: 'rgba(96,165,250,0.12)', color: '#60a5fa' }}>
+                                <FileUp size={14} strokeWidth={2.2} />
+                            </span>
+                            <span className="flex min-w-0 flex-col items-start text-left">
+                                <span>Import Challenges</span>
+                                <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>JSON or Excel challenge packs</span>
+                            </span>
+                        </button>
+                        <p className="px-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                            Supports structured `.json`, `.xlsx`, and `.xls` files that match the challenge schema.
+                        </p>
+                    </div>
 
                     {/* Create Manually */}
                     <button onClick={() => { setView(view === 'manual' ? 'list' : 'manual'); setImportErrors([]); }}
-                        className={`btn-secondary flex items-center gap-2 min-w-max ${view === 'manual' ? 'ring-2 ring-green-400' : ''}`}>
+                        className={`${ACTION_ICON_BUTTON} whitespace-nowrap ${view === 'manual' ? 'ring-2 ring-green-400' : ''}`}
+                        style={{
+                            ...ACTION_COMPACT_STYLE,
+                            background: view === 'manual'
+                                ? 'linear-gradient(180deg, rgba(34,197,94,0.22), rgba(34,197,94,0.12))'
+                                : 'linear-gradient(180deg, rgba(34,197,94,0.16), rgba(34,197,94,0.08))',
+                            color: '#dcfce7',
+                            border: '1px solid rgba(34,197,94,0.3)',
+                            boxShadow: '0 10px 30px rgba(34,197,94,0.12)',
+                        }}>
                         {view === 'manual' ? (
                             <>
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border" style={{ borderColor: 'rgba(220,252,231,0.18)', background: 'rgba(255,255,255,0.08)' }}>
+                                    <X size={14} strokeWidth={2.2} />
+                                </span>
                                 <span>Close Manual</span>
                             </>
                         ) : (
                             <>
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>Create Manually</span>
+                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border" style={{ borderColor: 'rgba(220,252,231,0.18)', background: 'rgba(255,255,255,0.08)' }}>
+                                    <Plus size={14} strokeWidth={2.2} />
+                                </span>
+                                <span className="flex min-w-0 flex-col items-start text-left">
+                                    <span>Create Manually</span>
+                                    <span className="text-[10px] font-medium text-green-100/80">Primary admin workflow</span>
+                                </span>
                             </>
                         )}
                     </button>
 
                     {/* Generate with AI */}
                     <button onClick={() => setView(view === 'ai' ? 'list' : 'ai')}
-                        className={`btn-primary flex items-center gap-2 min-w-max ${view === 'ai' ? 'ring-2 ring-cyan-300' : ''}`}>
+                        className={`${ACTION_ICON_BUTTON} btn-primary whitespace-nowrap ${view === 'ai' ? 'ring-2 ring-cyan-300' : ''}`}
+                        style={ACTION_COMPACT_STYLE}>
                         {view === 'ai' ? (
                             <>
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <Bot size={14} strokeWidth={2.2} />
                                 <span>Close AI</span>
                             </>
                         ) : (
                             <>
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                </svg>
+                                <WandSparkles size={14} strokeWidth={2.2} />
                                 <span>Generate with AI</span>
                             </>
                         )}
@@ -388,7 +433,7 @@ const Challenges = () => {
             {/* ── Manual Creator ────────────────────────── */}
             {importErrors.length > 0 && (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm mb-4 animate-fade-in-up">
-                    <div className="flex items-center gap-2 font-semibold mb-1"><span>⚠️</span> Import Warnings</div>
+                    <div className="flex items-center gap-2 font-semibold mb-1"><AlertTriangle size={16} strokeWidth={2.2} />Import Warnings</div>
                     <ul className="list-disc list-inside space-y-0.5 text-xs">{importErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>
                 </div>
             )}
@@ -532,22 +577,18 @@ const Challenges = () => {
    PREVIEW MODAL — full challenge preview before publish
    ═══════════════════════════════════════════════════════════════════ */
 const PreviewModal = ({ form, onClose, onPublish }) => {
-    // Lock body scroll to keep the page exactly where the admin is
     useEffect(() => {
-        const scrollY = window.scrollY;
-        const body = document.body;
-        body.style.position = 'fixed';
-        body.style.top = `-${scrollY}px`;
-        body.style.left = '0';
-        body.style.right = '0';
-        body.style.overflowY = 'scroll'; // keep scrollbar width so layout doesn't shift
+        const { body } = document;
+        const previousOverflow = body.style.overflow;
+        const previousPaddingRight = body.style.paddingRight;
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+        body.style.overflow = 'hidden';
+        if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+
         return () => {
-            body.style.position = '';
-            body.style.top = '';
-            body.style.left = '';
-            body.style.right = '';
-            body.style.overflowY = '';
-            window.scrollTo({ top: scrollY, behavior: 'instant' });
+            body.style.overflow = previousOverflow;
+            body.style.paddingRight = previousPaddingRight;
         };
     }, []);
 
@@ -562,13 +603,17 @@ const PreviewModal = ({ form, onClose, onPublish }) => {
     );
 
     if (!isValidChallenge) {
-        return (
-            <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        return createPortal((
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
                 onClick={onClose}>
                 <div className="w-full max-w-sm mx-4 rounded-2xl p-8 text-center animate-scale-in"
                     style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}
                     onClick={e => e.stopPropagation()}>
-                    <p className="text-4xl mb-4">📭</p>
+                    <div className="mb-4 flex justify-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border" style={{ background: 'rgba(148,163,184,0.12)', borderColor: 'rgba(148,163,184,0.24)', color: '#94a3b8' }}>
+                            <FileSpreadsheet size={24} strokeWidth={2.1} />
+                        </div>
+                    </div>
                     <p className="font-semibold mb-2" style={{ color: 'var(--color-text-heading)' }}>No preview data available</p>
                     <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>
                         Please fill in the Title, Description, and at least one Test Case before previewing.
@@ -576,26 +621,28 @@ const PreviewModal = ({ form, onClose, onPublish }) => {
                     <button onClick={onClose} className="btn-secondary">Back to Form</button>
                 </div>
             </div>
-        );
+        ), document.body);
     }
 
     const dc = DIFF_COLORS[form.difficulty];
-    return (
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+    return createPortal((
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm"
             onClick={onClose}>
-            <div className="w-full max-w-3xl mx-4 rounded-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col"
-                style={{ maxHeight: '90vh', background: 'var(--color-bg-card, var(--color-bg-sidebar))', border: '1px solid var(--color-border)' }}
+            <div className="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col"
+                style={{ height: 'min(88vh, 920px)', background: 'var(--color-bg-card, var(--color-bg-sidebar))', border: '1px solid var(--color-border)' }}
                 onClick={e => e.stopPropagation()}>
                 {/* Modal Header */}
                 <div className="flex items-center justify-between px-6 py-4 shrink-0"
                     style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-elevated, var(--color-bg-sidebar))' }}>
                     <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5" fill="none" stroke="#67e8f9" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={{ background: 'rgba(34,211,238,0.1)', borderColor: 'rgba(34,211,238,0.2)', color: '#67e8f9' }}>
+                            <Eye size={18} strokeWidth={2.1} />
+                        </div>
                         <span className="font-semibold text-sm" style={{ color: 'var(--color-text-heading)' }}>Challenge Preview</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>As seen in Front Office</span>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:opacity-80 transition-opacity"
-                        style={{ background: 'var(--color-bg-input)', color: 'var(--color-text-muted)' }}>✕</button>
+                        style={{ background: 'var(--color-bg-input)', color: 'var(--color-text-muted)' }}><X size={16} strokeWidth={2.3} /></button>
                 </div>
 
                 {/* Scrollable content */}
@@ -607,10 +654,10 @@ const PreviewModal = ({ form, onClose, onPublish }) => {
                             <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '8px', padding: '3px 12px', fontSize: '12px', fontWeight: 600 }}>{form.difficulty}</span>
                             <span style={{ background: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', padding: '3px 10px', fontSize: '12px' }}>{form.topic}</span>
                         </div>
-                        <div className="flex items-center gap-5 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            <span>⚡ {form.xpReward} XP</span>
-                            <span>⏱ ~{form.estimatedTime} min</span>
-                            <span>🧪 {form.testCases?.filter(t => t.input || t.output).length || 0} test cases</span>
+                        <div className="flex items-center gap-5 text-sm flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
+                            <span className="inline-flex items-center gap-1.5"><Sparkles size={14} strokeWidth={2.1} />{form.xpReward} XP</span>
+                            <span className="inline-flex items-center gap-1.5"><BrainCircuit size={14} strokeWidth={2.1} />~{form.estimatedTime} min</span>
+                            <span className="inline-flex items-center gap-1.5"><FileSpreadsheet size={14} strokeWidth={2.1} />{form.testCases?.filter(t => t.input || t.output).length || 0} test cases</span>
                         </div>
                     </div>
 
@@ -698,14 +745,14 @@ const PreviewModal = ({ form, onClose, onPublish }) => {
                 {/* Footer */}
                 <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderTop: '1px solid var(--color-border)' }}>
                     <button onClick={onPublish} className="flex-1 btn-primary flex items-center justify-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                        <Check size={16} strokeWidth={2.3} />
                         Looks Good — Save & Publish
                     </button>
                     <button onClick={onClose} className="btn-secondary">Back to Edit</button>
                 </div>
             </div>
         </div>
-    );
+    ), document.body);
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -725,7 +772,7 @@ const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
                 <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
                     <span>{ch.tags?.[0] || 'General'}</span>
                     {ch.updatedAt && <span>Updated {new Date(ch.updatedAt).toLocaleDateString()}</span>}
-                    {ch.testCases?.length > 0 && <span>🧪 {ch.testCases.length} tests</span>}
+                        {ch.testCases?.length > 0 && <span className="inline-flex items-center gap-1"><FileSpreadsheet size={12} strokeWidth={2.1} />{ch.testCases.length} tests</span>}
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -795,7 +842,7 @@ const SectionHeader = ({ label, required, error, highlight }) => (
     <div className="flex items-center gap-2 mb-2">
         <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>{label}{required && ' *'}</label>
         {error && <span className="text-red-400 text-xs">{error}</span>}
-        {highlight && <span className="text-[10px] text-green-400 font-semibold animate-pulse">✓ imported</span>}
+        {highlight && <span className="inline-flex items-center gap-1 text-[10px] text-green-400 font-semibold animate-pulse"><Check size={12} strokeWidth={2.4} />imported</span>}
     </div>
 );
 
@@ -916,7 +963,7 @@ const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, on
                                     <span className="text-xs font-bold text-cyan-400 shrink-0">#{i + 1}</span>
                                     <input className="form-input flex-1 text-xs" placeholder="Input" value={tc.input} onChange={e => onUpdateArray('testCases', i, { ...tc, input: e.target.value })} />
                                     <input className="form-input flex-1 text-xs" placeholder="Output" value={tc.output} onChange={e => onUpdateArray('testCases', i, { ...tc, output: e.target.value })} />
-                                    {form.testCases.length > 1 && <button onClick={() => onRemoveItem('testCases', i)} className="text-red-400 hover:text-red-300 text-xs">✕</button>}
+                                    {form.testCases.length > 1 && <button onClick={() => onRemoveItem('testCases', i)} className="text-red-400 hover:text-red-300 text-xs"><X size={14} strokeWidth={2.3} /></button>}
                                 </div>
                             ))}
                             {form.testCases.length < 10 && <button onClick={() => onAddItem('testCases', { input: '', output: '' })} className="text-xs text-cyan-400 hover:text-cyan-300 mt-1">+ Add Test Case</button>}
@@ -972,7 +1019,7 @@ const ArrayField = ({ items, placeholder, onChange, onAdd, onRemove }) => (
             <div key={i} className="flex gap-2 mb-2">
                 <input className="form-input flex-1 text-xs" placeholder={placeholder} value={item}
                     onChange={e => onChange(i, e.target.value)} />
-                {items.length > 1 && <button onClick={() => onRemove(i)} className="text-red-400 hover:text-red-300 text-xs">✕</button>}
+                {items.length > 1 && <button onClick={() => onRemove(i)} className="text-red-400 hover:text-red-300 text-xs"><X size={14} strokeWidth={2.3} /></button>}
             </div>
         ))}
         <button onClick={onAdd} className="text-xs text-cyan-400 hover:text-cyan-300 mt-1">+ Add</button>
@@ -1008,18 +1055,16 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="flex items-center gap-2">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                            </svg>
+                            <Sparkles size={16} strokeWidth={2.1} color="#67e8f9" />
                             <span className="text-xs font-semibold" style={{ color: '#67e8f9' }}>AI Generated Preview</span>
                         </div>
                         <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '8px', padding: '2px 10px', fontSize: '11px', fontWeight: 600 }}>{aiForm.difficulty}</span>
                         <span style={{ background: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', padding: '2px 10px', fontSize: '11px' }}>{aiForm.topic}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>⚡ {XP_MAP[aiForm.difficulty]} XP</span>
-                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>⏱ ~{TIME_MAP[aiForm.difficulty]} min</span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">✏️ Editable</span>
+                        <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}><Sparkles size={13} strokeWidth={2.1} />{XP_MAP[aiForm.difficulty]} XP</span>
+                        <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}><BrainCircuit size={13} strokeWidth={2.1} />~{TIME_MAP[aiForm.difficulty]} min</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20"><Eye size={12} strokeWidth={2.2} />Editable</span>
                     </div>
                 </div>
                 <p className="text-[10px] mt-2" style={{ color: 'var(--color-text-muted)' }}>Review and edit the generated content before saving. Changes are applied before submission.</p>
@@ -1031,7 +1076,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                 {/* Title */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>📋 Title</span>
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}><FileUp size={12} strokeWidth={2.1} />Title</span>
                     </div>
                     <input className="form-input w-full font-semibold" value={draft.title} onChange={e => updateDraft('title', e.target.value)} />
                 </div>
@@ -1039,7 +1084,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                 {/* Description */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>📄 Description</span>
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}><FileSpreadsheet size={12} strokeWidth={2.1} />Description</span>
                     </div>
                     <textarea rows={4} className="form-textarea w-full text-sm" value={draft.description} onChange={e => updateDraft('description', e.target.value)} />
                 </div>
@@ -1047,7 +1092,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                 {/* Constraints */}
                 {draft.constraints?.length > 0 && (
                     <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>📐 Constraints</span>
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}><AlertTriangle size={12} strokeWidth={2.1} />Constraints</span>
                         {draft.constraints.map((c, i) => (
                             <div key={i} className="flex gap-2 mb-1.5">
                                 <span className="text-cyan-400 font-bold mt-2 text-xs shrink-0">›</span>
@@ -1060,7 +1105,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                 {/* Examples */}
                 {draft.examples?.length > 0 && (
                     <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>💡 Examples</span>
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}><Sparkles size={12} strokeWidth={2.1} />Examples</span>
                         {draft.examples.map((ex, i) => (
                             <div key={i} className="p-3 rounded-lg mb-2" style={{ background: 'var(--color-bg-sidebar)', border: '1px solid var(--color-border)' }}>
                                 <div className="flex items-center gap-2 mb-2">
@@ -1087,7 +1132,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                 {/* Test Cases */}
                 {draft.testCases?.length > 0 && (
                     <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>🧪 Test Cases ({draft.testCases.length})</span>
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}><FileSpreadsheet size={12} strokeWidth={2.1} />Test Cases ({draft.testCases.length})</span>
                         <div className="space-y-1.5">
                             {draft.testCases.map((tc, i) => (
                                 <div key={i} className="flex items-center gap-2">
@@ -1121,7 +1166,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
                             : <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Save & Publish</>}
                     </button>
                     <button onClick={handleDraft} disabled={publishing} className="btn-secondary disabled:opacity-60">Save Draft</button>
-                    <button onClick={onRegenerate} disabled={publishing || aiGenerating} className="btn-secondary disabled:opacity-60">↺ Regenerate</button>
+                    <button onClick={onRegenerate} disabled={publishing || aiGenerating} className="btn-secondary disabled:opacity-60 inline-flex items-center gap-2"><Upload size={14} strokeWidth={2.2} />Regenerate</button>
                     <button onClick={onDiscard} disabled={publishing} className="btn-secondary hover:text-red-400 disabled:opacity-60">Discard</button>
                 </div>
             </div>
