@@ -1,12 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getDiceBearUrl } from '../../services/dicebear';
-import { getReCaptchaV3Token } from '../../services/recaptchaV3';
+import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
 import { Box, Heading, Text, Button, VStack, HStack, Input, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon, Grid, Image, Spinner } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
-import { useAuth, redirectBasedOnRole } from './auth/context/AuthContext';
+import { useAuth } from './auth/context/AuthContext';
 import { authService } from '../../services/authService';
+import FormFeedbackAlert from './auth/components/FormFeedbackAlert';
 
 const MotionBox = motion.create(Box);
 
@@ -24,6 +25,41 @@ const EyeOffIcon = (props) => (
     </Icon>
 );
 
+const PASSWORD_SECURITY_MESSAGE = 'Password cannot contain your username or email for security reasons';
+const INVALID_FORMAT_MESSAGE = 'Invalid email format';
+const DISPOSABLE_EMAIL_MESSAGE = 'Disposable emails are not allowed';
+const DOMAIN_CANNOT_RECEIVE_MESSAGE = 'Email domain cannot receive emails';
+
+const normalize = (value) => value.trim().toLowerCase();
+const toAlphaNumeric = (value) => value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+const passwordContainsIdentityData = (password, username, email) => {
+    const normalizedPassword = normalize(password);
+    const passwordAlphaNumeric = toAlphaNumeric(password);
+    const normalizedUsername = normalize(username);
+    const normalizedEmail = normalize(email);
+    const [emailLocalPart = '', emailDomain = ''] = normalizedEmail.split('@');
+    const domainName = emailDomain.split('.')[0] || '';
+
+    const tokens = new Set([
+        normalizedUsername,
+        toAlphaNumeric(normalizedUsername),
+        normalizedEmail,
+        emailLocalPart,
+        toAlphaNumeric(emailLocalPart),
+        emailDomain,
+        domainName,
+        toAlphaNumeric(normalizedEmail),
+    ]);
+
+    normalizedUsername.split(/[^a-z0-9]+/g).forEach((part) => tokens.add(part));
+    normalizedEmail.split(/[^a-z0-9]+/g).forEach((part) => tokens.add(part));
+
+    return [...tokens]
+        .filter((token) => token && token.length >= 3)
+        .some((token) => normalizedPassword.includes(token) || (toAlphaNumeric(token).length >= 3 && passwordAlphaNumeric.includes(toAlphaNumeric(token))));
+};
+
 const SignUp = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -39,14 +75,18 @@ const SignUp = () => {
         }
     }, [username]);
     const [isLoading, setIsLoading] = useState(false);
-    const [recaptchaToken, setRecaptchaToken] = useState(null);
     const [errorMsg, setErrorMsg] = useState('');
+    const [shakeKeys, setShakeKeys] = useState({ email: 0, password: 0, username: 0 });
     const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
     const { signup } = useAuth();
     const navigate = useNavigate();
 
     const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '' }); // 'idle', 'loading', 'available', 'taken'
-    const [emailStatus, setEmailStatus] = useState({ state: 'idle', message: '' });
+    const [emailStatus, setEmailStatus] = useState({ state: 'idle', message: '' }); // idle | loading | available | taken | invalid
+
+    const triggerShake = (field) => {
+        setShakeKeys((prev) => ({ ...prev, [field]: prev[field] + 1 }));
+    };
 
     useEffect(() => {
         if (!username || username.length < 3) {
@@ -60,7 +100,7 @@ const SignUp = () => {
                 const res = await authService.checkAvailability('username', username);
                 if (res.available) setUsernameStatus({ state: 'available', message: 'Available' });
                 else setUsernameStatus({ state: 'taken', message: res.message || 'Taken' });
-            } catch (err) {
+            } catch {
                 setUsernameStatus({ state: 'idle', message: '' });
             }
         }, 500);
@@ -69,18 +109,34 @@ const SignUp = () => {
     }, [username]);
 
     useEffect(() => {
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
             setEmailStatus({ state: 'idle', message: '' });
+            return;
+        }
+
+        const strictEmailRegex = /^(?=.{6,254}$)(?=.{1,64}@)([a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*)@([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+)$/i;
+        if (!strictEmailRegex.test(trimmedEmail)) {
+            setEmailStatus({ state: 'invalid', message: INVALID_FORMAT_MESSAGE });
             return;
         }
 
         const timeoutId = setTimeout(async () => {
             setEmailStatus({ state: 'loading', message: '' });
             try {
-                const res = await authService.checkAvailability('email', email);
+                const res = await authService.checkAvailability('email', trimmedEmail);
                 if (res.available) setEmailStatus({ state: 'available', message: 'Available' });
-                else setEmailStatus({ state: 'taken', message: res.message || 'Taken' });
-            } catch (err) {
+                else {
+                    const message = res.message || '';
+                    const isInvalid = message === INVALID_FORMAT_MESSAGE ||
+                        message === DISPOSABLE_EMAIL_MESSAGE ||
+                        message === DOMAIN_CANNOT_RECEIVE_MESSAGE;
+                    setEmailStatus({
+                        state: isInvalid ? 'invalid' : 'taken',
+                        message: message || (isInvalid ? INVALID_FORMAT_MESSAGE : 'Taken'),
+                    });
+                }
+            } catch {
                 setEmailStatus({ state: 'idle', message: '' });
             }
         }, 500);
@@ -88,7 +144,27 @@ const SignUp = () => {
         return () => clearTimeout(timeoutId);
     }, [email]);
 
-    const isFormInvalid = usernameStatus.state === 'taken' || emailStatus.state === 'taken' || password.length < 6;
+    useEffect(() => {
+        if (!RECAPTCHA_SITE_KEY) return;
+
+        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+            // Token fetch will still surface submit-time errors if loading fails
+        });
+
+        return () => {
+            unmountReCaptchaV3();
+        };
+    }, [RECAPTCHA_SITE_KEY]);
+
+    const hasSensitivePasswordContent = passwordContainsIdentityData(password, username, email);
+    const isFormInvalid =
+        usernameStatus.state === 'loading' ||
+        emailStatus.state === 'loading' ||
+        usernameStatus.state === 'taken' ||
+        emailStatus.state === 'taken' ||
+        emailStatus.state === 'invalid' ||
+        password.length < 6 ||
+        hasSensitivePasswordContent;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -96,14 +172,27 @@ const SignUp = () => {
 
         if (usernameStatus.state === 'taken') {
             setErrorMsg('Username is already taken.');
+            triggerShake('username');
             return;
         }
         if (emailStatus.state === 'taken') {
             setErrorMsg('Email is already taken.');
+            triggerShake('email');
             return;
         }
         if (password.length < 6) {
             setErrorMsg('Password must be at least 6 characters long.');
+            triggerShake('password');
+            return;
+        }
+        if (hasSensitivePasswordContent) {
+            setErrorMsg(PASSWORD_SECURITY_MESSAGE);
+            triggerShake('password');
+            return;
+        }
+        if (emailStatus.state === 'invalid') {
+            setErrorMsg(emailStatus.message || INVALID_FORMAT_MESSAGE);
+            triggerShake('email');
             return;
         }
 
@@ -111,11 +200,10 @@ const SignUp = () => {
         try {
             // Obtenir le token reCAPTCHA v3 dynamiquement
             const token = await getReCaptchaV3Token(RECAPTCHA_SITE_KEY, 'signup');
-            setRecaptchaToken(token);
             await signup(username, email, password, token, avatarUrl);
             localStorage.setItem('sc_pending', 'true'); // trigger Speed Challenge after login
             navigate('/signin');
-        } catch (err) {
+        } catch {
             // error handled by toast in AuthContext
         } finally {
             setIsLoading(false);
@@ -136,6 +224,32 @@ const SignUp = () => {
         _focus: { borderColor: 'var(--color-cyan-400)', boxShadow: '0 0 0 4px var(--color-focus-glow), inset 0 2px 4px var(--color-glass-border)', outline: 'none', bg: 'var(--color-bg-elevated)' },
         _hover: { borderColor: 'var(--color-border-hover)' }, transition: 'all 0.3s ease',
     };
+
+    const usernameHasError = usernameStatus.state === 'taken';
+    const usernameIsSuccess = usernameStatus.state === 'available';
+    const emailHasError = emailStatus.state === 'taken' || emailStatus.state === 'invalid';
+    const emailIsSuccess = emailStatus.state === 'available';
+    const passwordHasError = hasSensitivePasswordContent || (password.length > 0 && password.length < 6);
+    const passwordIsSuccess = password.length >= 8 && !passwordHasError;
+
+    const getFieldStyles = ({ hasError, isSuccess }) => ({
+        ...inputStyles,
+        borderColor: hasError ? 'red.300' : isSuccess ? 'green.300' : inputStyles.borderColor,
+        boxShadow: hasError
+            ? '0 0 0 3px rgba(248,113,113,0.18), 0 8px 18px -12px rgba(239,68,68,0.65)'
+            : isSuccess
+                ? '0 0 0 3px rgba(74,222,128,0.14), 0 8px 18px -12px rgba(34,197,94,0.55)'
+                : inputStyles.boxShadow,
+        _focus: {
+            ...inputStyles._focus,
+            borderColor: hasError ? 'red.400' : isSuccess ? 'green.400' : 'var(--color-cyan-400)',
+            boxShadow: hasError
+                ? '0 0 0 4px rgba(248,113,113,0.18), inset 0 2px 4px var(--color-glass-border)'
+                : isSuccess
+                    ? '0 0 0 4px rgba(74,222,128,0.14), inset 0 2px 4px var(--color-glass-border)'
+                    : inputStyles._focus.boxShadow,
+        },
+    });
 
 
 
@@ -228,17 +342,27 @@ const SignUp = () => {
                                                 </HStack>
                                             )}
                                         </Flex>
-                                        <InputGroup>
-                                            <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
-                                            </InputLeftElement>
-                                            <Input type="text" placeholder="AlgoMaster99" value={username} onChange={(e) => setUsername(e.target.value)} {...inputStyles} pr={avatarUrl ? "52px" : "1.25rem"} />
-                                            {avatarUrl && (
-                                                <InputRightElement width="52px" h="100%" display="flex" alignItems="center" justifyContent="center">
-                                                    <img src={avatarUrl} alt="avatar preview" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
-                                                </InputRightElement>
-                                            )}
-                                        </InputGroup>
+                                        <MotionBox
+                                            key={`username-shake-${shakeKeys.username}`}
+                                            initial={false}
+                                            animate={usernameHasError ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                                            transition={{ duration: 0.34, ease: 'easeOut' }}
+                                        >
+                                            <InputGroup>
+                                                <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
+                                                </InputLeftElement>
+                                                <Input type="text" placeholder="AlgoMaster99" value={username} onChange={(e) => setUsername(e.target.value)} {...getFieldStyles({ hasError: usernameHasError, isSuccess: usernameIsSuccess })} pr={avatarUrl ? "52px" : "1.25rem"} />
+                                                {avatarUrl && (
+                                                    <InputRightElement width="52px" h="100%" display="flex" alignItems="center" justifyContent="center">
+                                                        <img src={avatarUrl} alt="avatar preview" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
+                                                    </InputRightElement>
+                                                )}
+                                            </InputGroup>
+                                        </MotionBox>
+                                        <Box mt={2}>
+                                            <FormFeedbackAlert message={usernameHasError ? 'Username is already taken.' : ''} />
+                                        </Box>
                                         <Text fontSize="10px" color="gray.500" ml={1} mt={1}>Your rank starts as: <Text as="span" color="yellow.500" fontWeight="bold">Rookie 🥉</Text></Text>
                                     </Box>
 
@@ -260,23 +384,50 @@ const SignUp = () => {
                                                     <Text fontSize="10px" fontFamily="mono" color="red.400">In Use</Text>
                                                 </HStack>
                                             )}
+                                            {emailStatus.state === 'invalid' && (
+                                                <HStack spacing={1}>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">Invalid</Text>
+                                                </HStack>
+                                            )}
                                         </Flex>
-                                        <InputGroup>
-                                            <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
-                                            </InputLeftElement>
-                                            <Input type="email" placeholder="dev@example.com" value={email} onChange={(e) => setEmail(e.target.value)} {...inputStyles} />
-                                        </InputGroup>
+                                        <MotionBox
+                                            key={`email-shake-${shakeKeys.email}`}
+                                            initial={false}
+                                            animate={emailHasError ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                                            transition={{ duration: 0.34, ease: 'easeOut' }}
+                                        >
+                                            <InputGroup>
+                                                <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                                                </InputLeftElement>
+                                                <Input type="email" placeholder="dev@example.com" value={email} onChange={(e) => setEmail(e.target.value)} {...getFieldStyles({ hasError: emailHasError, isSuccess: emailIsSuccess })} pr={emailIsSuccess ? '52px' : '1.25rem'} />
+                                                {emailIsSuccess && (
+                                                    <InputRightElement width="52px" h="100%" display="flex" alignItems="center" justifyContent="center">
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                                                    </InputRightElement>
+                                                )}
+                                            </InputGroup>
+                                        </MotionBox>
+                                        <Box mt={2}>
+                                            <FormFeedbackAlert message={emailStatus.state === 'invalid' ? (emailStatus.message || INVALID_FORMAT_MESSAGE) : emailStatus.state === 'taken' ? 'Email is already taken.' : ''} />
+                                        </Box>
                                     </Box>
 
                                     {/* Password */}
                                     <Box w="100%">
                                         <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider" ml={1} mb={1}>Password</Text>
+                                        <MotionBox
+                                            key={`password-shake-${shakeKeys.password}`}
+                                            initial={false}
+                                            animate={passwordHasError ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                                            transition={{ duration: 0.34, ease: 'easeOut' }}
+                                        >
                                         <InputGroup>
                                             <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                                             </InputLeftElement>
-                                            <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} pr="52px" />
+                                            <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} {...getFieldStyles({ hasError: passwordHasError, isSuccess: passwordIsSuccess })} pr="52px" />
                                             <InputRightElement h="100%" w="52px" right="0" display="flex" alignItems="center" justifyContent="center">
                                                 <IconButton
                                                     variant="unstyled"
@@ -292,18 +443,22 @@ const SignUp = () => {
                                                 />
                                             </InputRightElement>
                                         </InputGroup>
+                                        </MotionBox>
                                         <Flex mt={2} align="center" gap={2}>
                                             <Box flex={1} h="4px" bg="gray.600" borderRadius="full" overflow="hidden">
                                                 <Box h="100%" w={strength.w} bgGradient="linear(to-r, red.500, yellow.500, green.500)" borderRadius="full" transition="width 0.3s" />
                                             </Box>
                                             <Text fontSize="10px" fontFamily="mono" color={strength.c}>{strength.l}</Text>
                                         </Flex>
+                                        <Box mt={2}>
+                                            <FormFeedbackAlert message={hasSensitivePasswordContent ? PASSWORD_SECURITY_MESSAGE : ''} />
+                                        </Box>
                                     </Box>
 
 
 
                                     {/* reCAPTCHA v3 : token généré automatiquement lors du submit */}
-                                    {errorMsg && <Text fontSize="xs" color="red.400" mt={2}>{errorMsg}</Text>}
+                                    <FormFeedbackAlert message={errorMsg} />
 
                                     {/* Submit */}
                                     <Box pt={4} w="100%">

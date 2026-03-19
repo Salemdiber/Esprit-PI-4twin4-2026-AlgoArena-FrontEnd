@@ -1,11 +1,11 @@
 /**
- * UserRankStatsBar – displays current rank, XP progress, and streak.
+ * UserRankStatsBar - displays current rank, XP progress, and streak.
  *
  * All values come from ChallengeContext (which fetches from GET /user/me/rank-stats).
  * Renders a loading skeleton while isLoadingStats is true.
  * Gracefully handles null rank (unranked / pre-placement users).
  */
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Box,
     Flex,
@@ -17,10 +17,10 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useChallengeContext } from '../context/ChallengeContext';
-import { RANK_META, Rank } from '../data/mockChallenges';
+import { RANK_META } from '../data/mockChallenges';
 
-// ── Rank order for next-rank label ──────────────────────────────────────────
 const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
+const BRONZE_XP_TARGET = 500;
 
 const FlameIcon = (props) => (
     <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>
@@ -28,96 +28,152 @@ const FlameIcon = (props) => (
     </Icon>
 );
 
-// ── Loading skeleton ─────────────────────────────────────────────────────────
+const RankIcon = (props) => (
+    <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+        <path d="M8 21h8" />
+        <path d="M12 17v4" />
+        <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+        <path d="M7 6H5a2 2 0 0 0 0 4h1" />
+        <path d="M17 6h2a2 2 0 0 1 0 4h-1" />
+    </Icon>
+);
+
+const XPIcon = (props) => (
+    <Icon viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="m12 2 2.45 4.96 5.47.8-3.96 3.86.93 5.45L12 14.7l-4.89 2.57.93-5.45L4.08 7.76l5.47-.8L12 2Z" />
+    </Icon>
+);
+
+const useAnimatedProgress = (targetValue) => {
+    const [animatedValue, setAnimatedValue] = useState(0);
+    const clampedTarget = useMemo(() => {
+        const num = Number.isFinite(targetValue) ? targetValue : 0;
+        return Math.max(0, Math.min(100, num));
+    }, [targetValue]);
+
+    useEffect(() => {
+        const frame = window.requestAnimationFrame(() => {
+            setAnimatedValue(clampedTarget);
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [clampedTarget]);
+
+    return animatedValue;
+};
+
 const RankStatsSkeleton = () => (
     <Flex
         bg="var(--color-bg-secondary)"
-        borderRadius="12px"
-        p={4}
-        flexWrap="wrap"
-        alignItems="center"
-        gap={6}
+        border="1px solid var(--color-border)"
+        borderRadius="16px"
+        p={{ base: 4, md: 5 }}
+        flexDirection={{ base: 'column', lg: 'row' }}
+        align={{ base: 'stretch', lg: 'center' }}
+        gap={{ base: 4, lg: 6 }}
     >
         <Flex alignItems="center" gap={3}>
-            <Skeleton height="36px" width="100px" borderRadius="8px" />
+            <Skeleton height="52px" width="52px" borderRadius="full" />
             <Box>
-                <Skeleton height="12px" width="60px" mb={2} />
-                <Skeleton height="18px" width="120px" />
+                <Skeleton height="12px" width="90px" mb={2} />
+                <Skeleton height="22px" width="150px" borderRadius="md" />
             </Box>
         </Flex>
-        <Box flex={1} minW="200px">
-            <Skeleton height="12px" width="140px" mb={2} />
-            <Skeleton height="8px" borderRadius="full" />
+        <Box flex={1}>
+            <Skeleton height="12px" width="170px" mb={2} />
+            <Skeleton height="12px" borderRadius="full" />
         </Box>
-        <Flex alignItems="center" gap={2}>
-            <Skeleton height="20px" width="20px" borderRadius="full" />
+        <Flex alignItems="center" gap={2} justify={{ base: 'flex-start', lg: 'flex-end' }}>
+            <Skeleton height="24px" width="24px" borderRadius="full" />
             <Box>
-                <Skeleton height="12px" width="40px" mb={1} />
-                <Skeleton height="18px" width="60px" />
+                <Skeleton height="12px" width="45px" mb={1} />
+                <Skeleton height="18px" width="70px" />
             </Box>
         </Flex>
     </Flex>
 );
 
-// ── "Unranked" state when user has no rank yet ───────────────────────────────
 const UnrankedBar = ({ xp, streak }) => {
     const textSec = useColorModeValue('gray.500', 'gray.400');
     const textPrim = useColorModeValue('gray.800', 'gray.100');
+    const mutedBg = useColorModeValue('gray.100', 'whiteAlpha.100');
+    const iconBg = useColorModeValue('gray.200', 'whiteAlpha.200');
+
+    const progressPercent = Math.min(100, Math.round(((xp ?? 0) / BRONZE_XP_TARGET) * 100));
+    const animatedProgress = useAnimatedProgress(progressPercent);
 
     return (
         <Flex
             bg="var(--color-bg-secondary)"
-            borderRadius="12px"
-            p={4}
-            flexWrap="wrap"
-            alignItems="center"
-            gap={6}
+            border="1px solid var(--color-border)"
+            borderRadius="16px"
+            p={{ base: 4, md: 5 }}
+            flexDirection={{ base: 'column', lg: 'row' }}
+            align={{ base: 'stretch', lg: 'center' }}
+            gap={{ base: 4, lg: 6 }}
+            boxShadow="sm"
         >
-            {/* Unranked badge */}
-            <Flex alignItems="center" gap={3}>
-                <Badge
-                    bg="var(--color-tag-bg)"
-                    color="var(--color-text-muted)"
-                    fontWeight="bold"
-                    px={4}
-                    py={2}
-                    borderRadius="8px"
-                    fontSize="sm"
-                    textTransform="uppercase"
-                >
-                    Unranked
-                </Badge>
+            <Flex alignItems="center" gap={3} minW={{ lg: '260px' }}>
+                <Flex w={12} h={12} borderRadius="full" bg={iconBg} align="center" justify="center">
+                    <RankIcon w={6} h={6} color="var(--color-text-muted)" />
+                </Flex>
                 <Box>
-                    <Text fontSize="xs" color={textSec}>Total XP</Text>
-                    <Text fontFamily="heading" fontWeight="bold" color={textPrim}>
-                        {(xp ?? 0).toLocaleString()}
+                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">
+                        Current Rank
                     </Text>
+                    <Text fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="black" color={textPrim} lineHeight="1.1">
+                        Unranked
+                    </Text>
+                    <Text fontSize="xs" color={textSec} mt={1}>Earn XP to unlock your first rank.</Text>
                 </Box>
             </Flex>
 
-            {/* Progress toward first rank */}
-            <Box flex={1} minW="200px">
-                <Flex justify="space-between" fontSize="xs" color={textSec} mb={1}>
-                    <Text>Progress to Bronze (500 XP)</Text>
-                    <Text>{Math.min(100, Math.round(((xp ?? 0) / 500) * 100))}%</Text>
+            <Flex
+                direction="column"
+                bg={mutedBg}
+                borderRadius="12px"
+                px={3.5}
+                py={3}
+                minW={{ lg: '170px' }}
+                border="1px solid var(--color-border)"
+            >
+                <Flex align="center" gap={1.5} mb={0.5}>
+                    <XPIcon w={3.5} h={3.5} color="yellow.400" />
+                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">Total XP</Text>
+                </Flex>
+                <Text fontFamily="heading" fontWeight="bold" fontSize="xl" color={textPrim}>
+                    {(xp ?? 0).toLocaleString()}
+                </Text>
+            </Flex>
+
+            <Box flex={1}>
+                <Flex justify="space-between" align="center" mb={2}>
+                    <Text fontSize="sm" color={textSec} fontWeight="medium">
+                        Progress to Bronze ({BRONZE_XP_TARGET.toLocaleString()} XP)
+                    </Text>
+                    <Badge borderRadius="full" px={2.5} py={1} colorScheme="orange" variant="subtle">
+                        {progressPercent}%
+                    </Badge>
                 </Flex>
                 <Progress
-                    value={Math.min(100, Math.round(((xp ?? 0) / 500) * 100))}
-                    size="sm"
+                    value={animatedProgress}
+                    size="md"
                     borderRadius="full"
                     bg="var(--color-tag-bg)"
                     sx={{
                         '& > div': {
-                            bgGradient: 'linear(to-r, #cd7f32, #a0522d)',
+                            transition: 'width 0.95s ease',
+                            bgGradient: 'linear(to-r, #d97706, #f59e0b)',
                             borderRadius: 'full',
                         },
                     }}
                 />
+                <Text fontSize="xs" color={textSec} mt={1.5}>
+                    {(xp ?? 0).toLocaleString()} / {BRONZE_XP_TARGET.toLocaleString()} XP
+                </Text>
             </Box>
 
-            {/* Streak */}
             {streak > 0 && (
-                <Flex alignItems="center" gap={2}>
+                <Flex alignItems="center" gap={2} justify={{ base: 'flex-start', lg: 'flex-end' }}>
                     <FlameIcon w={5} h={5} color="red.500" />
                     <Box>
                         <Text fontSize="xs" color={textSec}>Streak</Text>
@@ -131,21 +187,16 @@ const UnrankedBar = ({ xp, streak }) => {
     );
 };
 
-// ── Main component ────────────────────────────────────────────────────────────
 const UserRankStatsBar = () => {
     const { user, rankMeta, xpToNextRank, progressPercent, isLoadingStats } = useChallengeContext();
     const textSec = useColorModeValue('gray.500', 'gray.400');
     const textPrim = useColorModeValue('gray.800', 'gray.100');
+    const mutedBg = useColorModeValue('gray.100', 'whiteAlpha.100');
+    const animatedProgress = useAnimatedProgress(progressPercent);
 
-    // Loading state
     if (isLoadingStats) return <RankStatsSkeleton />;
+    if (!user.rank || !rankMeta) return <UnrankedBar xp={user.xp} streak={user.streak} />;
 
-    // Unranked / pre-placement state
-    if (!user.rank || !rankMeta) {
-        return <UnrankedBar xp={user.xp} streak={user.streak} />;
-    }
-
-    // Next rank label
     const currentIdx = RANK_ORDER.indexOf(user.rank);
     const nextRankKey = currentIdx >= 0 && currentIdx < RANK_ORDER.length - 1
         ? RANK_ORDER[currentIdx + 1]
@@ -157,71 +208,106 @@ const UserRankStatsBar = () => {
     return (
         <Flex
             bg="var(--color-bg-secondary)"
-            borderRadius="12px"
-            p={4}
-            flexWrap="wrap"
-            alignItems="center"
-            gap={6}
+            border="1px solid var(--color-border)"
+            borderRadius="16px"
+            p={{ base: 4, md: 5 }}
+            flexDirection={{ base: 'column', lg: 'row' }}
+            align={{ base: 'stretch', lg: 'center' }}
+            gap={{ base: 4, lg: 6 }}
+            boxShadow="sm"
         >
-            {/* Rank badge + XP */}
-            <Flex alignItems="center" gap={3}>
-                <Badge
-                    bgGradient={`linear(to-r, ${rankMeta.gradient[0]}, ${rankMeta.gradient[1]})`}
+            <Flex alignItems="center" gap={3} minW={{ lg: '260px' }}>
+                <Flex
+                    w={12}
+                    h={12}
+                    borderRadius="full"
+                    bgGradient={`linear(to-br, ${rankMeta.gradient[0]}, ${rankMeta.gradient[1]})`}
+                    align="center"
+                    justify="center"
                     color="#0f172a"
-                    fontWeight="bold"
-                    px={4}
-                    py={2}
-                    borderRadius="8px"
-                    fontSize="sm"
-                    textTransform="uppercase"
+                    boxShadow="0 8px 20px rgba(15, 23, 42, 0.18)"
                 >
-                    {rankMeta.label} Rank
-                </Badge>
+                    <RankIcon w={6} h={6} />
+                </Flex>
                 <Box>
-                    <Text fontSize="xs" color={textSec}>Current XP</Text>
-                    <Text fontFamily="heading" fontWeight="bold" color={textPrim}>
-                        {(user.xp ?? 0).toLocaleString()}
-                        {!user.isMaxRank && (
-                            <Text as="span" fontWeight="normal" color={textSec}>
-                                {' '}/ {(xpToNextRank ?? 0).toLocaleString()}
-                            </Text>
-                        )}
+                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">
+                        Current Rank
                     </Text>
+                    <Text fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="black" color={textPrim} lineHeight="1.1">
+                        {rankMeta.label}
+                    </Text>
+                    <Badge mt={1.5} colorScheme="cyan" variant="subtle" borderRadius="full">Competitive Tier</Badge>
                 </Box>
             </Flex>
 
-            {/* Progress bar */}
-            {!user.isMaxRank && (
-                <Box flex={1} minW="200px">
-                    <Flex justify="space-between" fontSize="xs" color={textSec} mb={1}>
-                        <Text>Progress to {nextRankLabel}</Text>
-                        <Text>{progressPercent}%</Text>
+            <Flex
+                direction="column"
+                bg={mutedBg}
+                borderRadius="12px"
+                px={3.5}
+                py={3}
+                minW={{ lg: '170px' }}
+                border="1px solid var(--color-border)"
+            >
+                <Flex align="center" gap={1.5} mb={0.5}>
+                    <XPIcon w={3.5} h={3.5} color="yellow.400" />
+                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">Current XP</Text>
+                </Flex>
+                <Text fontFamily="heading" fontWeight="bold" fontSize="xl" color={textPrim}>
+                    {(user.xp ?? 0).toLocaleString()}
+                </Text>
+            </Flex>
+
+            {!user.isMaxRank ? (
+                <Box flex={1}>
+                    <Flex justify="space-between" align="center" mb={2}>
+                        <Text fontSize="sm" color={textSec} fontWeight="medium">
+                            Progress to {nextRankLabel}
+                        </Text>
+                        <Badge borderRadius="full" px={2.5} py={1} colorScheme="cyan" variant="subtle">
+                            {progressPercent}%
+                        </Badge>
                     </Flex>
                     <Progress
-                        value={progressPercent}
-                        size="sm"
+                        value={animatedProgress}
+                        size="md"
                         borderRadius="full"
                         bg="var(--color-tag-bg)"
                         sx={{
                             '& > div': {
+                                transition: 'width 0.95s ease',
                                 bgGradient: `linear(to-r, ${rankMeta.gradient[0]}, ${rankMeta.gradient[1]})`,
                                 borderRadius: 'full',
                             },
                         }}
                     />
+                    <Text fontSize="xs" color={textSec} mt={1.5}>
+                        {(user.xp ?? 0).toLocaleString()} / {(xpToNextRank ?? 0).toLocaleString()} XP
+                    </Text>
+                </Box>
+            ) : (
+                <Box flex={1}>
+                    <Flex justify="space-between" align="center" mb={2}>
+                        <Text fontSize="sm" color={textSec} fontWeight="medium">Maximum rank achieved</Text>
+                        <Badge borderRadius="full" px={2.5} py={1} colorScheme="purple" variant="subtle">100%</Badge>
+                    </Flex>
+                    <Progress
+                        value={100}
+                        size="md"
+                        borderRadius="full"
+                        bg="var(--color-tag-bg)"
+                        sx={{
+                            '& > div': {
+                                bgGradient: 'linear(to-r, #a855f7, #7c3aed)',
+                                borderRadius: 'full',
+                            },
+                        }}
+                    />
+                    <Text fontSize="xs" color={textSec} mt={1.5}>You have reached the top competitive tier.</Text>
                 </Box>
             )}
 
-            {user.isMaxRank && (
-                <Box flex={1} minW="200px">
-                    <Text fontSize="xs" color={textSec} mb={1}>Maximum rank achieved 🏆</Text>
-                    <Progress value={100} size="sm" borderRadius="full" bg="var(--color-tag-bg)"
-                        sx={{ '& > div': { bgGradient: 'linear(to-r, #a855f7, #7c3aed)', borderRadius: 'full' } }} />
-                </Box>
-            )}
-
-            {/* Streak */}
-            <Flex alignItems="center" gap={2}>
+            <Flex alignItems="center" gap={2} justify={{ base: 'flex-start', lg: 'flex-end' }}>
                 <FlameIcon w={5} h={5} color="red.500" />
                 <Box>
                     <Text fontSize="xs" color={textSec}>Streak</Text>
