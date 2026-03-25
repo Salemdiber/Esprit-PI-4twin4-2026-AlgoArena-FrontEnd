@@ -206,8 +206,8 @@ const Settings = () => {
                                         onChange={() => handleToggle('maintenanceMode', settings?.maintenanceMode)}
                                     />
                                     <ToggleItem
-                                        title="Ollama AI Classification"
-                                        description="Enable AI-powered code analysis and rank classification after placement test (disable on machines without Ollama)"
+                                        title="AI Classification"
+                                        description="Enable AI-powered code analysis and rank classification (disable if external AI is unavailable)"
                                         checked={settings?.ollamaEnabled ?? true}
                                         onChange={() => handleToggle('ollamaEnabled', settings?.ollamaEnabled)}
                                         accent="purple"
