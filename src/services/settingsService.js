@@ -61,7 +61,8 @@ export const settingsService = {
     },
 
     // ------------------------------------
-    // PATCH /settings/ollama-enabled → Toggle Ollama AI classification (admin only)
+    // PATCH /settings/ollama-enabled → Toggle AI classification (admin only)
+    // (keeps route name for backward compatibility)
     // ------------------------------------
     toggleOllamaEnabled: async (value) => {
         return apiClient('/settings/ollama-enabled', {
