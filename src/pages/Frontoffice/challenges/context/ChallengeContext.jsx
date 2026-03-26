@@ -218,6 +218,14 @@ export const ChallengeProvider = ({ children }) => {
     const setActiveTab = useCallback((idx) => dispatch({ type: ActionTypes.SET_ACTIVE_TAB, payload: idx }), []);
     const clearResults = useCallback(() => dispatch({ type: ActionTypes.CLEAR_RESULTS }), []);
     const resetCode = useCallback(() => dispatch({ type: ActionTypes.RESET_CODE }), []);
+
+    // ── Refresh rank stats (called after speed challenge completion) ──
+    const refreshRankStats = useCallback(async () => {
+        const stats = await fetchRankStats();
+        if (stats) {
+            dispatch({ type: ActionTypes.SET_USER_STATS, payload: stats });
+        }
+    }, []);
     const setTestResults = useCallback((results, allPassed) => dispatch({ type: ActionTypes.SET_TEST_RESULTS, payload: { results, allPassed } }), []);
     const markSolved = useCallback((challengeId, avgRuntime, avgMemory, xp) => {
         dispatch({ type: ActionTypes.MARK_SOLVED, payload: { challengeId, avgRuntime, avgMemory, xp } });
@@ -254,11 +262,12 @@ export const ChallengeProvider = ({ children }) => {
         progressPercent,
         recommendedDifficulties,
         isRecommended,
+        refreshRankStats,
         selectChallenge, deselectChallenge, setCode, setLanguage, setActiveTab,
         setTestResults, markSolved, clearResults, resetCode, setRunning, setSubmitting,
     }), [
         state, selectedChallenge, getUserProgress, rankMeta, xpToNextRank, progressPercent,
-        recommendedDifficulties, isRecommended, selectChallenge, deselectChallenge, setCode,
+        recommendedDifficulties, isRecommended, refreshRankStats, selectChallenge, deselectChallenge, setCode,
         setLanguage, setActiveTab, setTestResults, markSolved, clearResults, resetCode, setRunning, setSubmitting,
     ]);
 

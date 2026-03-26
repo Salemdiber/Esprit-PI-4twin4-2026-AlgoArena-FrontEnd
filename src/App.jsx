@@ -140,6 +140,54 @@ const MaintenanceGate = ({ children }) => {
   return children;
 };
 
+// Speed Challenge Gate - enforces onboarding requirement for new users
+// Redirects users who haven't completed speed challenge to the test
+const SpeedChallengeGate = ({ children }) => {
+  const { currentUser, isLoggedIn } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Paths where speed challenge is NOT required
+  const exemptPaths = [
+    '/',                        // landing page
+    '/speed-challenge',         // the test itself
+    '/admin',                   // admin routes
+    '/login',
+    '/signin',
+    '/signup',
+    '/auth/callback',
+    '/forgot-password',
+    '/email-sent',
+    '/reset-password',
+    '/reset-success',
+    '/reset-expired',
+    '/notfound',
+    '/profile/2fa-setup'        // 2FA setup page
+  ];
+
+  const isExemptPath = exemptPaths.some((p) => {
+    if (p === '/speed-challenge') return location.pathname === p || location.pathname.startsWith(p);
+    if (p === '/admin') return location.pathname.startsWith(p);
+    if (p === '/profile/2fa-setup') return location.pathname === p || location.pathname.startsWith(p);
+    return location.pathname === p;
+  });
+
+  // If not logged in or path is exempt, allow through
+  if (!isLoggedIn || isExemptPath) {
+    return children;
+  }
+
+  // Check if user has completed speed challenge
+  if (currentUser && !currentUser.speedChallengeCompleted) {
+    // Redirect to speed challenge if not completed
+    if (location.pathname !== '/speed-challenge') {
+      return <Navigate to="/speed-challenge" state={{ from: location }} replace />;
+    }
+  }
+
+  return children;
+};
+
 // Registers React Router navigate for voice commands
 const NavigateRegistrar = () => {
   const navigate = useNavigate();
@@ -165,7 +213,8 @@ function App() {
                   <ProfileProvider>
                     <Suspense fallback={<RouteLoader />}>
                       <MaintenanceGate>
-                        <Routes>
+                        <SpeedChallengeGate>
+                          <Routes>
                           {/* Public Routes with global header+footer */}
                           <Route element={<PublicLayout />}>
                             <Route path="/" element={<LandingPage />} />
@@ -209,6 +258,7 @@ function App() {
                           <Route path="/notfound" element={<NotFoundPage />} />
                           <Route path="*" element={<Navigate to="/notfound" replace />} />
                         </Routes>
+                        </SpeedChallengeGate>
                       </MaintenanceGate>
                     </Suspense>
                   </ProfileProvider>

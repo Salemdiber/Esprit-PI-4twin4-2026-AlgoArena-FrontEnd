@@ -44,14 +44,51 @@ const Settings = () => {
     const handleToggle = async (field, currentValue) => {
         try {
             setError(null);
+            // Optimistic update so the toggle UI responds immediately
+            const prev = settings;
+            const optimistic = { ...(settings || {}), [field]: !currentValue };
+            setSettings(optimistic);
+
+            // Persist optimistic flags to localStorage as a client-side fallback
+            try {
+                if (field === 'disableCopyPaste' || field === 'disableTabSwitch') {
+                    localStorage.setItem(field, JSON.stringify(!currentValue));
+                }
+            } catch (_) {}
+
             let data;
             if (field === 'userRegistration') data = await settingsService.toggleUserRegistration(!currentValue);
             else if (field === 'aiBattles') data = await settingsService.toggleAiBattles(!currentValue);
             else if (field === 'maintenanceMode') data = await settingsService.toggleMaintenanceMode(!currentValue);
             else if (field === 'ollamaEnabled') data = await settingsService.toggleOllamaEnabled(!currentValue);
-            setSettings(data);
+
+            // For new fields (disableCopyPaste / disableTabSwitch) the backend may not expose a PATCH
+            // endpoint; fall back to PUT update if specific toggles are not available.
+            if (!data && (field === 'disableCopyPaste' || field === 'disableTabSwitch')) {
+                const payload = { ...(settings || {}), [field]: !currentValue };
+                data = await settingsService.updateSettings(payload);
+            }
+
+            // Merge server response with local state to avoid wiping other fields
+            setSettings((prev) => ({ ...(prev || {}), ...(data || {}) }));
+            // Update localStorage fallback after successful server response
+            try {
+                if (data) {
+                    if (typeof data.disableCopyPaste !== 'undefined') localStorage.setItem('disableCopyPaste', JSON.stringify(!!data.disableCopyPaste));
+                    if (typeof data.disableTabSwitch !== 'undefined') localStorage.setItem('disableTabSwitch', JSON.stringify(!!data.disableTabSwitch));
+                }
+            } catch (_) {}
             showSuccess(`${field} updated successfully`);
         } catch (err) {
+            // Revert optimistic update on error
+            try {
+                const server = await settingsService.getSettings();
+                setSettings(server);
+                // Revert localStorage fallback
+                if (field === 'disableCopyPaste' || field === 'disableTabSwitch') {
+                    localStorage.setItem(field, JSON.stringify(server[field] || false));
+                }
+            } catch (_) { /* ignore */ }
             setError(err.message || `Failed to update ${field}`);
         }
     };
@@ -68,10 +105,18 @@ const Settings = () => {
                 aiBattles: settings.aiBattles,
                 maintenanceMode: settings.maintenanceMode,
                 ollamaEnabled: settings.ollamaEnabled,
+                disableCopyPaste: settings.disableCopyPaste,
+                disableTabSwitch: settings.disableTabSwitch,
                 apiRateLimit: Number(apiRateLimit),
                 codeExecutionLimit: Number(codeExecutionLimit),
             });
-            setSettings(data);
+            setSettings((prev) => ({ ...(prev || {}), ...(data || {}) }));
+            try {
+                if (data) {
+                    if (typeof data.disableCopyPaste !== 'undefined') localStorage.setItem('disableCopyPaste', JSON.stringify(!!data.disableCopyPaste));
+                    if (typeof data.disableTabSwitch !== 'undefined') localStorage.setItem('disableTabSwitch', JSON.stringify(!!data.disableTabSwitch));
+                }
+            } catch (_) {}
             showSuccess('All settings saved successfully');
         } catch (err) {
             setError(err.message || 'Failed to save settings');
@@ -92,10 +137,18 @@ const Settings = () => {
                 aiBattles: true,
                 maintenanceMode: false,
                 ollamaEnabled: true,
+                disableCopyPaste: false,
+                disableTabSwitch: false,
                 apiRateLimit: 1000,
                 codeExecutionLimit: 100,
             });
-            setSettings(data);
+            setSettings((prev) => ({ ...(prev || {}), ...(data || {}) }));
+            try {
+                if (data) {
+                    if (typeof data.disableCopyPaste !== 'undefined') localStorage.setItem('disableCopyPaste', JSON.stringify(!!data.disableCopyPaste));
+                    if (typeof data.disableTabSwitch !== 'undefined') localStorage.setItem('disableTabSwitch', JSON.stringify(!!data.disableTabSwitch));
+                }
+            } catch (_) {}
             setPlatformName('AlgoArena');
             setSupportEmail('support@algoarena.com');
             setApiRateLimit(1000);
@@ -212,6 +265,18 @@ const Settings = () => {
                                         onChange={() => handleToggle('ollamaEnabled', settings?.ollamaEnabled)}
                                         accent="purple"
                                     />
+                                    <ToggleItem
+                                        title="Disable Copy / Paste"
+                                        description="Prevent copy, cut and paste actions during speed challenges"
+                                        checked={settings?.disableCopyPaste ?? false}
+                                        onChange={() => handleToggle('disableCopyPaste', settings?.disableCopyPaste)}
+                                    />
+                                    <ToggleItem
+                                        title="Disable Tab Switch"
+                                        description="Detect tab switching and suspend the challenge when user leaves the tab"
+                                        checked={settings?.disableTabSwitch ?? false}
+                                        onChange={() => handleToggle('disableTabSwitch', settings?.disableTabSwitch)}
+                                    />
                                 </div>
                             </div>
 
@@ -298,12 +363,17 @@ const ToggleItem = ({ title, description, checked, onChange, accent }) => {
                 border: '1px solid var(--color-border)',
             }}
             onClick={onChange}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(); } }}
         >
             <div>
                 <p style={{ color: 'var(--color-text-secondary)' }} className={`font-medium  ${accentClass} transition-colors`}>{title}</p>
                 <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{description}</p>
             </div>
-            <div className={`toggle-switch ${checked ? 'active' : ''}`} />
+            <div
+                className={`toggle-switch ${checked ? 'active' : ''}`}
+            />
         </div>
     );
 };
