@@ -48,6 +48,7 @@ const ChallengePlayPage = lazy(() => import('./pages/Frontoffice/challenges/page
 
 // Frontoffice Leaderboard
 const LeaderboardPage = lazy(() => import('./pages/Frontoffice/leaderboard/pages/LeaderboardPage'));
+const CommunityPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityPage'));
 
 // Frontoffice Profile
 const ProfilePage = lazy(() => import('./pages/Frontoffice/profile/pages/ProfilePage'));
@@ -121,6 +122,7 @@ function App() {
                           <Route path="/challenges" element={<ChallengesListPage />} />
                           <Route path="/challenges/:id" element={<ChallengePlayPage />} />
                           <Route path="/leaderboard" element={<LeaderboardPage />} />
+                          <Route path="/community" element={<CommunityPage />} />
                           <Route path="/profile" element={<ProfilePage />} />
                           <Route path="/profile/2fa-setup" element={<TwoFactorSetupPage />} />
                         </Route>

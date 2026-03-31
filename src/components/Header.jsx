@@ -68,7 +68,7 @@ const navItems = [
     { label: 'Battles', to: '/battles' },
     { label: 'Challenges', to: '/challenges' },
     { label: 'Leaderboard', to: '/leaderboard' },
-    { label: 'Community', to: '/#community' },
+    { label: 'Community', to: '/community' },
     { label: 'Dashboard', to: '/admin' },
 ];
 
