@@ -61,6 +61,7 @@ const Settings = () => {
             else if (field === 'aiBattles') data = await settingsService.toggleAiBattles(!currentValue);
             else if (field === 'maintenanceMode') data = await settingsService.toggleMaintenanceMode(!currentValue);
             else if (field === 'ollamaEnabled') data = await settingsService.toggleOllamaEnabled(!currentValue);
+            else if (field === 'disableSpeedChallenges') data = await settingsService.toggleSpeedChallenges(!currentValue);
 
             // For new fields (disableCopyPaste / disableTabSwitch) the backend may not expose a PATCH
             // endpoint; fall back to PUT update if specific toggles are not available.
@@ -107,6 +108,7 @@ const Settings = () => {
                 ollamaEnabled: settings.ollamaEnabled,
                 disableCopyPaste: settings.disableCopyPaste,
                 disableTabSwitch: settings.disableTabSwitch,
+                disableSpeedChallenges: settings.disableSpeedChallenges,
                 apiRateLimit: Number(apiRateLimit),
                 codeExecutionLimit: Number(codeExecutionLimit),
             });
@@ -139,6 +141,7 @@ const Settings = () => {
                 ollamaEnabled: true,
                 disableCopyPaste: false,
                 disableTabSwitch: false,
+                disableSpeedChallenges: false,
                 apiRateLimit: 1000,
                 codeExecutionLimit: 100,
             });
@@ -276,6 +279,12 @@ const Settings = () => {
                                         description="Detect tab switching and suspend the challenge when user leaves the tab"
                                         checked={settings?.disableTabSwitch ?? false}
                                         onChange={() => handleToggle('disableTabSwitch', settings?.disableTabSwitch)}
+                                    />
+                                    <ToggleItem
+                                        title="Disable Speed Challenges"
+                                        description="Disable the speed challenge placement test for new users"
+                                        checked={settings?.disableSpeedChallenges ?? false}
+                                        onChange={() => handleToggle('disableSpeedChallenges', settings?.disableSpeedChallenges)}
                                     />
                                 </div>
                             </div>

@@ -13,7 +13,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/context/AuthContext';
 import { Toast, useToast } from '@chakra-ui/react';
 import {
-    Box, Flex, Text, Button, VStack, HStack, Image, Icon,
+    Box, Flex, Text, Button, VStack, HStack, Image, Icon, Heading,
 } from '@chakra-ui/react';
 import { MdOutlineEdit, MdTimer, MdSwapHoriz, MdEmojiEvents, MdKey, MdBolt } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -648,6 +648,8 @@ const SpeedChallengePage = () => {
     const toast = useToast();
     const { updateCurrentUser, currentUser } = useAuth();
     const [phase, setPhase] = useState(PHASE.INTRO);
+    const [isDisabled, setIsDisabled] = useState(false);
+    const [checkingStatus, setCheckingStatus] = useState(true);
     const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [solvedIds, setSolvedIds] = useState([]);
@@ -681,6 +683,24 @@ const SpeedChallengePage = () => {
         setCodes(Object.fromEntries(generatedProblems.map((p) => [p.id, (p.starterCode && p.starterCode.javascript) || '// start here'])));
         setLanguages(Object.fromEntries(generatedProblems.map((p) => [p.id, 'javascript'])));
     }, [generatedProblems]);
+
+    // Check if speed challenges are disabled
+    useEffect(() => {
+        const checkIfDisabled = async () => {
+            try {
+                const settings = await settingsService.getSettings();
+                if (settings?.disableSpeedChallenges) {
+                    setIsDisabled(true);
+                }
+            } catch (err) {
+                console.warn('Failed to check speed challenge status', err);
+            } finally {
+                setCheckingStatus(false);
+            }
+        };
+        
+        checkIfDisabled();
+    }, []);
 
     // ── Block navigation when test is in progress ────────────────────────────
     useEffect(() => {
@@ -991,6 +1011,55 @@ const SpeedChallengePage = () => {
     }, [activeProblems]);
 
     const handleDone = () => navigate('/', { replace: true });
+
+    // ── If checking status, show loading ──
+    if (checkingStatus) {
+        return (
+            <Box minH="100vh" bg="#0f172a" display="flex" alignItems="center" justifyContent="center">
+                <Text color="white">Loading...</Text>
+            </Box>
+        );
+    }
+
+    // ── If speed challenges are disabled, show maintenance message ──
+    if (isDisabled) {
+        return (
+            <Box
+                minH="100vh"
+                bg="#0f172a"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                p={4}
+            >
+                <VStack spacing={6} textAlign="center" maxW="500px">
+                    <Box w="80px" h="80px" bg="rgba(239,68,68,0.1)" borderRadius="full" display="flex" alignItems="center" justifyContent="center">
+                        <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" color="#ef4444">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </Box>
+                    <VStack spacing={2}>
+                        <Heading as="h1" size="lg" color="white">
+                            Speed Challenges Unavailable
+                        </Heading>
+                        <Text color="gray.400" fontSize="sm">
+                            The Speed Challenge placement test is currently disabled by administrators.
+                        </Text>
+                    </VStack>
+                    <Button
+                        onClick={() => navigate('/', { replace: true })}
+                        bgGradient="linear(to-r, brand.500, cyan.400)"
+                        color="#0f172a"
+                        _hover={{ opacity: 0.9 }}
+                    >
+                        Return to Home
+                    </Button>
+                </VStack>
+            </Box>
+        );
+    }
 
     // ── Render ──
     if (phase === PHASE.INTRO) return <IntroScreen onStart={handleStart} loading={loadingProblems} />;
