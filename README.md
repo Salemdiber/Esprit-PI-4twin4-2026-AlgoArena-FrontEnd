@@ -1,6 +1,6 @@
-<div align="center">
+ï»¿<div align="center">
   <img src="public/logo_algoarena.png" alt="AlgoArena Logo" width="200" />
-  <h1>AlgoArena — Frontend</h1>
+  <h1>AlgoArena â€” Frontend</h1>
   <p><strong>A competitive programming platform where developers sharpen their algorithmic skills</strong></p>
 </div>
 
@@ -37,64 +37,64 @@ What makes the experience strong is the integration of AI-assisted flows and san
 
 ## Key Features
 **Authentication And Access**
-- ? Sign in and sign up flows with reCAPTCHA integration
-- ? OAuth callback flow for social authentication
-- ? Password recovery and reset pages
-- ? Protected admin routes (role-based)
-- ? Challenge access guard for unauthenticated users
+- [x] Sign in and sign up flows with reCAPTCHA integration
+- [x] OAuth callback flow for social authentication
+- [x] Password recovery and reset pages
+- [x] Protected admin routes (role-based)
+- [x] Challenge access guard for unauthenticated users
 
 **Challenge Experience**
-- ? Challenge list and full challenge play page
-- ? Monaco-based code editor integration
-- ? Submission and progress integration through judge APIs
-- ? AI Judge and submission feedback tabs in challenge flow
-- ? Timer, execution state, and workspace state management through challenge context/hooks
+- [x] Challenge list and full challenge play page
+- [x] Monaco-based code editor integration
+- [x] Submission and progress integration through judge APIs
+- [x] AI Judge and submission feedback tabs in challenge flow
+- [x] Timer, execution state, and workspace state management through challenge context/hooks
 
 **Competitive Experience**
-- ? Battle listing, active battle view, and battle summary pages
-- ? Leaderboard page and rank display components
-- ? Speed challenge page and onboarding gate flow
+- [x] Battle listing, active battle view, and battle summary pages
+- [x] Leaderboard page and rank display components
+- [x] Speed challenge page and onboarding gate flow
 
 **User Account Experience**
-- ? Profile page and two-factor setup page
-- ? Rank stats retrieval and profile-related API integrations
+- [x] Profile page and two-factor setup page
+- [x] Rank stats retrieval and profile-related API integrations
 
 **Admin Dashboard**
-- ? Dashboard analytics cards and charts
-- ? Challenge management page
-- ? Activity logs page
-- ? Users, sessions, settings, system health, AI logs, and additional admin pages
-- ? Sandbox Monitor widget with backend polling (`/admin/sandbox/status`)
+- [x] Dashboard analytics cards and charts
+- [x] Challenge management page
+- [x] Activity logs page
+- [x] Users, sessions, settings, system health, AI logs, and additional admin pages
+- [x] Sandbox Monitor widget with backend polling (`/admin/sandbox/status`)
 
 **Platform UX And Quality**
-- ? Global accessibility provider, accessibility UI, and navigation registration
-- ? Theme provider + Chakra theme setup
-- ? Central API client with token handling and refresh flow
-- ? Vite proxy resilience for backend startup downtime (503 fallback message)
+- [x] Global accessibility provider, accessibility UI, and navigation registration
+- [x] Theme provider + Chakra theme setup
+- [x] Central API client with token handling and refresh flow
+- [x] Vite proxy resilience for backend startup downtime (503 fallback message)
 
 ## Architecture Overview
 ```text
 +----------------------------------------------------------------------+
-¦                           Client Browser                            ¦
-¦                                                                      ¦
-¦  +---------------------+   +----------------------+                 ¦
-¦  ¦ Frontoffice UI      ¦   ¦ Backoffice UI        ¦                 ¦
-¦  ¦ - Challenges        ¦   ¦ - Dashboard          ¦                 ¦
-¦  ¦ - Battles           ¦   ¦ - Challenges         ¦                 ¦
-¦  ¦ - Leaderboard       ¦   ¦ - Activity Logs      ¦                 ¦
-¦  ¦ - Profile/Auth      ¦   ¦ - Settings/Users     ¦                 ¦
-¦  +---------------------+   +----------------------+                 ¦
-¦             ¦                         ¦                              ¦
-¦      +-----------------------------------------------------------+   ¦
-¦      ¦ React 19 + Chakra UI + React Router + Context Providers   ¦   ¦
-¦      ¦ API Client (token + refresh), service layer, route guards ¦   ¦
-¦      +------------------------------------------------------------+   ¦
+|                           Client Browser                            |
+|                                                                      |
+|  +---------------------+   +----------------------+                 |
+|  | Frontoffice UI      |   | Backoffice UI        |                 |
+|  | - Challenges        |   | - Dashboard          |                 |
+|  | - Battles           |   | - Challenges         |                 |
+|  | - Leaderboard       |   | - Activity Logs      |                 |
+|  | - Profile/Auth      |   | - Settings/Users     |                 |
+|  +---------------------+   +----------------------+                 |
+|             |                         |                              |
+|      +-----------------------------------------------------------+   |
+|      | React 19 + Chakra UI + React Router + Context Providers   |   |
+|      | API Client (token + refresh), service layer, route guards |   |
+|      +------------------------------------------------------------+   |
 +--------------------------------------+---------------------------------+
-                                       ¦ HTTP/REST (proxied by Vite)
+                                       | HTTP/REST (proxied by Vite)
                                        ?
 +----------------------------------------------------------------------+
-¦                       NestJS Backend API                            ¦
-¦                 (authentication, judging, analytics)                ¦
+|                       NestJS Backend API                            |
+|                 (authentication, judging, analytics)                |
 +----------------------------------------------------------------------+
 ```
 
@@ -127,8 +127,8 @@ src/
 +-- hooks/                  # Generic custom hooks
 +-- layout/                 # Public/Admin layout shells
 +-- pages/
-¦   +-- Backoffice/         # Admin pages (Dashboard, Challenges, ActivityLogs, etc.)
-¦   +-- Frontoffice/        # Auth, challenges, battles, leaderboard, profile, speed challenge
+|   +-- Backoffice/         # Admin pages (Dashboard, Challenges, ActivityLogs, etc.)
+|   +-- Frontoffice/        # Auth, challenges, battles, leaderboard, profile, speed challenge
 +-- sections/               # Landing page sections
 +-- services/               # API client + domain service wrappers
 +-- shared/                 # Shared contexts/loaders/skeletons/cursor
@@ -243,3 +243,4 @@ Contributors discovered from git history:
 
 ## License
 No dedicated `LICENSE` file is present in this repository. Package metadata indicates `private: true`.
+
