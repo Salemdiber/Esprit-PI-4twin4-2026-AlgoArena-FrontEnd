@@ -20,6 +20,7 @@ import {
     Divider,
     useColorModeValue,
 } from '@chakra-ui/react';
+import useLanguage from '../../../../hooks/useLanguage';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META } from '../data/mockChallenges';
 
@@ -30,6 +31,7 @@ const StarIcon = (props) => (
 );
 
 const ProblemDescription = () => {
+    const { t } = useLanguage();
     const { selectedChallenge, activeTab } = useChallengeContext();
     const [openHints, setOpenHints] = useState({});
 
@@ -46,7 +48,7 @@ const ProblemDescription = () => {
         return (
             <Box>
                 <Text color={useColorModeValue("gray.500", "gray.400")} fontStyle="italic">
-                    Discussion feature coming soon. Share your approach with the community!
+                    {t('challenge.discussion_coming')}
                 </Text>
             </Box>
         );
@@ -56,7 +58,7 @@ const ProblemDescription = () => {
         return (
             <Box>
                 <Text color={useColorModeValue("gray.500", "gray.400")} fontStyle="italic">
-                    Your previous submissions will appear here after you submit solutions.
+                    {t('challenge.submissions_coming')}
                 </Text>
             </Box>
         );
@@ -100,10 +102,10 @@ const ProblemDescription = () => {
                 <HStack spacing={6} fontSize="sm" color={colorValues.gray500_400}>
                     <Flex align="center" gap={2}>
                         <StarIcon w={4} h={4} color="yellow.400" />
-                        <Text>+{selectedChallenge.xpReward} XP Reward</Text>
+                        <Text>+{selectedChallenge.xpReward} {t('challenge.xp_reward')}</Text>
                     </Flex>
                     <Text>
-                        Acceptance: <Text as="strong" color={colorValues.gray800_100}>{selectedChallenge.acceptanceRate}%</Text>
+                        {t('challenge.acceptance_rate')}: <Text as="strong" color={colorValues.gray800_100}>{selectedChallenge.acceptanceRate}%</Text>
                     </Text>
                 </HStack>
             </Box>
@@ -113,7 +115,7 @@ const ProblemDescription = () => {
             {/* Problem statement */}
             <Box>
                 <Text fontFamily="heading" fontWeight="bold" color={colorValues.gray800_100} mb={3}>
-                    Problem Statement
+                    {t('challenge.problem_statement')}
                 </Text>
                 {selectedChallenge.description.split('\n').filter(Boolean).map((para, i) => (
                     <Text key={i} color={colorValues.gray600_300} lineHeight="1.8" mb={3}>
@@ -142,20 +144,20 @@ const ProblemDescription = () => {
             {selectedChallenge.examples.map((ex, i) => (
                 <Box key={i}>
                     <Text fontFamily="heading" fontWeight="bold" color={colorValues.gray800_100} mb={3}>
-                        Example {i + 1}
+                        {t('challenge.example')} {i + 1}
                     </Text>
                     <Box bg="var(--color-bg-secondary)" borderRadius="12px" p={4} fontFamily="mono" fontSize="sm">
                         <Box mb={2}>
-                            <Text as="span" color={colorValues.gray500_400}>Input: </Text>
+                            <Text as="span" color={colorValues.gray500_400}>{t('challenge.input')}: </Text>
                             <Text as="span" color={colorValues.gray800_100}>{ex.input}</Text>
                         </Box>
                         <Box mb={ex.explanation ? 2 : 0}>
-                            <Text as="span" color={colorValues.gray500_400}>Output: </Text>
+                            <Text as="span" color={colorValues.gray500_400}>{t('challenge.output')}: </Text>
                             <Text as="span" color={colorValues.gray800_100}>{ex.output}</Text>
                         </Box>
                         {ex.explanation && (
                             <Box>
-                                <Text as="span" color={colorValues.gray500_400}>Explanation: </Text>
+                                <Text as="span" color={colorValues.gray500_400}>{t('challenge.explanation')}: </Text>
                                 <Text as="span" color={colorValues.gray600_300}>{ex.explanation}</Text>
                             </Box>
                         )}
@@ -166,7 +168,7 @@ const ProblemDescription = () => {
             {/* Constraints */}
             <Box>
                 <Text fontFamily="heading" fontWeight="bold" color={colorValues.gray800_100} mb={3}>
-                    Constraints
+                    {t('challenge.constraints')}
                 </Text>
                 <VStack spacing={2} align="stretch">
                     {selectedChallenge.constraints.map((c, i) => (
@@ -188,7 +190,7 @@ const ProblemDescription = () => {
             {selectedChallenge.hints?.length > 0 && (
                 <Box>
                     <Text fontFamily="heading" fontWeight="bold" color={colorValues.gray800_100} mb={3}>
-                        Hints
+                        {t('challenge.hints')}
                     </Text>
                     <VStack spacing={2} align="stretch">
                         {selectedChallenge.hints.map((hint, i) => (
@@ -205,7 +207,7 @@ const ProblemDescription = () => {
                                     onClick={() => toggleHint(i)}
                                     transition="color 0.2s"
                                 >
-                                    Hint {i + 1}
+                                    {t('challenge.hint')} {i + 1}
                                 </Button>
                                 <Collapse in={!!openHints[i]}>
                                     <Box px={4} pb={3}>
@@ -228,7 +230,8 @@ const ProblemDescription = () => {
         colorValues.gray600_300,
         colorValues.gray500_400,
         colorValues.gray200_700,
-        colorValues.gray50_800
+        colorValues.gray50_800,
+        t,
     ]);
 };
 

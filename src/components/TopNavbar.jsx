@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const TopNavbar = ({ onToggleSidebar }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -81,6 +82,9 @@ const TopNavbar = ({ onToggleSidebar }) => {
 
                     {/* Theme Switcher */}
                     <ThemeSwitcher size="sm" />
+
+                    {/* Language Switcher */}
+                    <LanguageSwitcher />
 
                     {/* Notifications Dropdown Container */}
                     <div className="relative" ref={notifRef}>

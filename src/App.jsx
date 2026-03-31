@@ -11,6 +11,9 @@ import { LoadingProvider } from './shared/context/LoadingContext';
 import RouteLoader from './shared/components/RouteLoader';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// Language System
+import { LanguageProvider } from './shared/context/LanguageContext';
+
 // Layouts (always loaded – they wrap everything)
 import PublicLayout from './layout/PublicLayout';
 import AdminLayout from './layout/AdminLayout';
@@ -203,10 +206,11 @@ function App() {
     <ErrorBoundary>
       <AccessibilityProvider>
         <LoadingProvider>
-          <a href="#main-content" className="skip-to-content">Skip to content</a>
-          <Router>
-            <NavigateRegistrar />
-            <GlobalAccessibilityUI />
+          <LanguageProvider>
+            <a href="#main-content" className="skip-to-content">Skip to content</a>
+            <Router>
+              <NavigateRegistrar />
+              <GlobalAccessibilityUI />
             <AuthProvider>
               <BattleProvider>
                 <ChallengeProvider>
@@ -226,6 +230,8 @@ function App() {
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/speed-challenge" element={<SpeedChallengePage />} />
                             <Route path="/profile/2fa-setup" element={<TwoFactorSetupPage />} />
+                            <Route path="/playground/challenges" element={React.createElement(lazy(() => import('./pages/Frontoffice/PlaygroundChallengesPage')))} />
+                            <Route path="/playground/challenges/:id" element={React.createElement(lazy(() => import('./pages/Frontoffice/ChallengePlaygroundPage')))} />
                           </Route>
 
                           {/* Challenge play page – full-screen, no global header/footer */}
@@ -266,6 +272,7 @@ function App() {
               </BattleProvider>
             </AuthProvider>
           </Router>
+          </LanguageProvider>
         </LoadingProvider>
       </AccessibilityProvider>
     </ErrorBoundary>

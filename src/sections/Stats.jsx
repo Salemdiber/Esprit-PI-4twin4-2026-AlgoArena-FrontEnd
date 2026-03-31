@@ -7,15 +7,18 @@ import {
     VStack,
     useColorModeValue,
 } from '@chakra-ui/react';
+import useLanguage from '../hooks/useLanguage';
 
-const statsData = [
-    { value: '12,450', label: 'Battles Completed', color: 'brand.400', bg: 'rgba(34, 211, 238, 0.05)' },
-    { value: '3,200', label: 'Active Coders', color: 'green.400', bg: 'rgba(72, 187, 120, 0.05)' },
-    { value: '1,050', label: 'Daily AI Challenges', color: 'yellow.400', bg: 'rgba(236, 201, 75, 0.05)' },
-    { value: '98%', label: 'Success Rate', color: 'purple.400', bg: 'rgba(159, 122, 234, 0.05)' },
+const getStatsData = (t) => [
+    { value: '12,450', label: t('landing.battles_completed'), color: 'brand.400', bg: 'rgba(34, 211, 238, 0.05)' },
+    { value: '3,200', label: t('landing.active_coders'), color: 'green.400', bg: 'rgba(72, 187, 120, 0.05)' },
+    { value: '1,050', label: t('landing.daily_challenges'), color: 'yellow.400', bg: 'rgba(236, 201, 75, 0.05)' },
+    { value: '98%', label: t('landing.success_rate'), color: 'purple.400', bg: 'rgba(159, 122, 234, 0.05)' },
 ];
 
 const Stats = () => {
+    const { t } = useLanguage();
+    const statsData = getStatsData(t);
     const sectionBg = useColorModeValue('rgba(241,245,249,0.6)', 'rgba(31,41,55,0.3)');
     const headingColor = useColorModeValue('gray.800', 'gray.100');
     const textColor = useColorModeValue('gray.600', 'gray.300');
@@ -29,10 +32,10 @@ const Stats = () => {
                 <VStack spacing={16}>
                     <VStack spacing={4} textAlign="center">
                         <Heading as="h2" size="2xl" color={headingColor} fontFamily="heading">
-                            Join the Arena
+                            {t('landing.join_arena')}
                         </Heading>
                         <Text fontSize="xl" color={textColor}>
-                            Thousands of developers competing daily
+                            {t('landing.thousands')}
                         </Text>
                     </VStack>
 

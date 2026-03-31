@@ -9,8 +9,10 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import useLanguage from '../hooks/useLanguage';
 
 const CTA = () => {
+    const { t } = useLanguage();
     const headingColor = useColorModeValue('gray.800', 'gray.100');
     const textColor = useColorModeValue('gray.600', 'gray.300');
     const bgGradient = useColorModeValue(
@@ -51,11 +53,11 @@ const CTA = () => {
                         fontWeight="bold"
                         color={headingColor}
                     >
-                        Enter the Arena.
+                        {t('landing.enter_arena')}
                     </Heading>
 
                     <Text fontSize={{ base: 'xl', sm: '2xl' }} color={textColor} maxW="2xl">
-                        Master algorithms. Compete globally. Build elegant code.
+                        {t('landing.master_algorithms')}
                     </Text>
 
                     <HStack spacing={4} flexWrap="wrap" justify="center">
