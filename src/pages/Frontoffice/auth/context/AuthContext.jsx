@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }) => {
         const stored = readStorage();
         return stored ? stored.user : null;
     });
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
     const toast = useToast();
     const navigate = useNavigate();
     const authChannel = React.useRef(null);
@@ -116,6 +117,7 @@ export const AuthProvider = ({ children }) => {
             if (!storedToken) {
                 writeStorage(null);
                 setCurrentUser(null);
+                setIsAuthLoading(false);
                 return;
             }
 
@@ -130,6 +132,8 @@ export const AuthProvider = ({ children }) => {
                 if (stored?.user) {
                     setCurrentUser(stored.user);
                 }
+            } finally {
+                setIsAuthLoading(false);
             }
         };
         initAuth();
@@ -286,6 +290,7 @@ export const AuthProvider = ({ children }) => {
             value={{
                 currentUser,
                 isLoggedIn,
+                isAuthLoading,
                 login,
                 signup,
                 logout,

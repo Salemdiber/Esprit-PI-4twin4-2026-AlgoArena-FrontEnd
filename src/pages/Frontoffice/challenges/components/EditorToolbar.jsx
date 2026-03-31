@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EditorToolbar – language selector + editor action icons.
  * Sits above the code editor container.
  */
@@ -8,6 +8,19 @@ import {
     Select,
     IconButton,
     Icon,
+    Popover,
+    PopoverTrigger,
+    PopoverContent,
+    PopoverArrow,
+    PopoverBody,
+    PopoverHeader,
+    VStack,
+    Text,
+    Slider,
+    SliderTrack,
+    SliderFilledTrack,
+    SliderThumb,
+    Tooltip,
 } from '@chakra-ui/react';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { LANGUAGES } from '../data/mockChallenges';
@@ -25,8 +38,31 @@ const FullscreenIcon = (props) => (
     </Icon>
 );
 
+const ExitFullscreenIcon = (props) => (
+    <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M8 8H5V5m11 0h3v3m0 8v3h-3M8 16H5v3" />
+        <path d="M9 9L5 5m10 4l4-4m0 14l-4-4M9 15l-4 4" />
+    </Icon>
+);
+
+const FONT_OPTIONS = [
+    { value: 'monospace', label: 'Monospace' },
+    { value: 'Arial', label: 'Arial' },
+    { value: 'Courier New', label: 'Courier New' },
+    { value: 'Consolas', label: 'Consolas' },
+    { value: 'Fira Code', label: 'Fira Code' },
+    { value: 'JetBrains Mono', label: 'JetBrains Mono' },
+];
+
 const EditorToolbar = () => {
-    const { language, setLanguage } = useChallengeContext();
+    const {
+        language,
+        setLanguage,
+        editorSettings,
+        setEditorSettings,
+        isEditorFullscreen,
+        setEditorFullscreen,
+    } = useChallengeContext();
 
     return (
         <Flex
@@ -58,22 +94,70 @@ const EditorToolbar = () => {
             </Select>
 
             <Flex gap={1}>
-                <IconButton
-                    icon={<SettingsIcon w={5} h={5} />}
-                    variant="ghost"
-                    color="gray.400"
-                    _hover={{ color: 'gray.100' }}
-                    size="sm"
-                    aria-label="Settings"
-                />
-                <IconButton
-                    icon={<FullscreenIcon w={5} h={5} />}
-                    variant="ghost"
-                    color="gray.400"
-                    _hover={{ color: 'gray.100' }}
-                    size="sm"
-                    aria-label="Fullscreen"
-                />
+                <Popover placement="bottom-end">
+                    <PopoverTrigger>
+                        <IconButton
+                            icon={<SettingsIcon w={5} h={5} />}
+                            variant="ghost"
+                            color="gray.400"
+                            _hover={{ color: 'gray.100' }}
+                            size="sm"
+                            aria-label="Editor settings"
+                        />
+                    </PopoverTrigger>
+                    <PopoverContent bg="var(--color-bg-secondary)" borderColor="gray.700" color="gray.200" w="280px">
+                        <PopoverArrow bg="var(--color-bg-secondary)" borderColor="gray.700" />
+                        <PopoverHeader borderColor="gray.700" fontWeight="semibold">Editor Settings</PopoverHeader>
+                        <PopoverBody>
+                            <VStack align="stretch" spacing={4}>
+                                <VStack align="stretch" spacing={2}>
+                                    <Text fontSize="xs" color="gray.400">Font Family</Text>
+                                    <Select
+                                        size="sm"
+                                        value={editorSettings.fontFamily}
+                                        onChange={(e) => setEditorSettings({ fontFamily: e.target.value })}
+                                        bg="var(--color-bg-primary)"
+                                        borderColor="gray.700"
+                                    >
+                                        {FONT_OPTIONS.map((font) => (
+                                            <option key={font.value} value={font.value} style={{ background: '#0f172a' }}>
+                                                {font.label}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </VStack>
+
+                                <VStack align="stretch" spacing={2}>
+                                    <Text fontSize="xs" color="gray.400">Font Size: {editorSettings.fontSize}px</Text>
+                                    <Slider
+                                        min={12}
+                                        max={28}
+                                        step={1}
+                                        value={editorSettings.fontSize}
+                                        onChange={(value) => setEditorSettings({ fontSize: value })}
+                                    >
+                                        <SliderTrack>
+                                            <SliderFilledTrack bg="brand.500" />
+                                        </SliderTrack>
+                                        <SliderThumb />
+                                    </Slider>
+                                </VStack>
+                            </VStack>
+                        </PopoverBody>
+                    </PopoverContent>
+                </Popover>
+
+                <Tooltip label={isEditorFullscreen ? 'Exit Full Screen' : 'Full Screen'}>
+                    <IconButton
+                        icon={isEditorFullscreen ? <ExitFullscreenIcon w={5} h={5} /> : <FullscreenIcon w={5} h={5} />}
+                        variant="ghost"
+                        color="gray.400"
+                        _hover={{ color: 'gray.100' }}
+                        size="sm"
+                        aria-label="Toggle fullscreen"
+                        onClick={() => setEditorFullscreen(!isEditorFullscreen)}
+                    />
+                </Tooltip>
             </Flex>
         </Flex>
     );
