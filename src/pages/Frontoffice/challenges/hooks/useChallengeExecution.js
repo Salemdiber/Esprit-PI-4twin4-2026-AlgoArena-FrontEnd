@@ -1,93 +1,89 @@
-/**
- * useChallengeExecution – simulated code execution and submission.
- *
- * Exposes: runCode, submitCode, testResults, isRunning, isSubmitting.
- * Simulates test runs with setTimeout (ready to be replaced by a real judge).
- */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useChallengeContext } from '../context/ChallengeContext';
-
-/**
- * Simulate a single test-case result.
- * In a real system this would call a backend judge.
- */
-function simulateTestResult(testCase) {
-    const passed = Math.random() > 0.15; // 85 % pass rate for demo
-    const runtime = Math.round(40 + Math.random() * 80); // 40-120 ms
-    const memory = +(38 + Math.random() * 10).toFixed(1); // 38-48 MB
-
-    return {
-        id: testCase.id,
-        input: testCase.input,
-        expected: testCase.expected,
-        output: passed ? testCase.expected : '"wrong_answer"',
-        status: passed ? 'PASSED' : 'FAILED',
-        runtime,
-        memory,
-    };
-}
+import { useToast } from '@chakra-ui/react';
 
 export default function useChallengeExecution() {
     const {
         selectedChallenge,
-        code,
-        setTestResults,
+        submitSolution,
+        clearResults,
         setRunning,
         setSubmitting,
-        markSolved,
-        clearResults,
+        isRunning,
+        isSubmitting,
+        isPaused,
+        isChallengeSolved,
     } = useChallengeContext();
+    const toast = useToast();
 
-    // ── Run Code (quick test) ────────────────────────────────
-    const runCode = useCallback(() => {
-        if (!selectedChallenge) return;
+    const lastExecutionTime = useRef(0);
+
+    const isExecuting = isRunning || isSubmitting;
+
+    // ── Run Code ──────────────────────────────────────────────────
+    const runCode = useCallback(async () => {
+        const now = Date.now();
+        if (!selectedChallenge || isExecuting) return;
+        if (now - lastExecutionTime.current < 2000) return; // 2s cooldown anti-spam
+        lastExecutionTime.current = now;
+
         clearResults();
         setRunning(true);
-
-        setTimeout(() => {
-            const results = selectedChallenge.testCases.map(simulateTestResult);
-            const allPassed = results.every(r => r.status === 'PASSED');
-            setTestResults(results, allPassed);
+        try {
+            const result = await submitSolution('run');
+            if (result?.reason === 'paused') {
+                toast({
+                    title: 'Timer is paused',
+                    description: 'Please resume to continue working on your solution.',
+                    status: 'warning',
+                    duration: 2500,
+                    isClosable: true,
+                });
+            }
+        } finally {
             setRunning(false);
-        }, 1200 + Math.random() * 800);
-    }, [selectedChallenge, clearResults, setRunning, setTestResults]);
+        }
+    }, [selectedChallenge, isExecuting, clearResults, setRunning, submitSolution, toast]);
 
-    // ── Submit Code (full submission) ────────────────────────
-    const submitCode = useCallback(() => {
-        if (!selectedChallenge) return;
+    // ── Submit Code ───────────────────────────────────────────────
+    const submitCode = useCallback(async () => {
+        const now = Date.now();
+        if (!selectedChallenge || isExecuting) return;
+        if (now - lastExecutionTime.current < 2000) return;
+        lastExecutionTime.current = now;
+
         clearResults();
         setSubmitting(true);
-        setRunning(true);
-
-        setTimeout(() => {
-            // For submit, simulate all passing (realistic demo)
-            const results = selectedChallenge.testCases.map(tc => {
-                const runtime = Math.round(40 + Math.random() * 80);
-                const memory = +(38 + Math.random() * 10).toFixed(1);
-                return {
-                    id: tc.id,
-                    input: tc.input,
-                    expected: tc.expected,
-                    output: tc.expected,
-                    status: 'PASSED',
-                    runtime,
-                    memory,
-                };
-            });
-
-            const allPassed = true;
-            const avgRuntime = Math.round(results.reduce((s, r) => s + r.runtime, 0) / results.length);
-            const avgMemory = +(results.reduce((s, r) => s + r.memory, 0) / results.length).toFixed(1);
-
-            setTestResults(results, allPassed);
-            setRunning(false);
-            setSubmitting(false);
-
-            if (allPassed) {
-                markSolved(selectedChallenge.id, avgRuntime, avgMemory, selectedChallenge.xpReward);
+        try {
+            const result = await submitSolution('submit');
+            if (result?.reason === 'paused') {
+                toast({
+                    title: 'Timer is paused',
+                    description: 'Please resume before submitting your solution.',
+                    status: 'warning',
+                    duration: 2500,
+                    isClosable: true,
+                });
+            } else if (result?.reason === 'solved') {
+                toast({
+                    title: 'Challenge already solved',
+                    description: 'Resubmission is disabled for this challenge.',
+                    status: 'info',
+                    duration: 2500,
+                    isClosable: true,
+                });
             }
-        }, 1800 + Math.random() * 1200);
-    }, [selectedChallenge, clearResults, setRunning, setSubmitting, setTestResults, markSolved]);
+        } finally {
+            setSubmitting(false);
+        }
+    }, [selectedChallenge, isExecuting, clearResults, setSubmitting, submitSolution, toast]);
 
-    return { runCode, submitCode };
+    // ── Cancel (for slow executions) ──────────────────────────────
+    const cancelExecution = useCallback(() => {
+        setRunning(false);
+        setSubmitting(false);
+        clearResults();
+    }, [setRunning, setSubmitting, clearResults]);
+
+    return { runCode, submitCode, cancelExecution, isPaused, isChallengeSolved };
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Box, Button, Text, VStack } from '@chakra-ui/react';
 
 // Accessibility
 import AccessibilityProvider from './accessibility/context/AccessibilityContext';
@@ -41,6 +42,7 @@ import { ChallengeProvider } from './pages/Frontoffice/challenges';
 import { ProfileProvider } from './pages/Frontoffice/profile';
 import { AuthProvider, useAuth } from './pages/Frontoffice/auth/context/AuthContext';
 import { settingsService } from './services/settingsService';
+import { getToken } from './services/cookieUtils';
 
 // Frontoffice Challenge Pages
 const ChallengesListPage = lazy(() => import('./pages/Frontoffice/challenges/pages/ChallengesListPage'));
@@ -89,6 +91,94 @@ const ProtectedRoute = ({ children }) => {
   const role = String(currentUser.role || '').toUpperCase();
   if (role !== 'ADMIN' && role !== 'ORGANIZER') {
     return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+const ChallengesAuthGuard = ({ children }) => {
+  const { isLoggedIn, isAuthLoading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasToken = Boolean(getToken());
+
+  if (isAuthLoading || (hasToken && !isLoggedIn)) {
+    return <RouteLoader />;
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <Box
+        minH="100vh"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        px={{ base: 4, md: 6 }}
+        py={{ base: 24, md: 28 }}
+        bg="var(--color-bg-primary)"
+        bgImage="radial-gradient(circle at 20% 10%, rgba(34, 211, 238, 0.14), transparent 42%), radial-gradient(circle at 80% 90%, rgba(14, 165, 233, 0.13), transparent 46%)"
+      >
+        <VStack
+          spacing={5}
+          textAlign="center"
+          maxW="lg"
+          w="100%"
+          p={{ base: 6, md: 8 }}
+          borderRadius="2xl"
+          border="1px solid var(--color-border)"
+          bg="var(--color-bg-card)"
+          boxShadow="0 28px 64px rgba(2, 6, 23, 0.35)"
+          animation="fadeIn 0.3s ease"
+        >
+          <Box
+            w="62px"
+            h="62px"
+            borderRadius="18px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            bg="rgba(34, 211, 238, 0.12)"
+            border="1px solid rgba(34, 211, 238, 0.25)"
+            color="cyan.300"
+          >
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+            </svg>
+          </Box>
+          <Text fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color="var(--color-text-heading)">
+            Access Restricted
+          </Text>
+          <Text color="var(--color-text-secondary)" maxW="md">
+            You must sign in or create an account to solve challenges.
+          </Text>
+          <VStack spacing={3} w="100%" pt={1}>
+            <Button
+              w="100%"
+              colorScheme="cyan"
+              size="lg"
+              onClick={() => navigate('/signin', { state: { from: location } })}
+              boxShadow="0 14px 30px rgba(34, 211, 238, 0.22)"
+              _hover={{ transform: 'translateY(-1px)', boxShadow: '0 18px 34px rgba(34, 211, 238, 0.26)' }}
+              transition="all 0.2s ease"
+            >
+              Sign In
+            </Button>
+            <Button
+              w="100%"
+              variant="outline"
+              size="lg"
+              onClick={() => navigate('/signup')}
+              borderColor="rgba(34, 211, 238, 0.28)"
+              _hover={{ bg: 'rgba(34, 211, 238, 0.08)', transform: 'translateY(-1px)' }}
+              transition="all 0.2s ease"
+            >
+              Create Account
+            </Button>
+          </VStack>
+        </VStack>
+      </Box>
+    );
   }
 
   return children;
@@ -172,7 +262,7 @@ function App() {
                             <Route path="/battles" element={<BattleListPage />} />
                             <Route path="/battles/:id" element={<ActiveBattlePage />} />
                             <Route path="/battles/:id/summary" element={<BattleSummaryPage />} />
-                            <Route path="/challenges" element={<ChallengesListPage />} />
+                            <Route path="/challenges" element={<ChallengesAuthGuard><ChallengesListPage /></ChallengesAuthGuard>} />
                             <Route path="/leaderboard" element={<LeaderboardPage />} />
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/speed-challenge" element={<SpeedChallengePage />} />
@@ -180,7 +270,7 @@ function App() {
                           </Route>
 
                           {/* Challenge play page – full-screen, no global header/footer */}
-                          <Route path="/challenges/:id" element={<ChallengePlayPage />} />
+                          <Route path="/challenges/:id" element={<ChallengesAuthGuard><ChallengePlayPage /></ChallengesAuthGuard>} />
                           <Route path="/login" element={<Navigate to="/signin" replace />} />
                           <Route path="/signin" element={<SignIn />} />
                           <Route path="/signup" element={<SignUp />} />

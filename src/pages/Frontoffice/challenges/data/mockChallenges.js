@@ -66,9 +66,6 @@ export const ALL_TAGS = [
 export const LANGUAGES = [
     { value: 'javascript', label: 'JavaScript' },
     { value: 'python', label: 'Python' },
-    { value: 'java', label: 'Java' },
-    { value: 'cpp', label: 'C++' },
-    { value: 'typescript', label: 'TypeScript' },
 ];
 
 // ─── Challenges ───────────────────────────────────────────────────
@@ -107,9 +104,8 @@ export const mockChallenges = [
         estimatedTime: 15,
         solvedCount: 12450,
         starterCode: {
-            javascript: 'function twoSum(nums, target) {\n  // Write your solution here\n  \n}',
-            python: 'def two_sum(nums, target):\n    # Write your solution here\n    pass',
-            java: 'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your solution here\n        return new int[]{};\n    }\n}',
+            javascript: 'function solution(nums, target) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(nums, target):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 'nums = [2,7,11,15], target = 9', expected: '[0,1]' },
@@ -138,8 +134,8 @@ export const mockChallenges = [
         estimatedTime: 25,
         solvedCount: 8230,
         starterCode: {
-            javascript: 'function longestPalindrome(s) {\n  // Write your solution here\n  \n}',
-            python: 'def longest_palindrome(s):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(s) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(s):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 's = "babad"', expected: '"bab"' },
@@ -170,8 +166,8 @@ export const mockChallenges = [
         estimatedTime: 40,
         solvedCount: 3890,
         starterCode: {
-            javascript: 'function findMedianSortedArrays(nums1, nums2) {\n  // Write your solution here\n  \n}',
-            python: 'def find_median_sorted_arrays(nums1, nums2):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(nums1, nums2) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(nums1, nums2):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 'nums1 = [1,3], nums2 = [2]', expected: '2.00000' },
@@ -197,8 +193,8 @@ export const mockChallenges = [
         estimatedTime: 10,
         solvedCount: 18500,
         starterCode: {
-            javascript: 'function isValid(s) {\n  // Write your solution here\n  \n}',
-            python: 'def is_valid(s):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(s) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(s):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 's = "()"', expected: 'true' },
@@ -222,8 +218,8 @@ export const mockChallenges = [
         estimatedTime: 45,
         solvedCount: 2100,
         starterCode: {
-            javascript: 'function mergeKLists(lists) {\n  // Write your solution here\n  \n}',
-            python: 'def merge_k_lists(lists):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(lists) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(lists):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 'lists = [[1,4,5],[1,3,4],[2,6]]', expected: '[1,1,2,3,4,4,5,6]' },
@@ -245,8 +241,8 @@ export const mockChallenges = [
         estimatedTime: 50,
         solvedCount: 980,
         starterCode: {
-            javascript: 'function trap(height) {\n  // Write your solution here\n  \n}',
-            python: 'def trap(height):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(height) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(height):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 'height = [0,1,0,2,1,0,1,3,2,1,2,1]', expected: '6' },
@@ -269,8 +265,8 @@ export const mockChallenges = [
         estimatedTime: 20,
         solvedCount: 9500,
         starterCode: {
-            javascript: 'function levelOrder(root) {\n  // Write your solution here\n  \n}',
-            python: 'def level_order(root):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(root) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(root):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 'root = [3,9,20,null,null,15,7]', expected: '[[3],[9,20],[15,7]]' },
@@ -292,8 +288,8 @@ export const mockChallenges = [
         estimatedTime: 30,
         solvedCount: 6200,
         starterCode: {
-            javascript: 'function longestCommonSubsequence(text1, text2) {\n  // Write your solution here\n  \n}',
-            python: 'def longest_common_subsequence(text1, text2):\n    # Write your solution here\n    pass',
+            javascript: 'function solution(text1, text2) {\n  // Write your solution here\n  \n}',
+            python: 'def solution(text1, text2):\n    # Write your solution here\n    pass',
         },
         testCases: [
             { id: 'tc-1', input: 'text1 = "abcde", text2 = "ace"', expected: '3' },
