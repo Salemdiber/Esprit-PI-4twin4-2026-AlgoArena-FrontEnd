@@ -92,8 +92,6 @@ const SubmissionMetrics = ({ submission }) => {
 const ProblemDescription = () => {
 
     const { t } = useLanguage();
-    const { selectedChallenge, activeTab } = useChallengeContext();
-
     const {
         selectedChallenge,
         selectedChallengeId,
@@ -128,11 +126,6 @@ const ProblemDescription = () => {
 
     if (activeTab === 1) {
         return (
-            <Box>
-                <Text color={useColorModeValue("gray.500", "gray.400")} fontStyle="italic">
-                    {t('challenge.discussion_coming')}
-                </Text>
-            </Box>
             <VStack align="stretch" spacing={4}>
                 {!latestSubmission ? (
                     <Text color={gray500_400} fontStyle="italic">
