@@ -32,7 +32,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-
       '/api/docs': createProxyConfig(),
       '/api': createProxyConfig({
         rewrite: (path) => path.replace(/^\/api/, ''),
@@ -46,4 +45,3 @@ export default defineConfig({
     },
   },
 });
-

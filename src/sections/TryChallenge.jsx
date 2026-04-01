@@ -1,5 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import playgroundChallengesService from '../services/playgroundChallengesService';
+/**
+ * TryChallenge – "Try a Challenge Instantly" landing page section.
+ *
+ * Self-contained: includes its own mock data, editor state, and layout.
+ * Uses the shared /editor module — CodeEditor, EditorToolbar, OutputTerminal.
+ *
+ * Desktop: two-column (description left, editor right)
+ * Mobile:  stacked (description → editor → output)
+ */
+import React from 'react';
 import {
     Box,
     Container,
@@ -18,12 +26,27 @@ import {
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { CodeEditor, EditorToolbar, OutputTerminal, useEditorState } from '../editor';
-import useLanguage from '../hooks/useLanguage';
 
 const MotionBox = motion.create(Box);
 
-
-// Challenge dynamique depuis l'API
+/* ── Static demo challenge ──────────────────────────────────── */
+const DEMO_CHALLENGE = {
+    title: 'Two Sum',
+    difficulty: 'Easy',
+    difficultyColor: '#22c55e',
+    tags: ['Arrays', 'Hash Table'],
+    description:
+        'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
+    rules: [
+        'You may assume that each input would have exactly one solution.',
+        'You may not use the same element twice.',
+        'You can return the answer in any order.',
+    ],
+    examples: [
+        { input: 'nums = [2, 7, 11, 15], target = 9', output: '[0, 1]', explanation: 'Because nums[0] + nums[1] == 9' },
+        { input: 'nums = [3, 2, 4], target = 6', output: '[1, 2]', explanation: 'nums[1] + nums[2] == 6' },
+    ],
+};
 
 /* ── Icons ──────────────────────────────────────────────────── */
 const CodeIcon = (props) => (
@@ -44,33 +67,8 @@ const LightbulbIcon = (props) => (
 );
 
 const TryChallenge = () => {
-    const { t } = useLanguage();
-    // Color mode variables (hooks must be at component top)
-    const textPrimary = useColorModeValue("gray.800", "gray.100");
-    const textSecondary = useColorModeValue("gray.600", "gray.300");
-    const textTertiary = useColorModeValue("gray.500", "gray.400");
-
-    const [challenge, setChallenge] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const { code, setCode, language, setLanguage, output, isRunning, runCode, resetCode } = useEditorState();
     const { isOpen: showExamples, onToggle: toggleExamples } = useDisclosure({ defaultIsOpen: true });
-
-    const fetchRandomChallenge = () => {
-        setLoading(true);
-        setError("");
-        playgroundChallengesService.getRandomChallenge()
-            .then(ch => {
-                setChallenge(ch);
-                // Optionally reset code/editor state here
-            })
-            .catch(() => setError(t('arena.failed_load')))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchRandomChallenge();
-    }, []);
 
     return (
         <Box
@@ -126,7 +124,7 @@ const TryChallenge = () => {
                             letterSpacing="widest"
                             color="#22d3ee"
                         >
-                            {t('try.playground')}
+                            Live Playground
                         </Text>
                     </HStack>
                     <Heading
@@ -134,28 +132,20 @@ const TryChallenge = () => {
                         fontSize={{ base: '3xl', sm: '4xl', lg: '5xl' }}
                         fontFamily="heading"
                         fontWeight="bold"
-                        color={textPrimary}
+                        color={useColorModeValue("gray.800", "gray.100")}
                         mb={4}
                     >
-                        {t('landing.try_instantly').split(' ').slice(0, 3).join(' ')}{' '}
+                        Try a Challenge{' '}
                         <Text as="span" bgGradient="linear(to-r, #22d3ee, #a855f7)" bgClip="text">
-                            {t('try.instantly')}
+                            Instantly
                         </Text>
                     </Heading>
-                    <Text fontSize={{ base: 'lg', lg: 'xl' }} color={textTertiary} maxW="2xl" mx="auto">
-                        {t('try.subtitle')}
+                    <Text fontSize={{ base: 'lg', lg: 'xl' }} color={useColorModeValue("gray.500", "gray.400")} maxW="2xl" mx="auto">
+                        No sign-up needed. Write code, hit run, and see the results.
                     </Text>
                 </MotionBox>
-                <Box textAlign="center" mb={6}>
-                    <Button onClick={fetchRandomChallenge} colorScheme="blue" variant="solid" isLoading={loading}>
-                        {t('try.new_challenge')}
-                    </Button>
-                </Box>
-                {loading ? (
-                    <Box textAlign="center" py={10}>{t('try.loading')}</Box>
-                ) : error ? (
-                    <Box textAlign="center" color="red.500">{error}</Box>
-                ) : challenge ? (
+
+                {/* Main content: description + editor */}
                 <MotionBox
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -189,32 +179,30 @@ const TryChallenge = () => {
                         >
                             {/* Title + difficulty */}
                             <HStack mb={4} spacing={3}>
-                                <Heading fontSize="xl" fontFamily="heading" fontWeight="bold" color={textPrimary}> 
-                                    {challenge.title}
+                                <Heading fontSize="xl" fontFamily="heading" fontWeight="bold" color={useColorModeValue("gray.800", "gray.100")}>
+                                    {DEMO_CHALLENGE.title}
                                 </Heading>
-                                {challenge.difficulty && (
-                                    <Badge
-                                        bg="green.100"
-                                        color="green.600"
-                                        fontSize="xs"
-                                        px={2}
-                                        py={0.5}
-                                        borderRadius="6px"
-                                        fontWeight="semibold"
-                                    >
-                                        {challenge.difficulty}
-                                    </Badge>
-                                )}
+                                <Badge
+                                    bg={`${DEMO_CHALLENGE.difficultyColor}20`}
+                                    color={DEMO_CHALLENGE.difficultyColor}
+                                    fontSize="xs"
+                                    px={2}
+                                    py={0.5}
+                                    borderRadius="6px"
+                                    fontWeight="semibold"
+                                >
+                                    {DEMO_CHALLENGE.difficulty}
+                                </Badge>
                             </HStack>
 
                             {/* Tags */}
                             <HStack spacing={2} mb={5} flexWrap="wrap">
-                                {challenge.tags && challenge.tags.map((tag) => (
+                                {DEMO_CHALLENGE.tags.map((tag) => (
                                     <Tag
                                         key={tag}
                                         size="sm"
                                         bg="var(--color-bg-secondary)"
-                                        color={textSecondary}
+                                        color={useColorModeValue("gray.600", "gray.300")}
                                         borderRadius="6px"
                                         fontSize="xs"
                                     >
@@ -224,16 +212,16 @@ const TryChallenge = () => {
                             </HStack>
 
                             {/* Description */}
-                            <Text color={textSecondary} fontSize="sm" lineHeight="1.8" mb={5}>
-                                {challenge.description}
+                            <Text color={useColorModeValue("gray.600", "gray.300")} fontSize="sm" lineHeight="1.8" mb={5}>
+                                {DEMO_CHALLENGE.description}
                             </Text>
 
                             {/* Rules */}
                             <VStack align="start" spacing={2} mb={6}>
-                                {challenge.rules && challenge.rules.map((rule, i) => (
+                                {DEMO_CHALLENGE.rules.map((rule, i) => (
                                     <HStack key={i} align="start" spacing={2}>
                                         <Text color="#22d3ee" fontSize="sm" mt="2px">•</Text>
-                                        <Text color={textTertiary} fontSize="sm">{rule}</Text>
+                                        <Text color={useColorModeValue("gray.500", "gray.400")} fontSize="sm">{rule}</Text>
                                     </HStack>
                                 ))}
                             </VStack>
@@ -244,7 +232,7 @@ const TryChallenge = () => {
                                 display="flex"
                                 alignItems="center"
                                 gap={2}
-                                color={textTertiary}
+                                color={useColorModeValue("gray.500", "gray.400")}
                                 fontSize="sm"
                                 fontWeight="semibold"
                                 mb={3}
@@ -252,12 +240,12 @@ const TryChallenge = () => {
                                 onClick={toggleExamples}
                             >
                                 <LightbulbIcon w={4} h={4} />
-                                {showExamples ? t('try.hide') : t('try.show')} {t('try.examples')}
+                                {showExamples ? 'Hide' : 'Show'} Examples
                             </Button>
 
                             <Collapse in={showExamples} animateOpacity>
                                 <VStack spacing={4} align="stretch">
-                                    {challenge.examples && challenge.examples.map((ex, i) => (
+                                    {DEMO_CHALLENGE.examples.map((ex, i) => (
                                         <Box
                                             key={i}
                                             bg="var(--color-bg-primary)"
@@ -267,15 +255,15 @@ const TryChallenge = () => {
                                             borderColor="var(--color-editor-border)"
                                         >
                                             <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={2}>
-                                                {t('try.example')} {i + 1}
+                                                Example {i + 1}
                                             </Text>
                                             <Box fontFamily="mono" fontSize="13px" lineHeight="1.8">
-                                                <Text color={textTertiary}> 
-                                                    <Text as="span" color="var(--color-text-muted)" fontWeight="semibold">{t('try.input')}: </Text>
+                                                <Text color={useColorModeValue("gray.500", "gray.400")}>
+                                                    <Text as="span" color="var(--color-text-muted)" fontWeight="semibold">Input: </Text>
                                                     {ex.input}
                                                 </Text>
                                                 <Text color="#22c55e">
-                                                    <Text as="span" color="var(--color-text-muted)" fontWeight="semibold">{t('try.output')}: </Text>
+                                                    <Text as="span" color="var(--color-text-muted)" fontWeight="semibold">Output: </Text>
                                                     {ex.output}
                                                 </Text>
                                                 {ex.explanation && (
@@ -318,11 +306,9 @@ const TryChallenge = () => {
                         </Flex>
                     </Flex>
                 </MotionBox>
-                ) : null}
             </Container>
         </Box>
     );
 };
 
 export default TryChallenge;
-

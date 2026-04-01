@@ -31,9 +31,7 @@ import { HamburgerIcon } from '@chakra-ui/icons';
 import Logo from '../assets/logo_algoarena.png';
 import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
-import useLanguage from '../hooks/useLanguage';
 import ThemeSwitcher from './ThemeSwitcher';
-import LanguageSwitcher from './LanguageSwitcher';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
@@ -139,17 +137,16 @@ const LogoutIcon = (props) => (
     </Icon>
 );
 
+const navItems = [
+    { label: 'Home', to: '/' },
+    { label: 'Battles', to: '/battles' },
+    { label: 'Challenges', to: '/challenges' },
+    { label: 'Leaderboard', to: '/leaderboard' },
+    { label: 'Community', to: '/#community' },
+    { label: 'Dashboard', to: '/admin' },
+];
 
 const Header = () => {
-    const { t } = useLanguage();
-    const navItems = [
-        { label: t('nav.home'), to: '/' },
-        { label: t('nav.battles'), to: '/battles' },
-        { label: t('nav.challenges'), to: '/challenges' },
-        { label: t('nav.leaderboard'), to: '/leaderboard' },
-        { label: t('nav.community'), to: '/#community' },
-        { label: 'Dashboard', to: '/admin' },
-    ];
     const [headerSpotlight, setHeaderSpotlight] = useState({ left: 0 });
     const { isOpen, onOpen, onClose } = useDisclosure();
     const {
@@ -253,7 +250,6 @@ const Header = () => {
                                 {item.label}
                             </Link>
                         ))}
-                        <LanguageSwitcher />
                     </HStack>
 
                     {/* CTA Buttons / Profile Avatar – conditional */}
@@ -272,7 +268,7 @@ const Header = () => {
                                     variant="ghost"
                                     size="md"
                                 >
-                                    {t('nav.login')}
+                                    Login
                                 </Button>
                                 <Button
                                     as={RouterLink}
@@ -282,7 +278,7 @@ const Header = () => {
                                     boxShadow="custom"
                                     display={{ base: 'none', sm: 'inline-flex' }}
                                 >
-                                    {t('nav.signup')}
+                                    Create Account
                                 </Button>
                             </>
                         ) : (
@@ -366,7 +362,7 @@ const Header = () => {
                                             mx={2}
                                             onClick={() => navigate('/profile')}
                                         >
-                                            {t('nav.profile')}
+                                            View Profile
                                         </MenuItem>
                                         {/* <MenuItem
                                             bg="transparent"
@@ -394,7 +390,7 @@ const Header = () => {
                                                 navigate('/');
                                             }}
                                         >
-                                            {t('nav.logout')}
+                                            Logout
                                         </MenuItem>
                                     </MenuList>
                                 </Menu>
@@ -479,7 +475,7 @@ const Header = () => {
                                     gap={3}
                                 >
                                     <UserIcon w={5} h={5} />
-                                    {t('nav.profile')}
+                                    My Profile
                                 </Link>
                             )}
 
@@ -517,7 +513,7 @@ const Header = () => {
                                                 w="full"
                                                 onClick={onClose}
                                             >
-                                                {t('nav.login')}
+                                                Login
                                             </Button>
                                             <Button
                                                 as={RouterLink}
@@ -527,7 +523,7 @@ const Header = () => {
                                                 w="full"
                                                 onClick={onClose}
                                             >
-                                                {t('nav.signup')}
+                                                Create Account
                                             </Button>
                                         </>
                                     ) : (
