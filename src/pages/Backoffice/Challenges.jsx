@@ -3,20 +3,16 @@ import { createPortal } from 'react-dom';
 import { challengeService } from '../../services/challengeService';
 import { importChallengeFile } from '../../services/challengeImporter';
 import { aiService } from '../../services/aiService';
-import ActionButton from '../../components/ActionButton';
 import {
     AlertTriangle,
     Bot,
     BrainCircuit,
     Check,
     Eye,
-    EyeOff,
     FileSpreadsheet,
     FileUp,
-    Pencil,
     Plus,
     Sparkles,
-    Trash2,
     Upload,
     WandSparkles,
     X,
@@ -122,7 +118,6 @@ const Challenges = () => {
     const [importHighlight, setImportHighlight] = useState({});
     const [importErrors, setImportErrors] = useState([]);
     const [editingDraftId, setEditingDraftId] = useState(null); // ID of draft being edited
-    const [editingChallengeStatus, setEditingChallengeStatus] = useState(null);
     const fileInputRef = useRef(null);
 
     // AI Assist removed from manual flow — manual creation is 100% manual
@@ -237,29 +232,6 @@ const Challenges = () => {
             starterCode: ch.starterCode || { javascript: '' },
         });
         setEditingDraftId(ch._id);
-        setEditingChallengeStatus('draft');
-        setManualErrors({});
-        setImportErrors([]);
-        setView('manual');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const handleEditChallenge = (ch) => {
-        setManualForm({
-            title: ch.title || '',
-            description: ch.description || '',
-            difficulty: ch.difficulty || 'Medium',
-            topic: ch.tags?.[0] || 'Arrays',
-            constraints: ch.constraints?.length ? ch.constraints : [''],
-            examples: ch.examples?.length ? ch.examples : [{ input: '', output: '', explanation: '' }],
-            testCases: ch.testCases?.length ? ch.testCases : [{ input: '', output: '' }],
-            hints: ch.hints?.length ? ch.hints : [''],
-            xpReward: ch.xpReward || XP_MAP[ch.difficulty] || 120,
-            estimatedTime: ch.estimatedTime || TIME_MAP[ch.difficulty] || 25,
-            starterCode: ch.starterCode || { javascript: '' },
-        });
-        setEditingDraftId(ch._id);
-        setEditingChallengeStatus(ch.status || 'published');
         setManualErrors({});
         setImportErrors([]);
         setView('manual');
@@ -310,11 +282,7 @@ const Challenges = () => {
                 await challengeService.create(payload);
                 setToast({ message: `"${payload.title}" ${status === 'published' ? 'published' : 'saved as draft'}!`, type: 'success' });
             }
-            setManualForm({ ...EMPTY_MANUAL });
-            setEditingDraftId(null);
-            setEditingChallengeStatus(null);
-            setView('list');
-            fetchChallenges();
+            setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setView('list'); fetchChallenges();
         } catch (err) { setToast({ message: err.message || 'Failed to save.', type: 'error' }); }
         finally { setManualSaving(false); }
     };
@@ -476,8 +444,8 @@ const Challenges = () => {
                     onSaveDraft={() => handleManualSave('draft')}
                     onSavePublish={() => handleManualSave('published')}
                     onPreview={() => setPreviewForm(JSON.parse(JSON.stringify(manualForm)))}
-                    onCancel={() => { setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setEditingChallengeStatus(null); setImportErrors([]); setView('list'); }}
-                    highlight={importHighlight} editingDraftId={editingDraftId} editingChallengeStatus={editingChallengeStatus} />
+                    onCancel={() => { setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setImportErrors([]); setView('list'); }}
+                    highlight={importHighlight} editingDraftId={editingDraftId} />
             )}
 
             {/* ── AI Generator ────────────────────────── */}
@@ -596,7 +564,6 @@ const Challenges = () => {
                         {challenges.map(ch => (
                             <ChallengeRow key={ch._id} challenge={ch}
                                 onTogglePublish={() => handleTogglePublish(ch)}
-                                onEdit={() => handleEditChallenge(ch)}
                                 onDelete={() => handleDeleteChallenge(ch)} />
                         ))}
                     </div>
@@ -809,27 +776,24 @@ const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <ActionButton
-                    label="Edit"
-                    tone="blue"
-                    icon={Pencil}
-                    onClick={() => onEdit(ch)}
-                    title="Edit challenge"
-                />
-                <ActionButton
-                    label="Publish"
-                    tone="green"
-                    icon={Upload}
-                    onClick={onPublish}
-                    title="Publish challenge"
-                />
-                <ActionButton
-                    label="Delete"
-                    tone="red"
-                    icon={Trash2}
-                    onClick={onDelete}
-                    title="Delete challenge"
-                />
+                <button onClick={() => onEdit(ch)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    Edit
+                </button>
+                <button onClick={onPublish}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                    Publish
+                </button>
+                <button onClick={onDelete}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    Delete
+                </button>
             </div>
         </div>
     );
@@ -882,7 +846,7 @@ const SectionHeader = ({ label, required, error, highlight }) => (
     </div>
 );
 
-const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, onAddItem, onRemoveItem, onSaveDraft, onSavePublish, onCancel, onPreview, highlight = {}, editingDraftId, editingChallengeStatus }) => {
+const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, onAddItem, onRemoveItem, onSaveDraft, onSavePublish, onCancel, onPreview, highlight = {}, editingDraftId }) => {
     const [collapsed, setCollapsed] = useState({});
     const toggle = (s) => setCollapsed(p => ({ ...p, [s]: !p[s] }));
 
@@ -893,12 +857,12 @@ const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, on
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold">
-                        {editingDraftId ? 'Edit Challenge' : 'Create Challenge'}
+                        {editingDraftId ? 'Edit Draft' : 'Create Challenge'}
                     </h2>
                     {editingDraftId && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.25)' }}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                            {editingChallengeStatus === 'published' ? 'Editing Published' : 'Editing Draft'}
+                            Editing Draft
                         </span>
                     )}
                 </div>
@@ -1213,7 +1177,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
 /* ═══════════════════════════════════════════════════════════════════
    CHALLENGE ROW
    ═══════════════════════════════════════════════════════════════════ */
-const ChallengeRow = ({ challenge, onTogglePublish, onEdit, onDelete }) => {
+const ChallengeRow = ({ challenge, onTogglePublish, onDelete }) => {
     const dc = DIFF_COLORS[challenge.difficulty] || DIFF_COLORS.Medium;
     const isPublished = challenge.status === 'published';
     return (
@@ -1239,27 +1203,19 @@ const ChallengeRow = ({ challenge, onTogglePublish, onEdit, onDelete }) => {
                 </div>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <ActionButton
-                    label={isPublished ? 'Unpublish' : 'Publish'}
-                    tone={isPublished ? 'amber' : 'green'}
-                    icon={isPublished ? EyeOff : Check}
-                    onClick={onTogglePublish}
-                    title={isPublished ? 'Unpublish challenge' : 'Publish challenge'}
-                />
-                <ActionButton
-                    label="Edit"
-                    tone="blue"
-                    icon={Pencil}
-                    onClick={onEdit}
-                    title="Edit challenge"
-                />
-                <ActionButton
-                    label="Delete"
-                    tone="red"
-                    icon={Trash2}
-                    onClick={onDelete}
-                    title="Delete challenge"
-                />
+                <button title={isPublished ? 'Unpublish' : 'Publish'} onClick={onTogglePublish}
+                    className="action-btn action-btn-edit" style={{ color: isPublished ? '#facc15' : '#22c55e' }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {isPublished
+                            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />}
+                    </svg>
+                </button>
+                <button title="Delete" onClick={onDelete} className="action-btn action-btn-delete">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
             </div>
         </div>
     );
