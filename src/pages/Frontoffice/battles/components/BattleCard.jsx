@@ -78,7 +78,7 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                 {isWaiting ? (
                     <div className="battle-waiting-avatar">👤</div>
                 ) : isAI ? (
-                    <div className="battle-ai-avatar">AI</div>
+                    <div className="battle-ai-avatar">🤖</div>
                 ) : (
                     <img
                         src={battle.opponent?.avatar || ''}

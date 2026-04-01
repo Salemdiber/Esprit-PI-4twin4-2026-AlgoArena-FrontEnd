@@ -363,7 +363,8 @@ const SignUp = () => {
                                         <Box mt={2}>
                                             <FormFeedbackAlert message={usernameHasError ? 'Username is already taken.' : ''} />
                                         </Box>
-                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>Your rank starts as: <Text as="span" color="yellow.500" fontWeight="bold">Rookie</Text></Text>`r`n                                    </Box>
+                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>Your rank starts as: <Text as="span" color="yellow.500" fontWeight="bold">Rookie 🥉</Text></Text>
+                                    </Box>
 
                                     {/* Email */}
                                     <Box w="100%">
@@ -492,4 +493,3 @@ const SignUp = () => {
 };
 
 export default SignUp;
-

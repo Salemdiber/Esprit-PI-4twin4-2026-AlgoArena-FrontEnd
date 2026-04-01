@@ -132,19 +132,19 @@ export const computePlacement = (solvedIds, totalSeconds) => {
     const solved = solvedIds.length;
     const minutesUsed = totalSeconds / 60;
 
-    if (solved === 0) return { rank: 'BRONZE', label: 'Bronze', color: '#cd7f32', gradient: ['#cd7f32', '#a0522d'], xp: 0, message: 'Keep practicing — every expert was once a beginner!' };
+    if (solved === 0) return { rank: 'BRONZE', label: '🥉 Bronze', color: '#cd7f32', gradient: ['#cd7f32', '#a0522d'], xp: 0, message: 'Keep practicing — every expert was once a beginner!' };
     if (solved === 1) {
-        if (minutesUsed <= 5) return { rank: 'SILVER', label: 'Silver', color: '#c0c0c0', gradient: ['#c0c0c0', '#a8a8a8'], xp: 50, message: 'Good start! You cracked the easy problem fast.' };
-        return { rank: 'BRONZE', label: 'Bronze', color: '#cd7f32', gradient: ['#cd7f32', '#a0522d'], xp: 50, message: 'Solid start — you solved the easy problem!' };
+        if (minutesUsed <= 5) return { rank: 'SILVER', label: '🥈 Silver', color: '#c0c0c0', gradient: ['#c0c0c0', '#a8a8a8'], xp: 50, message: 'Good start! You cracked the easy problem fast.' };
+        return { rank: 'BRONZE', label: '🥉 Bronze', color: '#cd7f32', gradient: ['#cd7f32', '#a0522d'], xp: 50, message: 'Solid start — you solved the easy problem!' };
     }
     if (solved === 2) {
-        if (minutesUsed <= 8) return { rank: 'GOLD', label: 'Gold', color: '#facc15', gradient: ['#facc15', '#f59e0b'], xp: 170, message: 'Impressive! Easy + Medium solved quickly.' };
-        return { rank: 'SILVER', label: 'Silver', color: '#c0c0c0', gradient: ['#c0c0c0', '#a8a8a8'], xp: 170, message: 'Great work! You handled Easy and Medium well.' };
+        if (minutesUsed <= 8) return { rank: 'GOLD', label: '🥇 Gold', color: '#facc15', gradient: ['#facc15', '#f59e0b'], xp: 170, message: 'Impressive! Easy + Medium solved quickly.' };
+        return { rank: 'SILVER', label: '🥈 Silver', color: '#c0c0c0', gradient: ['#c0c0c0', '#a8a8a8'], xp: 170, message: 'Great work! You handled Easy and Medium well.' };
     }
     // solved all 3
-    if (minutesUsed <= 7) return { rank: 'DIAMOND', label: 'Diamond', color: '#a855f7', gradient: ['#a855f7', '#7c3aed'], xp: 420, message: 'Exceptional! All 3 problems solved at lightning speed!' };
-    if (minutesUsed <= 11) return { rank: 'PLATINUM', label: 'Platinum', color: '#22d3ee', gradient: ['#22d3ee', '#06b6d4'], xp: 420, message: 'Outstanding! All 3 problems solved!' };
-    return { rank: 'GOLD', label: 'Gold', color: '#facc15', gradient: ['#facc15', '#f59e0b'], xp: 420, message: 'All 3 solved — solid performance!' };
+    if (minutesUsed <= 7) return { rank: 'DIAMOND', label: '💎 Diamond', color: '#a855f7', gradient: ['#a855f7', '#7c3aed'], xp: 420, message: 'Exceptional! All 3 problems solved at lightning speed!' };
+    if (minutesUsed <= 11) return { rank: 'PLATINUM', label: '🔷 Platinum', color: '#22d3ee', gradient: ['#22d3ee', '#06b6d4'], xp: 420, message: 'Outstanding! All 3 problems solved!' };
+    return { rank: 'GOLD', label: '🥇 Gold', color: '#facc15', gradient: ['#facc15', '#f59e0b'], xp: 420, message: 'All 3 solved — solid performance!' };
 };
 
 export const TOTAL_SECONDS = 15 * 60; // 15 minutes

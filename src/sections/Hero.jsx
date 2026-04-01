@@ -14,7 +14,6 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import useLanguage from '../hooks/useLanguage';
 
 // Fix for deprecated motion() usage
 const MotionBox = motion.create(Box);
@@ -137,7 +136,6 @@ const Hero = () => {
     const [progress, setProgress] = useState(0);
     const [gridCubes, setGridCubes] = useState([]);
     const timeoutsRef = useRef([]);
-    const { t } = useLanguage();
 
     /* Theme-aware colors */
     const headingColor = useColorModeValue('gray.800', 'gray.100');
@@ -267,23 +265,23 @@ const Hero = () => {
                         fontWeight="bold"
                         color={headingColor}
                     >
-                        {t('hero.title')}
+                        Turn Algorithms Into Action.
                     </Heading>
 
                     <Text fontSize={{ base: 'lg', sm: 'xl' }} color={subTextColor} maxW="3xl">
-                        {t('hero.subtitle')}
+                        Write code. Run simulations. Compete in real-time. Watch your logic shape dynamic game worlds.
                     </Text>
 
                     {/* CTA Buttons */}
                     <HStack spacing={4} flexWrap="wrap" justify="center">
                         <Button variant="primary" size="lg" boxShadow="custom">
-                            {t('hero.start_ai')}
+                            Start 1 vs AI
                         </Button>
                         <Button variant="secondary" size="lg">
-                            {t('hero.challenge_player')}
+                            Challenge a Player
                         </Button>
                         <Button variant="ghost" size="lg">
-                            {t('hero.view_demo')}
+                            View Demo
                         </Button>
                     </HStack>
 

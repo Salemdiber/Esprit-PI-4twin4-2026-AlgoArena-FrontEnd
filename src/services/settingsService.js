@@ -61,8 +61,7 @@ export const settingsService = {
     },
 
     // ------------------------------------
-    // PATCH /settings/ollama-enabled → Toggle AI classification (admin only)
-    // (keeps route name for backward compatibility)
+    // PATCH /settings/ollama-enabled → Toggle Ollama AI classification (admin only)
     // ------------------------------------
     toggleOllamaEnabled: async (value) => {
         return apiClient('/settings/ollama-enabled', {
@@ -78,16 +77,6 @@ export const settingsService = {
         return apiClient('/settings/code-execution-limit', {
             method: 'PATCH',
             body: JSON.stringify({ codeExecutionLimit: value }),
-        });
-    },
-
-    // ------------------------------------
-    // PATCH /settings/disable-speed-challenges → Toggle speed challenges (admin only)
-    // ------------------------------------
-    toggleSpeedChallenges: async (value) => {
-        return apiClient('/settings/disable-speed-challenges', {
-            method: 'PATCH',
-            body: JSON.stringify({ disableSpeedChallenges: value }),
         });
     },
 };

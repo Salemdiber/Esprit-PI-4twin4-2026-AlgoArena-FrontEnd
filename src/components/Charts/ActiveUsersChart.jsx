@@ -73,24 +73,23 @@ const options = {
     },
 };
 
-const defaultLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const defaultValues = [120, 190, 150, 220, 180, 250, 310];
+const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const ActiveUsersChart = ({ labels = defaultLabels, values = defaultValues, label = 'Active Users' }) => {
-    const data = {
-        labels,
-        datasets: [
-            {
-                fill: true,
-                label,
-                data: values,
-                borderColor: '#22d3ee',
-                backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                borderWidth: 3,
-            },
-        ],
-    };
+const data = {
+    labels,
+    datasets: [
+        {
+            fill: true,
+            label: 'Active Users',
+            data: [120, 190, 150, 220, 180, 250, 310],
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.1)',
+            borderWidth: 3,
+        },
+    ],
+};
 
+const ActiveUsersChart = () => {
     return (
         <div className="h-full w-full p-2">
             <Line options={options} data={data} />

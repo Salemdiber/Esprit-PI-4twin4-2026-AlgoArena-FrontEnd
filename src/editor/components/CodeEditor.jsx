@@ -18,7 +18,7 @@
  *   readOnly        – boolean (optional, default false)
  *   options          – extra Monaco options to merge
  */
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
 import { useReducedMotion } from 'framer-motion';
 import Editor from '@monaco-editor/react';
@@ -70,10 +70,8 @@ const CodeEditor = ({
      * Disable scroll-beyond-last-line at runtime and prevent
      * the editor from auto-focusing (avoids page jump).
      */
-    const editorRef = useRef(null);
-    const handleMount = useCallback((editor) => {
-        // Keep editor instance so dynamic option changes (font family/size) apply immediately.
-        editorRef.current = editor;
+    const handleMount = useCallback((editor, _monaco) => {
+        // Don't auto-focus — prevents unexpected page scroll
     }, []);
 
     /**
@@ -112,14 +110,6 @@ const CodeEditor = ({
         // Only stop propagation — don't preventDefault (Monaco needs it)
         e.stopPropagation();
     }, []);
-
-    useEffect(() => {
-        if (!editorRef.current) return;
-        editorRef.current.updateOptions({
-            ...options,
-            readOnly,
-        });
-    }, [options, readOnly]);
 
     return (
         <Box

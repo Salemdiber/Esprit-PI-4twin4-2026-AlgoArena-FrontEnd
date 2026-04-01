@@ -77,7 +77,7 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                         margin: '0 auto 1rem',
                         border: isResult && winner === 'opponent' ? '4px solid #22c55e' : '4px solid #475569',
                     }}>
-                        AI
+                        🤖
                     </div>
                 ) : (
                     <img

@@ -172,11 +172,11 @@ const ConfirmToggleModal = ({ user, isCurrentlyActive, onClose, onConfirm, proce
 
 // ── Rank palette ────────────────────────────────────────────────────────
 const RANK_STYLE = {
-    BRONZE: { emoji: '', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
-    SILVER: { emoji: '', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
-    GOLD: { emoji: '', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
-    PLATINUM: { emoji: '', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
-    DIAMOND: { emoji: '', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
+    BRONZE: { emoji: '🥉', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
+    SILVER: { emoji: '🥈', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
+    GOLD: { emoji: '🥇', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
+    PLATINUM: { emoji: '🔷', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
+    DIAMOND: { emoji: '💎', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
 };
 
 // ── User Row ────────────────────────────────────────────────────────────
@@ -595,13 +595,13 @@ const Users = () => {
                         <option value="Disabled">Disabled</option>
                     </select>
                     <div className="flex items-center gap-2 w-full md:w-auto">
-                        <button className="btn-primary flex-1 md:flex-none whitespace-nowrap px-4!" onClick={handleExportExcel} title="Export to Excel">
+                        <button className="btn-primary flex-1 md:flex-none whitespace-nowrap !px-4" onClick={handleExportExcel} title="Export to Excel">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Excel
                         </button>
-                        <button className="btn-secondary flex-1 md:flex-none whitespace-nowrap px-4!" onClick={handleExportPDF} title="Export as PDF">
+                        <button className="btn-secondary flex-1 md:flex-none whitespace-nowrap !px-4" onClick={handleExportPDF} title="Export as PDF">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
