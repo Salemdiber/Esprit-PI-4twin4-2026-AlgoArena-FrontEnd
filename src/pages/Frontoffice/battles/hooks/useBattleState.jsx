@@ -7,8 +7,7 @@
  *   • BattleProvider  – wrap around routes that need battle state
  *   • useBattleState  – hook to consume state + dispatch actions
  */
-import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
-import { mockBattles, mockChallenges } from '../data/mockBattles';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
     BattleStatus,
     BattleMode,
@@ -21,12 +20,19 @@ import {
     getTotalOpponentScore,
     getProgressPercent,
 } from '../types/battle.types';
+import { battlesService } from '../../../../services/battlesService';
+import { challengeService } from '../../../../services/challengeService';
+import { useAuth } from '../../auth/context/AuthContext';
 
 // ─── Initial State ──────────────────────────────────────
 
 const initialState = {
-    battles: mockBattles,
+    battles: [],
     selectedBattleId: null,
+
+    isLoading: false,
+    error: '',
+    challenges: [],
 
     // Create-battle modal flow
     createModal: {
@@ -36,6 +42,7 @@ const initialState = {
         totalRounds: 5,
         difficulty: Difficulty.MEDIUM,
         timeLimit: 900,
+        challengeType: '',
     },
 
     // Timer (for active battle simulation)
@@ -70,12 +77,28 @@ const ActionTypes = {
     SET_TIMER: 'SET_TIMER',
     TICK_TIMER: 'TICK_TIMER',
     STOP_TIMER: 'STOP_TIMER',
+    SET_LOADING: 'SET_LOADING',
+    SET_ERROR: 'SET_ERROR',
+    SET_BATTLES: 'SET_BATTLES',
+    SET_CHALLENGES: 'SET_CHALLENGES',
 };
 
 // ─── Reducer ────────────────────────────────────────────
 
 function battleReducer(state, action) {
     switch (action.type) {
+        case ActionTypes.SET_LOADING:
+            return { ...state, isLoading: action.payload };
+
+        case ActionTypes.SET_ERROR:
+            return { ...state, error: action.payload };
+
+        case ActionTypes.SET_BATTLES:
+            return { ...state, battles: action.payload };
+
+        case ActionTypes.SET_CHALLENGES:
+            return { ...state, challenges: action.payload };
+
         // ── Selection ────────────────────────────────────
         case ActionTypes.SELECT_BATTLE:
             return { ...state, selectedBattleId: action.payload };
@@ -132,12 +155,14 @@ function battleReducer(state, action) {
                 newBattle.rounds[0].status = RoundStatus.IN_PROGRESS;
             }
 
-            // Assign random challenges from the pool
-            newBattle.rounds = newBattle.rounds.map((round, i) => ({
-                ...round,
-                challenge: mockChallenges[i % mockChallenges.length],
-                difficulty,
-            }));
+            // Assign random challenges from the pool if available
+            if (state.challenges.length > 0) {
+                newBattle.rounds = newBattle.rounds.map((round, i) => ({
+                    ...round,
+                    challenge: state.challenges[i % state.challenges.length],
+                    difficulty,
+                }));
+            }
 
             return {
                 ...state,
@@ -283,7 +308,105 @@ const BattleContext = createContext(null);
 
 export function BattleProvider({ children }) {
     const [state, dispatch] = useReducer(battleReducer, initialState);
+    const { currentUser } = useAuth();
     const timerRef = useRef(null);
+
+    const challengesById = useMemo(() => {
+        return state.challenges.reduce((acc, ch) => {
+            if (ch?._id) acc[ch._id] = ch;
+            return acc;
+        }, {});
+    }, [state.challenges]);
+
+    const resolveChallengeType = useCallback((challenge) => {
+        if (!challenge) return '';
+        if (challenge?.type) return challenge.type;
+        if (Array.isArray(challenge?.tags) && challenge.tags.length > 0) return challenge.tags[0];
+        if (challenge?.difficulty) return challenge.difficulty;
+        return '';
+    }, []);
+
+    const filterChallengesByType = useCallback((type) => {
+        if (!type) return state.challenges;
+        return state.challenges.filter((challenge) => {
+            const matchesType = challenge?.type === type;
+            const matchesTag = Array.isArray(challenge?.tags) && challenge.tags.includes(type);
+            const matchesDifficulty = challenge?.difficulty === type;
+            return matchesType || matchesTag || matchesDifficulty;
+        });
+    }, [state.challenges]);
+
+    const mapStatus = (status) => {
+        if (status === 'FINISHED') return BattleStatus.COMPLETED;
+        if (status === 'PENDING') return BattleStatus.WAITING;
+        if (status === 'CANCELLED') return BattleStatus.CANCELLED;
+        return BattleStatus.ACTIVE;
+    };
+
+    const mapMode = (battleType) => (battleType === '1VSBOT' ? BattleMode.ONE_VS_AI : BattleMode.ONE_VS_ONE);
+
+    const mapChallenge = (challengeId) => {
+        const challenge = challengesById[challengeId];
+        if (!challenge) return null;
+        return {
+            title: challenge.title,
+            description: challenge.description,
+            tags: Array.isArray(challenge.tags) ? challenge.tags : [],
+            example: challenge.examples?.[0] || { input: '', output: '', explanation: '' },
+            maxPoints: challenge.xpReward || 500,
+        };
+    };
+
+    const mapBattleFromApi = (battle) => {
+        const mode = mapMode(battle?.battleType);
+        const status = mapStatus(battle?.battleStatus);
+        const totalRounds = Math.max(1, Number(battle?.roundNumber) || 1);
+        const baseChallenge = mapChallenge(battle?.challengeId);
+        const typePool = filterChallengesByType(battle?.selectChallengeType || '');
+        const rounds = Array.from({ length: totalRounds }, (_, i) => {
+            const fallback = baseChallenge || mapChallenge(typePool[i % Math.max(1, typePool.length)]?._id);
+            const round = createRound(i, fallback || undefined);
+            if (status === BattleStatus.COMPLETED) {
+                round.status = RoundStatus.COMPLETED;
+                round.result = RoundResult.DRAW;
+            } else if (status === BattleStatus.ACTIVE && i === 0) {
+                round.status = RoundStatus.IN_PROGRESS;
+            }
+            return round;
+        });
+
+        const opponentName = battle?.opponentId || (mode === BattleMode.ONE_VS_AI ? 'AI Master' : 'Opponent');
+        const opponent = battle?.opponentId || mode === BattleMode.ONE_VS_AI
+            ? {
+                id: battle?.opponentId || 'ai-auto',
+                name: opponentName,
+                avatar: null,
+                level: 50,
+                league: mode === BattleMode.ONE_VS_AI ? 'AI League' : 'Silver League',
+            }
+            : null;
+
+        return {
+            id: battle?._id || battle?.idBattle || battle?.id,
+            mode,
+            status,
+            totalRounds,
+            currentRoundIndex: status === BattleStatus.ACTIVE ? 0 : status === BattleStatus.COMPLETED ? totalRounds - 1 : -1,
+            rounds,
+            player: {
+                id: currentUser?.userId || currentUser?._id || currentUser?.id || 'me',
+                name: currentUser?.username || currentUser?.email || 'You',
+                avatar: currentUser?.avatar || null,
+                level: currentUser?.level || 42,
+                league: 'Gold League',
+            },
+            opponent,
+            createdAt: battle?.createdAt ? new Date(battle.createdAt) : new Date(),
+            completedAt: battle?.endedAt ? new Date(battle.endedAt) : null,
+            timeLimit: 900,
+            difficulty: Difficulty.MEDIUM,
+        };
+    };
 
     // Timer tick effect
     useEffect(() => {
@@ -296,6 +419,39 @@ export function BattleProvider({ children }) {
         }
         return () => clearInterval(timerRef.current);
     }, [state.timer.isRunning]);
+
+    const refreshChallenges = useCallback(async () => {
+        try {
+            const resp = await challengeService.getPublished({ sort: 'newest' });
+            const list = Array.isArray(resp) ? resp : Array.isArray(resp?.data) ? resp.data : [];
+            dispatch({ type: ActionTypes.SET_CHALLENGES, payload: list });
+        } catch (err) {
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to load challenges' });
+        }
+    }, []);
+
+    const refreshBattles = useCallback(async () => {
+        dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+        dispatch({ type: ActionTypes.SET_ERROR, payload: '' });
+        try {
+            const resp = await battlesService.getAll();
+            const list = Array.isArray(resp?.battles) ? resp.battles : Array.isArray(resp) ? resp : [];
+            const mapped = list.map(mapBattleFromApi);
+            dispatch({ type: ActionTypes.SET_BATTLES, payload: mapped });
+        } catch (err) {
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to load battles' });
+        } finally {
+            dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+        }
+    }, [currentUser, challengesById]);
+
+    useEffect(() => {
+        refreshChallenges();
+    }, [refreshChallenges]);
+
+    useEffect(() => {
+        refreshBattles();
+    }, [refreshBattles, state.challenges.length]);
 
     // ── Action creators ────────────────────────────────
 
@@ -327,13 +483,44 @@ export function BattleProvider({ children }) {
         dispatch({ type: ActionTypes.SET_CREATE_CONFIG, payload: config });
     }, []);
 
-    const confirmCreateBattle = useCallback(() => {
-        dispatch({ type: ActionTypes.CONFIRM_CREATE_BATTLE });
-    }, []);
+    const confirmCreateBattle = useCallback(async () => {
+        const { mode, totalRounds, difficulty, challengeType } = state.createModal;
+        const pool = filterChallengesByType(challengeType);
+        const assigned = Array.from({ length: totalRounds }, (_, idx) => pool[idx % Math.max(1, pool.length)]);
+        const primary = assigned[0];
 
-    const cancelBattle = useCallback((id) => {
-        dispatch({ type: ActionTypes.CANCEL_BATTLE, payload: id });
-    }, []);
+        if (!primary?._id) {
+            dispatch({ type: ActionTypes.SET_ERROR, payload: 'No challenges available for the selected type.' });
+            return;
+        }
+
+        const payload = {
+            userId: currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username,
+            opponentId: mode === BattleMode.ONE_VS_AI ? 'AI-1' : null,
+            roundNumber: totalRounds,
+            battleStatus: 'ACTIVE',
+            challengeId: primary?._id,
+            selectChallengeType: challengeType || resolveChallengeType(primary) || difficulty,
+            battleType: mode === BattleMode.ONE_VS_AI ? '1VSBOT' : '1VS1',
+        };
+
+        try {
+            await battlesService.create(payload);
+            dispatch({ type: ActionTypes.CLOSE_CREATE_MODAL });
+            await refreshBattles();
+        } catch (err) {
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to create battle' });
+        }
+    }, [state.createModal, currentUser, refreshBattles, filterChallengesByType, resolveChallengeType]);
+
+    const cancelBattle = useCallback(async (id) => {
+        try {
+            await battlesService.update(id, { battleStatus: 'CANCELLED' });
+            await refreshBattles();
+        } catch (err) {
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to cancel battle' });
+        }
+    }, [refreshBattles]);
 
     const activateBattle = useCallback((id) => {
         dispatch({ type: ActionTypes.ACTIVATE_BATTLE, payload: id });
@@ -409,6 +596,8 @@ export function BattleProvider({ children }) {
         startTimer,
         stopTimer,
         simulateCompleteRound,
+        refreshBattles,
+        refreshChallenges,
     };
 
     return (

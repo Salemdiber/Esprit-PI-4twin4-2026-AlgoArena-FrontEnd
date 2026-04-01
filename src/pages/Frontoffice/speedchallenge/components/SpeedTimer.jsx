@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Flex, Text, VStack } from '@chakra-ui/react';
 import { TOTAL_SECONDS } from '../data/speedChallengeProblems';
 
@@ -17,7 +17,7 @@ const fmt = (totalSecs) => {
  *   elapsedSeconds – seconds since challenge start (stopwatch)
  *   isExpired    – force red state
  */
-const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired }) => {
+const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired, disableCopyPaste = false, disableTabSwitch = false }) => {
     const ratio = secondsLeft / TOTAL_SECONDS;
     const isWarning = ratio <= 0.33 && !isExpired;
     const isDanger = ratio <= 0.1 || isExpired;
@@ -26,6 +26,90 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
     const glowColor = isDanger ? 'rgba(239,68,68,0.35)' : isWarning ? 'rgba(250,204,21,0.25)' : 'rgba(34,211,238,0.25)';
 
     const circumference = 2 * Math.PI * 11;
+    const [tabHidden, setTabHidden] = useState(false);
+
+    useEffect(() => {
+        // If neither protection is enabled, do nothing
+        if (!disableCopyPaste && !disableTabSwitch) return;
+
+        const blockEvent = (e) => {
+            try { e.preventDefault(); e.stopPropagation(); } catch (err) {}
+        };
+
+        const onKeyDown = (e) => {
+            const k = e.key ? String(e.key).toLowerCase() : '';
+            if (e.key === 'F12') {
+                if (disableCopyPaste) { e.preventDefault(); e.stopPropagation(); }
+                return;
+            }
+
+            if (disableCopyPaste && (e.ctrlKey || e.metaKey) && (k === 'c' || k === 'v' || k === 'x' || k === 'u' || k === 's')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            if (disableCopyPaste && (e.ctrlKey || e.metaKey) && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+        };
+
+        if (disableCopyPaste) {
+            document.addEventListener('keydown', onKeyDown, true);
+            document.addEventListener('contextmenu', blockEvent, true);
+            document.addEventListener('copy', blockEvent, true);
+            document.addEventListener('cut', blockEvent, true);
+            document.addEventListener('paste', blockEvent, true);
+            document.addEventListener('selectstart', blockEvent, true);
+        }
+
+        const onVisibility = () => setTabHidden(document.hidden === true);
+        const onBlur = () => setTabHidden(true);
+        const onFocus = () => setTabHidden(false);
+
+        if (disableTabSwitch) {
+            document.addEventListener('visibilitychange', onVisibility, true);
+            window.addEventListener('blur', onBlur, true);
+            window.addEventListener('focus', onFocus, true);
+        }
+
+        // If server flags are not provided via props, try localStorage fallback
+        if (!disableCopyPaste && !disableTabSwitch) {
+            try {
+                const lcp = JSON.parse(localStorage.getItem('disableCopyPaste'));
+                const lts = JSON.parse(localStorage.getItem('disableTabSwitch'));
+                if (lcp) {
+                    document.addEventListener('keydown', onKeyDown, true);
+                    document.addEventListener('contextmenu', blockEvent, true);
+                    document.addEventListener('copy', blockEvent, true);
+                    document.addEventListener('cut', blockEvent, true);
+                    document.addEventListener('paste', blockEvent, true);
+                    document.addEventListener('selectstart', blockEvent, true);
+                }
+                if (lts) {
+                    document.addEventListener('visibilitychange', onVisibility, true);
+                    window.addEventListener('blur', onBlur, true);
+                    window.addEventListener('focus', onFocus, true);
+                }
+            } catch (_) {}
+        }
+
+        return () => {
+            try {
+                document.removeEventListener('keydown', onKeyDown, true);
+                document.removeEventListener('contextmenu', blockEvent, true);
+                document.removeEventListener('copy', blockEvent, true);
+                document.removeEventListener('cut', blockEvent, true);
+                document.removeEventListener('paste', blockEvent, true);
+                document.removeEventListener('selectstart', blockEvent, true);
+                document.removeEventListener('visibilitychange', onVisibility, true);
+                window.removeEventListener('blur', onBlur, true);
+                window.removeEventListener('focus', onFocus, true);
+            } catch (_) {}
+        };
+    }, [disableCopyPaste, disableTabSwitch]);
 
     return (
         <>
@@ -187,6 +271,28 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                     50%       { opacity: 0.45; }
                 }
             `}</style>
+            {tabHidden && (
+                <Box
+                    position="fixed"
+                    top={0}
+                    left={0}
+                    right={0}
+                    bottom={0}
+                    zIndex={20000}
+                    bg="rgba(0,0,0,0.85)"
+                    color="white"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    px={4}
+                    textAlign="center"
+                >
+                    <VStack spacing={3}>
+                        <Text fontSize="lg" fontWeight="bold">Vous avez quitté l'onglet</Text>
+                        <Text fontSize="md">Le challenge est suspendu tant que vous n'êtes pas revenu.</Text>
+                    </VStack>
+                </Box>
+            )}
         </>
     );
 };

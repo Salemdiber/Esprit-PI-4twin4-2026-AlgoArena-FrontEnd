@@ -23,7 +23,7 @@ const ProblemTabs = () => {
             mb={6}
         >
             <TabList gap={6}>
-                {['Description', 'Submissions'].map((label, i) => (
+                {['Description', 'Submissions', 'AI Judge'].map((label, i) => (
                     <Tab
                         key={label}
                         pb={3}

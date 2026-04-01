@@ -63,34 +63,30 @@ const options = {
     },
 };
 
-const labels = ['Two Sum', 'Bin. Tree', 'Linked List', 'Graph BFS', 'DP Coin'];
+const defaultLabels = ['Two Sum', 'Bin. Tree', 'Linked List', 'Graph BFS', 'DP Coin'];
+const defaultValues = [1250, 980, 860, 650, 430];
+const defaultColors = [
+    'rgba(34, 211, 238, 0.8)',
+    'rgba(168, 85, 247, 0.8)',
+    'rgba(34, 197, 94, 0.8)',
+    'rgba(234, 179, 8, 0.8)',
+    'rgba(244, 63, 94, 0.8)',
+];
 
-const data = {
-    labels,
-    datasets: [
-        {
-            label: 'Plays',
-            data: [1250, 980, 860, 650, 430],
-            backgroundColor: [
-                'rgba(34, 211, 238, 0.8)', // Cyan
-                'rgba(168, 85, 247, 0.8)', // Purple
-                'rgba(34, 197, 94, 0.8)',  // Green
-                'rgba(234, 179, 8, 0.8)',  // Yellow
-                'rgba(244, 63, 94, 0.8)',  // Red/Rose
-            ],
-            hoverBackgroundColor: [
-                'rgba(34, 211, 238, 1)',
-                'rgba(168, 85, 247, 1)',
-                'rgba(34, 197, 94, 1)',
-                'rgba(234, 179, 8, 1)',
-                'rgba(244, 63, 94, 1)',
-            ],
-            borderWidth: 0,
-        },
-    ],
-};
+const GamesChart = ({ labels = defaultLabels, values = defaultValues, datasetLabel = 'Plays' }) => {
+    const data = {
+        labels,
+        datasets: [
+            {
+                label: datasetLabel,
+                data: values,
+                backgroundColor: labels.map((_, index) => defaultColors[index % defaultColors.length]),
+                hoverBackgroundColor: labels.map((_, index) => defaultColors[index % defaultColors.length].replace('0.8', '1')),
+                borderWidth: 0,
+            },
+        ],
+    };
 
-const GamesChart = () => {
     return (
         <div className="h-full w-full p-2">
             <Bar options={options} data={data} />

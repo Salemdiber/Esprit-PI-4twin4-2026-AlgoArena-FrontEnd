@@ -30,23 +30,28 @@ const options = {
     borderWidth: 0,
 };
 
-const data = {
-    labels: ['Easy', 'Medium', 'Hard'],
-    datasets: [
-        {
-            data: [45, 35, 20],
-            backgroundColor: [
-                '#22c55e', // Green
-                '#facc15', // Yellow
-                '#ef4444', // Red
-            ],
-            borderColor: '#0f172a', /* Match card background to create spacing effect if needed */
-            borderWidth: 2,
-        },
-    ],
-};
+const defaultDistribution = { Easy: 45, Medium: 35, Hard: 20, Expert: 0 };
 
-const DifficultyChart = () => {
+const DifficultyChart = ({ distribution = defaultDistribution }) => {
+    const labels = ['Easy', 'Medium', 'Hard', 'Expert'];
+    const values = labels.map((key) => Number(distribution?.[key] || 0));
+    const data = {
+        labels,
+        datasets: [
+            {
+                data: values,
+                backgroundColor: [
+                    '#22c55e',
+                    '#facc15',
+                    '#ef4444',
+                    '#a855f7',
+                ],
+                borderColor: '#0f172a',
+                borderWidth: 2,
+            },
+        ],
+    };
+
     return <Doughnut data={data} options={options} />;
 };
 

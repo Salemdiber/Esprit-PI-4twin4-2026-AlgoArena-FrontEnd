@@ -1,7 +1,7 @@
 /**
  * TestResultCard – single test case result row.
  *
- * Shows PASSED / FAILED status, input, expected, output, and runtime.
+ * Shows PASSED / FAILED status, input, expected vs actual output, and runtime.
  * Animated entrance via Framer Motion.
  */
 import React from 'react';
@@ -10,6 +10,7 @@ import {
     Flex,
     Text,
     Icon,
+    Code,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 
@@ -27,21 +28,30 @@ const XCircle = (props) => (
     </Icon>
 );
 
+function formatValue(val) {
+    if (val === null || val === undefined) return 'null';
+    if (typeof val === 'string') return val;
+    try { return JSON.stringify(val); } catch { return String(val); }
+}
+
 const TestResultCard = ({ result, index }) => {
-    const passed = result.status === 'PASSED';
+    const passed = result.passed;
+    const hasError = !passed && result.error;
+    const hasOutputMismatch = !passed && !result.error && result.expected != null && result.got != null;
 
     return (
         <MotionBox
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
+            transition={{ duration: 0.3, delay: index * 0.08 }}
             bg="var(--color-bg-secondary)"
             borderRadius="12px"
-            p={3}
+            p={4}
             borderLeft="4px solid"
             borderLeftColor={passed ? 'green.500' : 'red.500'}
         >
-            <Flex align="center" justify="space-between" mb={2}>
+            {/* Header row */}
+            <Flex align="center" justify="space-between" mb={passed && !result.input ? 0 : 2}>
                 <Flex align="center" gap={2}>
                     {passed ? (
                         <CheckCircle w={5} h={5} color="green.500" />
@@ -49,20 +59,73 @@ const TestResultCard = ({ result, index }) => {
                         <XCircle w={5} h={5} color="red.500" />
                     )}
                     <Text fontWeight="semibold" color={passed ? 'green.400' : 'red.400'} fontSize="sm">
-                        Test Case {index + 1}: {passed ? 'Passed' : 'Failed'}
+                        Test Case {result.testCase || index + 1}: {passed ? 'Passed' : result.timedOut ? 'Timed Out' : 'Failed'}
                     </Text>
                 </Flex>
-                <Text fontSize="xs" color="gray.400">
-                    Runtime: {result.runtime}ms
+                <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                    {result.executionTime || 'N/A'}
                 </Text>
             </Flex>
 
-            <Box fontSize="sm" fontFamily="mono" color="gray.400">
-                <Text>Input: {result.input}</Text>
-                <Text>Expected: {result.expected}</Text>
-                <Text color={passed ? 'green.400' : 'red.400'}>
-                    Output: {result.output}
-                </Text>
+            {/* Detail rows */}
+            <Box fontSize="sm" fontFamily="mono" color="gray.400" pl={7}>
+                {/* Input */}
+                {result.input != null && result.input !== '' && (
+                    <Flex gap={2} mb={1}>
+                        <Text color="gray.500" flexShrink={0}>Input:</Text>
+                        <Code
+                            fontSize="xs"
+                            bg="transparent"
+                            color="gray.300"
+                            wordBreak="break-all"
+                            whiteSpace="pre-wrap"
+                        >
+                            {formatValue(result.input)}
+                        </Code>
+                    </Flex>
+                )}
+
+                {/* Expected */}
+                {result.expected != null && (
+                    <Flex gap={2} mb={1}>
+                        <Text color="gray.500" flexShrink={0}>Expected:</Text>
+                        <Code
+                            fontSize="xs"
+                            bg="transparent"
+                            color={passed ? 'green.300' : 'yellow.300'}
+                            wordBreak="break-all"
+                            whiteSpace="pre-wrap"
+                        >
+                            {formatValue(result.expected)}
+                        </Code>
+                    </Flex>
+                )}
+
+                {/* Actual output */}
+                {!passed && result.got != null && (
+                    <Flex gap={2} mb={1}>
+                        <Text color="gray.500" flexShrink={0}>Got:</Text>
+                        <Code
+                            fontSize="xs"
+                            bg="transparent"
+                            color="red.300"
+                            wordBreak="break-all"
+                            whiteSpace="pre-wrap"
+                        >
+                            {formatValue(result.got)}
+                        </Code>
+                    </Flex>
+                )}
+
+                {/* Runtime error */}
+                {hasError && (
+                    <Flex gap={2} mt={1}>
+                        <Text color="red.400" flexShrink={0}>Error:</Text>
+                        <Text color="red.300" wordBreak="break-all" whiteSpace="pre-wrap">
+                            {result.error}
+                        </Text>
+                    </Flex>
+                )}
             </Box>
         </MotionBox>
     );

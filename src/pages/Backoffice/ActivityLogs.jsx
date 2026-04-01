@@ -13,6 +13,7 @@ import {
     Flag,
     KeyRound,
     LockKeyhole,
+    Play,
     Pencil,
     Rocket,
     RotateCcw,
@@ -33,6 +34,7 @@ import {
     UserX,
 } from 'lucide-react';
 import { auditLogService } from '../../services/auditLogService';
+import ActionButton from '../../components/ActionButton';
 
 const ICON_TONES = {
     blue: { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.28)' },
@@ -67,6 +69,9 @@ const ACTION_META = {
     CHALLENGE_UNPUBLISHED: createActionMeta(Undo2, 'Challenge Unpublished', 'amber', 'challenge'),
     CHALLENGE_EDITED: createActionMeta(Pencil, 'Challenge Edited', 'blue', 'challenge'),
     CHALLENGE_DELETED: createActionMeta(Trash2, 'Challenge Deleted', 'red', 'challenge'),
+    CHALLENGE_STARTED: createActionMeta(Play, 'Challenge Started', 'blue', 'challenge'),
+    CHALLENGE_SUBMITTED: createActionMeta(ClipboardList, 'Solution Submitted', 'amber', 'challenge'),
+    CHALLENGE_SOLVED: createActionMeta(BadgeCheck, 'Challenge Solved', 'green', 'challenge'),
     DIFFICULTY_CHANGED: createActionMeta(BarChart3, 'Difficulty Changed', 'amber', 'challenge'),
     TAGS_UPDATED: createActionMeta(Tags, 'Tags Updated', 'purple', 'challenge'),
     SYSTEM_CONFIG_UPDATED: createActionMeta(Settings2, 'Config Updated', 'blue', 'system'),
@@ -118,7 +123,8 @@ const STAT_CARDS = [
 
 const getTone = (tone = 'gray') => ICON_TONES[tone] || ICON_TONES.gray;
 
-const IconBadge = ({ icon: Icon, tone = 'gray', size = 18, className = 'h-10 w-10 rounded-xl' }) => {
+const IconBadge = ({ icon, tone = 'gray', size = 18, className = 'h-10 w-10 rounded-xl' }) => {
+    const BadgeIcon = icon;
     const palette = getTone(tone);
 
     return (
@@ -126,49 +132,8 @@ const IconBadge = ({ icon: Icon, tone = 'gray', size = 18, className = 'h-10 w-1
             className={`inline-flex shrink-0 items-center justify-center border ${className}`}
             style={{ background: palette.bg, borderColor: palette.border, color: palette.color }}
         >
-            <Icon size={size} strokeWidth={2} />
+            <BadgeIcon size={size} strokeWidth={2} />
         </span>
-    );
-};
-
-const ActionButton = ({ icon: Icon, label, tone, onClick, title }) => {
-    const palette = getTone(tone);
-    const isSuccess = tone === 'green';
-    const glow = isSuccess ? '0 10px 24px rgba(52,211,153,0.16)' : '0 10px 24px rgba(251,191,36,0.18)';
-    const hoverBorder = isSuccess ? 'rgba(52,211,153,0.42)' : 'rgba(251,191,36,0.42)';
-
-    return (
-        <button
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold tracking-[0.01em] transition-all duration-200 hover:-translate-y-0.5"
-            style={{
-                background: `linear-gradient(180deg, ${palette.bg} 0%, rgba(15,23,42,0.02) 100%)`,
-                color: palette.color,
-                border: `1px solid ${palette.border}`,
-                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(15,23,42,0.08)`,
-            }}
-            onClick={onClick}
-            title={title || label}
-            type="button"
-            onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = hoverBorder;
-                e.currentTarget.style.boxShadow = `${glow}, inset 0 1px 0 rgba(255,255,255,0.06)`;
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = palette.border;
-                e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(15,23,42,0.08)';
-            }}
-        >
-            <span
-                className="inline-flex h-5 w-5 items-center justify-center rounded-md"
-                style={{
-                    background: isSuccess ? 'rgba(52,211,153,0.18)' : 'rgba(251,191,36,0.18)',
-                    border: `1px solid ${palette.border}`,
-                }}
-            >
-                <Icon size={12} strokeWidth={2.3} />
-            </span>
-            <span>{label}</span>
-        </button>
     );
 };
 
@@ -292,10 +257,10 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                     </div>
                 </div>
 
-                {isExpanded && (hasPrevState || hasNewState) && (
+                {isExpanded && (hasPrevState || hasNewState || (log.metadata && Object.keys(log.metadata).length > 0)) && (
                     <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-                            State Changes
+                            Details
                         </p>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             {hasPrevState && (
@@ -313,6 +278,17 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                                 <div className="rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
                                     <p className="mb-2 text-xs font-semibold" style={{ color: '#34d399' }}>New State</p>
                                     {Object.entries(log.newState).map(([key, val]) => (
+                                        <div key={key} className="flex justify-between gap-4 py-0.5 text-xs">
+                                            <span className="font-mono" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
+                                            <span className="break-all text-right font-mono" style={{ color: 'var(--color-text-secondary)' }}>{String(val)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {log.metadata && Object.keys(log.metadata).length > 0 && (
+                                <div className="rounded-lg p-3 md:col-span-2" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#60a5fa' }}>Metadata</p>
+                                    {Object.entries(log.metadata).map(([key, val]) => (
                                         <div key={key} className="flex justify-between gap-4 py-0.5 text-xs">
                                             <span className="font-mono" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
                                             <span className="break-all text-right font-mono" style={{ color: 'var(--color-text-secondary)' }}>{String(val)}</span>

@@ -1,6 +1,6 @@
 import { getToken, removeToken, setToken } from './cookieUtils';
 
-const BASE_URL = '/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 let isRefreshing = false;
 let refreshQueue = [];
@@ -39,8 +39,30 @@ export const apiClient = async (endpoint, options = {}) => {
         credentials: options.credentials || 'include',
     };
 
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
     const doFetch = async (fetchOpts) => {
-        const response = await fetch(`${BASE_URL}${endpoint}`, fetchOpts);
+        const method = String(fetchOpts.method || 'GET').toUpperCase();
+        const retryable = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+        const maxRetries = retryable ? 3 : 0;
+        let attempt = 0;
+        let response;
+
+        while (attempt <= maxRetries) {
+            try {
+                response = await fetch(`${BASE_URL}${endpoint}`, fetchOpts);
+                break;
+            } catch (error) {
+                if (attempt === maxRetries) {
+                    const networkError = new Error(`Cannot reach backend at ${BASE_URL}. Please confirm the API server is running.`);
+                    networkError.cause = error;
+                    throw networkError;
+                }
+                const backoffMs = 500 * (2 ** attempt);
+                await delay(backoffMs);
+                attempt += 1;
+            }
+        }
 
         let data;
         try {
