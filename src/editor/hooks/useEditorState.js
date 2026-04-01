@@ -39,31 +39,46 @@ const useEditorState = (initialLanguage = 'javascript', templates = DEMO_TEMPLAT
      * Simulate "Run Code" — produces mock output after a short delay.
      * Replace internals with a backend call later.
      */
-    const runCode = useCallback(() => {
+    const runCode = useCallback(async () => {
         if (isRunning) return;
         setIsRunning(true);
         setOutput([]);
 
-        // Clear any pending timer
-        if (timerRef.current) clearTimeout(timerRef.current);
+        try {
+            const resp = await fetch('/api/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, language }),
+            });
+            const json = await resp.json();
 
-        timerRef.current = setTimeout(() => {
-            setOutput([
-                { type: 'info', text: `Compiling ${language}...` },
-                { type: 'info', text: 'Running test cases...' },
-                { type: 'success', text: '' },
-                { type: 'result', text: 'Test Case 1: nums = [2,7,11,15], target = 9' },
-                { type: 'success', text: '  ✓ Output: [0, 1]  Expected: [0, 1]  (2ms)' },
-                { type: 'result', text: 'Test Case 2: nums = [3,2,4], target = 6' },
-                { type: 'success', text: '  ✓ Output: [1, 2]  Expected: [1, 2]  (1ms)' },
-                { type: 'result', text: 'Test Case 3: nums = [3,3], target = 6' },
-                { type: 'success', text: '  ✓ Output: [0, 1]  Expected: [0, 1]  (1ms)' },
-                { type: 'success', text: '' },
-                { type: 'success', text: '✔ All test cases passed  (4ms total)' },
-            ]);
+            if (json.type === 'raw') {
+                const out = json.output || '';
+                const lines = out.split('\n').filter(Boolean);
+                const items = [];
+                if (!lines.length) items.push({ type: 'info', text: `No output` });
+                lines.forEach((l) => items.push({ type: 'result', text: l }));
+                setOutput(items);
+            } else if (json.type === 'validation') {
+                const res = json.result;
+                const items = [];
+                items.push({ type: 'info', text: `Tests: ${res.passedTests}/${res.totalTests}` });
+                res.results.forEach((r) => {
+                    items.push({ type: r.passed ? 'success' : 'error', text: `Test ${r.testCase}: ${r.passed ? '✓' : '✗'} Expected: ${r.expectedOutput} Got: ${r.actualOutput || r.error || ''}` });
+                });
+                setOutput(items);
+            } else if (json.type === 'error') {
+                setOutput([{ type: 'error', text: json.message || 'Execution error' }]);
+            } else {
+                setOutput([{ type: 'info', text: 'Unknown response from executor' }]);
+            }
+        } catch (err) {
+            // Fallback to simulated output
+            setOutput([{ type: 'error', text: err?.message || 'Failed to run code' }]);
+        } finally {
             setIsRunning(false);
-        }, 1200);
-    }, [isRunning, language]);
+        }
+    }, [isRunning, language, code]);
 
     /** Reset code back to the template for the current language */
     const resetCode = useCallback(() => {

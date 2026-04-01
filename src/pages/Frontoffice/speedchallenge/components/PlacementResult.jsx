@@ -1,15 +1,16 @@
 import React from 'react';
-import { Box, Flex, Text, VStack, Button, HStack } from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, Button, HStack, Icon } from '@chakra-ui/react';
+import { MdMilitaryTech, MdDiamond, MdSmartToy } from 'react-icons/md';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion.create(Box);
 
 const RANK_VISUALS = {
-    BRONZE: { emoji: '🥉', glow: 'rgba(205,127,50,0.4)', ring: '#cd7f32' },
-    SILVER: { emoji: '🥈', glow: 'rgba(192,192,192,0.4)', ring: '#c0c0c0' },
-    GOLD: { emoji: '🥇', glow: 'rgba(250,204,21,0.5)', ring: '#facc15' },
-    PLATINUM: { emoji: '🔷', glow: 'rgba(34,211,238,0.5)', ring: '#22d3ee' },
-    DIAMOND: { emoji: '💎', glow: 'rgba(168,85,247,0.5)', ring: '#a855f7' },
+    BRONZE: { icon: MdMilitaryTech, glow: 'rgba(205,127,50,0.4)', ring: '#cd7f32' },
+    SILVER: { icon: MdMilitaryTech, glow: 'rgba(192,192,192,0.4)', ring: '#c0c0c0' },
+    GOLD: { icon: MdMilitaryTech, glow: 'rgba(250,204,21,0.5)', ring: '#facc15' },
+    PLATINUM: { icon: MdDiamond, glow: 'rgba(34,211,238,0.5)', ring: '#22d3ee' },
+    DIAMOND: { icon: MdDiamond, glow: 'rgba(168,85,247,0.5)', ring: '#a855f7' },
 };
 
 /** Circular score ring */
@@ -115,9 +116,10 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
         <Box w="100%">
             {/* Section header */}
             <HStack spacing={2} mb={3}>
+                <Icon as={MdSmartToy} w={4} h={4} color="gray.500" />
                 <Text fontSize="xs" fontFamily="mono" color="gray.500"
                     textTransform="uppercase" letterSpacing="0.1em">
-                    🤖 AI Analysis
+                    AI Analysis
                 </Text>
                 <Box flex={1} h="1px" bg="rgba(255,255,255,0.06)" />
                 <Text fontSize="xs" fontFamily="mono" color="gray.500">
@@ -178,17 +180,25 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                             {b.composite > 0 && (
                                 <>
                                     <Flex gap={2} mb={2}>
-                                        {[
-                                            { label: 'Exact.', val: b.exactitude, color: '#22c55e' },
-                                            { label: 'Cmplx.', val: b.complexity, color: '#22d3ee' },
-                                            { label: 'Style', val: b.style, color: '#a855f7' },
-                                        ].map(({ label, val, color }) => (
-                                            <Box key={label} flex={1} textAlign="center"
-                                                px={1} py={1} borderRadius="6px" bg="rgba(255,255,255,0.04)">
-                                                <Text fontSize="9px" color="gray.500" fontFamily="mono">{label}</Text>
-                                                <Text fontSize="xs" fontWeight="bold" color={color}>{val}</Text>
-                                            </Box>
-                                        ))}
+                                        {(() => {
+                                            const items = [
+                                                { label: 'Exact.', val: b.exactitude, color: '#22c55e' },
+                                                { label: 'Cmplx.', val: b.complexity, color: '#22d3ee' },
+                                                { label: 'O', val: b.complexite || b.timeComplexity || 'O(?)', color: '#60a5fa' },
+                                                { label: 'Style', val: b.style, color: '#a855f7' },
+                                            ];
+                                            return items.map(({ label, val, color }) => (
+                                                <Box key={label} flex={1} textAlign="center"
+                                                    px={1} py={1} borderRadius="6px" bg="rgba(255,255,255,0.04)">
+                                                    <Text fontSize="9px" color="gray.500" fontFamily="mono">{label}</Text>
+                                                    {typeof val === 'number' ? (
+                                                        <Text fontSize="xs" fontWeight="bold" color={color}>{val}</Text>
+                                                    ) : (
+                                                        <Text fontSize="xs" fontWeight="bold" color={color} fontFamily="mono">{String(val)}</Text>
+                                                    )}
+                                                </Box>
+                                            ));
+                                        })()}
                                     </Flex>
                                     {b.notes && (
                                         <Text fontSize="10px" color="gray.500" fontStyle="italic" lineHeight="1.5">
@@ -221,6 +231,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
             justifyContent="center"
             position="relative"
             overflow="hidden"
+            py={{ base: 20, md: 24 }}
         >
             {/* Ambient glow */}
             <Box
@@ -262,7 +273,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                         bgGradient={`linear(to-r, ${placement.gradient[0]}, ${placement.gradient[1]})`}
                     />
 
-                    <VStack spacing={6} p={10} align="center">
+                    <VStack spacing={8} p={{ base: 6, md: 12 }} align="center">
                         {/* Title */}
                         <Box textAlign="center">
                             <Text
@@ -301,7 +312,13 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                 boxShadow={`0 0 30px ${visual.glow}`}
                                 textAlign="center"
                             >
-                                <Text fontSize="5xl" lineHeight={1} mb={1}>{visual.emoji}</Text>
+                                <Icon
+                                    as={visual.icon}
+                                    boxSize={24}
+                                    mb={2}
+                                    color={placement.color}
+                                    style={{ filter: `drop-shadow(0 0 12px ${visual.glow})` }}
+                                />
                                 <Text
                                     fontSize="2xl"
                                     fontWeight="black"

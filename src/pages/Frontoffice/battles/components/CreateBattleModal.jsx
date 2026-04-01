@@ -164,7 +164,7 @@ const StepMode = ({ mode, setCreateMode, aiBattlesEnabled }) => (
                 onClick={() => aiBattlesEnabled && setCreateMode(BattleMode.ONE_VS_AI)}
                 style={!aiBattlesEnabled ? { opacity: 0.45, cursor: 'not-allowed', position: 'relative' } : {}}
             >
-                <div className="battle-mode-icon battle-mode-icon--ai">🤖</div>
+                <div className="battle-mode-icon battle-mode-icon--ai">AI</div>
                 <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>1vsAI Battle</h4>
                 <p className="battle-text-sm battle-text-muted">
                     {aiBattlesEnabled
@@ -285,7 +285,7 @@ const StepConfirm = ({ mode, totalRounds, difficulty, timeLimit }) => {
             <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'var(--color-info-bg)', borderRadius: '12px', border: '1px solid var(--color-glass-border-strong)' }}>
                 <p className="battle-text-sm battle-text-cyan">
                     {mode === BattleMode.ONE_VS_AI
-                        ? '🤖 You will immediately enter the battle against the AI.'
+                        ? 'You will immediately enter the battle against the AI.'
                         : '⏳ Your battle will be created with WAITING status until an opponent joins.'
                     }
                 </p>

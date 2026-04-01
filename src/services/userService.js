@@ -62,6 +62,39 @@ export const userService = {
         });
     },
 
+    completeSpeedChallenge: async () => {
+        // POST /user/me/speed-challenge/complete
+        // Marks the speed challenge as completed in the user profile
+        return apiClient('/user/me/speed-challenge/complete', {
+            method: 'POST',
+        });
+    },
+
+    saveSpeedTestSession: async (sessionData) => {
+        // POST /user/me/speed-challenge/session/save
+        // Saves the ongoing speed test session for resuming later
+        return apiClient('/user/me/speed-challenge/session/save', {
+            method: 'POST',
+            body: JSON.stringify(sessionData),
+        });
+    },
+
+    getSpeedTestSession: async () => {
+        // GET /user/me/speed-challenge/session
+        // Retrieves the saved speed test session
+        return apiClient('/user/me/speed-challenge/session', {
+            method: 'GET',
+        });
+    },
+
+    clearSpeedTestSession: async () => {
+        // POST /user/me/speed-challenge/session/clear
+        // Clears the saved speed test session
+        return apiClient('/user/me/speed-challenge/session/clear', {
+            method: 'POST',
+        });
+    },
+
     // ------------------------------------
     // Back Office User Management API
     // ------------------------------------

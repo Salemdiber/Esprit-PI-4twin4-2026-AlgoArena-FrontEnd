@@ -35,11 +35,11 @@ import ThemeSwitcher from './ThemeSwitcher';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
-    BRONZE: { emoji: '🥉', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
-    SILVER: { emoji: '🥈', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
-    GOLD: { emoji: '🥇', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
-    PLATINUM: { emoji: '🔷', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
-    DIAMOND: { emoji: '💎', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
+    BRONZE: { emoji: '', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
+    SILVER: { emoji: '', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
+    GOLD: { emoji: '', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
+    PLATINUM: { emoji: '', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
+    DIAMOND: { emoji: '', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
 };
 
 const fmtXp = (xp) => {
