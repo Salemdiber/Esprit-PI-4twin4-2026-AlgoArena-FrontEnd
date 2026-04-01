@@ -126,7 +126,7 @@ export const SPEED_CHALLENGE_PROBLEMS = [
  *  solved 0 / time out      → BRONZE
  *  solved 1 (easy only)     → BRONZE (fast) / SILVER
  *  solved 2 (easy+medium)   → SILVER (fast) / GOLD
- *  solved 3                 → GOLD (slow) / PLATINUM (fast) / DIAMOND (very fast)
+ *  solved 3                 → GOLD
  */
 export const computePlacement = (solvedIds, totalSeconds) => {
     const solved = solvedIds.length;
@@ -141,9 +141,6 @@ export const computePlacement = (solvedIds, totalSeconds) => {
         if (minutesUsed <= 8) return { rank: 'GOLD', label: 'Gold', color: '#facc15', gradient: ['#facc15', '#f59e0b'], xp: 170, message: 'Impressive! Easy + Medium solved quickly.' };
         return { rank: 'SILVER', label: 'Silver', color: '#c0c0c0', gradient: ['#c0c0c0', '#a8a8a8'], xp: 170, message: 'Great work! You handled Easy and Medium well.' };
     }
-    // solved all 3
-    if (minutesUsed <= 7) return { rank: 'DIAMOND', label: 'Diamond', color: '#a855f7', gradient: ['#a855f7', '#7c3aed'], xp: 420, message: 'Exceptional! All 3 problems solved at lightning speed!' };
-    if (minutesUsed <= 11) return { rank: 'PLATINUM', label: 'Platinum', color: '#22d3ee', gradient: ['#22d3ee', '#06b6d4'], xp: 420, message: 'Outstanding! All 3 problems solved!' };
     return { rank: 'GOLD', label: 'Gold', color: '#facc15', gradient: ['#facc15', '#f59e0b'], xp: 420, message: 'All 3 solved — solid performance!' };
 };
 

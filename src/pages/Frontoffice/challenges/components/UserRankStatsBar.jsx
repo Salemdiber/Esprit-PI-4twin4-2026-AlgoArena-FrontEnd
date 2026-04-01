@@ -11,7 +11,6 @@ import {
     Flex,
     Text,
     Badge,
-    Progress,
     Icon,
     Skeleton,
     useColorModeValue,
@@ -60,6 +59,33 @@ const useAnimatedProgress = (targetValue) => {
 
     return animatedValue;
 };
+
+const ProgressTrack = ({ value, accentStart, accentEnd, label }) => (
+    <Box
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.max(0, Math.min(100, Math.round(value || 0)))}
+        position="relative"
+        h="14px"
+        borderRadius="full"
+        bg="rgba(148, 163, 184, 0.18)"
+        border="1px solid rgba(148, 163, 184, 0.24)"
+        overflow="hidden"
+        boxShadow="inset 0 1px 2px rgba(15, 23, 42, 0.24)"
+    >
+        <Box
+            h="100%"
+            w={`${Math.max(0, Math.min(100, value || 0))}%`}
+            minW={(value || 0) > 0 ? '10px' : '0'}
+            bgGradient={`linear(to-r, ${accentStart}, ${accentEnd})`}
+            borderRadius="full"
+            transition="width 0.95s ease"
+            boxShadow="0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 8px 18px rgba(34, 211, 238, 0.14)"
+        />
+    </Box>
+);
 
 const RankStatsSkeleton = () => (
     <Flex
@@ -154,18 +180,11 @@ const UnrankedBar = ({ xp, streak }) => {
                         {progressPercent}%
                     </Badge>
                 </Flex>
-                <Progress
+                <ProgressTrack
                     value={animatedProgress}
-                    size="md"
-                    borderRadius="full"
-                    bg="var(--color-tag-bg)"
-                    sx={{
-                        '& > div': {
-                            transition: 'width 0.95s ease',
-                            bgGradient: 'linear(to-r, #d97706, #f59e0b)',
-                            borderRadius: 'full',
-                        },
-                    }}
+                    accentStart="#d97706"
+                    accentEnd="#f59e0b"
+                    label="Progress to Bronze"
                 />
                 <Text fontSize="xs" color={textSec} mt={1.5}>
                     {(xp ?? 0).toLocaleString()} / {BRONZE_XP_TARGET.toLocaleString()} XP
@@ -268,18 +287,11 @@ const UserRankStatsBar = () => {
                             {progressPercent}%
                         </Badge>
                     </Flex>
-                    <Progress
+                    <ProgressTrack
                         value={animatedProgress}
-                        size="md"
-                        borderRadius="full"
-                        bg="var(--color-tag-bg)"
-                        sx={{
-                            '& > div': {
-                                transition: 'width 0.95s ease',
-                                bgGradient: `linear(to-r, ${rankMeta.gradient[0]}, ${rankMeta.gradient[1]})`,
-                                borderRadius: 'full',
-                            },
-                        }}
+                        accentStart={rankMeta.gradient[0]}
+                        accentEnd={rankMeta.gradient[1]}
+                        label={`Progress to ${nextRankLabel}`}
                     />
                     <Text fontSize="xs" color={textSec} mt={1.5}>
                         {(user.xp ?? 0).toLocaleString()} / {(xpToNextRank ?? 0).toLocaleString()} XP
@@ -291,17 +303,11 @@ const UserRankStatsBar = () => {
                         <Text fontSize="sm" color={textSec} fontWeight="medium">Maximum rank achieved</Text>
                         <Badge borderRadius="full" px={2.5} py={1} colorScheme="purple" variant="subtle">100%</Badge>
                     </Flex>
-                    <Progress
+                    <ProgressTrack
                         value={100}
-                        size="md"
-                        borderRadius="full"
-                        bg="var(--color-tag-bg)"
-                        sx={{
-                            '& > div': {
-                                bgGradient: 'linear(to-r, #a855f7, #7c3aed)',
-                                borderRadius: 'full',
-                            },
-                        }}
+                        accentStart="#a855f7"
+                        accentEnd="#7c3aed"
+                        label="Maximum rank achieved"
                     />
                     <Text fontSize="xs" color={textSec} mt={1.5}>You have reached the top competitive tier.</Text>
                 </Box>

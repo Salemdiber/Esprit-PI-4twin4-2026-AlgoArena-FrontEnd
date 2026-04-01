@@ -4,7 +4,7 @@ import { Box, Heading, Text, Button, VStack, HStack, Input, Checkbox, Link, Flex
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
-import { useAuth, redirectBasedOnRole } from './auth/context/AuthContext';
+import { useAuth, redirectBasedOnRole, hasCompletedSpeedChallenge } from './auth/context/AuthContext';
 
 const MotionBox = motion.create(Box);
 
@@ -57,10 +57,14 @@ const SignIn = () => {
 
             // New user coming from SignUp — redirect to Speed Challenge placement test
             const isPendingChallenge = localStorage.getItem('sc_pending') === 'true';
-            if (isPendingChallenge) {
+            if (isPendingChallenge && !hasCompletedSpeedChallenge(user)) {
                 localStorage.removeItem('sc_pending');
                 navigate('/speed-challenge', { replace: true });
                 return;
+            }
+
+            if (isPendingChallenge) {
+                localStorage.removeItem('sc_pending');
             }
 
             const fallbackPath = redirectBasedOnRole(user);

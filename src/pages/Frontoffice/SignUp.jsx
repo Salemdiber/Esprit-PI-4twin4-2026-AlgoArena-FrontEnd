@@ -201,8 +201,7 @@ const SignUp = () => {
             // Obtenir le token reCAPTCHA v3 dynamiquement
             const token = await getReCaptchaV3Token(RECAPTCHA_SITE_KEY, 'signup');
             await signup(username, email, password, token, avatarUrl);
-            localStorage.setItem('sc_pending', 'true'); // trigger Speed Challenge after login
-            navigate('/signin');
+            navigate('/', { replace: true });
         } catch {
             // error handled by toast in AuthContext
         } finally {
@@ -363,7 +362,7 @@ const SignUp = () => {
                                         <Box mt={2}>
                                             <FormFeedbackAlert message={usernameHasError ? 'Username is already taken.' : ''} />
                                         </Box>
-                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>Your rank starts as: <Text as="span" color="yellow.500" fontWeight="bold">Rookie</Text></Text>`r`n                                    </Box>
+                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>Your rank starts as: <Text as="span" color="yellow.500" fontWeight="bold">Rookie</Text></Text>                                    </Box>
 
                                     {/* Email */}
                                     <Box w="100%">
