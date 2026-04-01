@@ -73,52 +73,26 @@ const Toast = ({ message, type, onClose }) => {
 /* ═══════════════════════════════════════════════════════════════════
    CONFIRM MODAL — fixed positioning, no scroll issue
    ═══════════════════════════════════════════════════════════════════ */
-const ConfirmModal = ({ title, message, onConfirm, onClose }) => {
-    useEffect(() => {
-        const { body } = document;
-        const previousOverflow = body.style.overflow;
-        const previousPaddingRight = body.style.paddingRight;
-        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-        body.style.overflow = 'hidden';
-        if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
-
-        return () => {
-            body.style.overflow = previousOverflow;
-            body.style.paddingRight = previousPaddingRight;
-        };
-    }, []);
-
-    return createPortal((
-        <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-            onClick={onClose}
-        >
-            <div
-                className="w-full max-w-sm rounded-2xl p-6 text-center animate-scale-in"
-                style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 26px 56px rgba(2, 6, 23, 0.45)' }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.24)' }}>
-                    <AlertTriangle size={22} strokeWidth={2.2} className="text-red-400" />
-                </div>
-                <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>{title}</h2>
-                <p className="text-sm mb-5 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>{message}</p>
-                <div className="flex justify-center gap-3">
-                    <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
-                    <button
-                        onClick={onConfirm}
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
-                        style={{ background: 'rgba(239,68,68,0.16)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.28)' }}
-                    >
-                        <Trash2 size={14} strokeWidth={2.2} />
-                        Delete
-                    </button>
-                </div>
+const ConfirmModal = ({ title, message, onConfirm, onClose }) => (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        onClick={onClose} style={{ margin: 0, top: 0, left: 0, width: '100vw', height: '100vh' }}>
+        <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-scale-in text-center"
+            onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center bg-red-500/10">
+                <AlertTriangle size={22} strokeWidth={2.2} className="text-red-400" />
+            </div>
+            <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>{title}</h2>
+            <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>{message}</p>
+            <div className="flex justify-center gap-3">
+                <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+                <button onClick={onConfirm} className="px-4 py-2 text-sm rounded-lg font-semibold"
+                    style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                    Delete
+                </button>
             </div>
         </div>
-    ), document.body);
-};
+    </div>
+);
 
 /* ═══════════════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -148,6 +122,7 @@ const Challenges = () => {
     const [importHighlight, setImportHighlight] = useState({});
     const [importErrors, setImportErrors] = useState([]);
     const [editingDraftId, setEditingDraftId] = useState(null); // ID of draft being edited
+    const [editingChallengeStatus, setEditingChallengeStatus] = useState(null);
     const fileInputRef = useRef(null);
 
     // AI Assist removed from manual flow — manual creation is 100% manual
@@ -262,6 +237,29 @@ const Challenges = () => {
             starterCode: ch.starterCode || { javascript: '' },
         });
         setEditingDraftId(ch._id);
+        setEditingChallengeStatus('draft');
+        setManualErrors({});
+        setImportErrors([]);
+        setView('manual');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleEditChallenge = (ch) => {
+        setManualForm({
+            title: ch.title || '',
+            description: ch.description || '',
+            difficulty: ch.difficulty || 'Medium',
+            topic: ch.tags?.[0] || 'Arrays',
+            constraints: ch.constraints?.length ? ch.constraints : [''],
+            examples: ch.examples?.length ? ch.examples : [{ input: '', output: '', explanation: '' }],
+            testCases: ch.testCases?.length ? ch.testCases : [{ input: '', output: '' }],
+            hints: ch.hints?.length ? ch.hints : [''],
+            xpReward: ch.xpReward || XP_MAP[ch.difficulty] || 120,
+            estimatedTime: ch.estimatedTime || TIME_MAP[ch.difficulty] || 25,
+            starterCode: ch.starterCode || { javascript: '' },
+        });
+        setEditingDraftId(ch._id);
+        setEditingChallengeStatus(ch.status || 'published');
         setManualErrors({});
         setImportErrors([]);
         setView('manual');
@@ -312,7 +310,11 @@ const Challenges = () => {
                 await challengeService.create(payload);
                 setToast({ message: `"${payload.title}" ${status === 'published' ? 'published' : 'saved as draft'}!`, type: 'success' });
             }
-            setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setView('list'); fetchChallenges();
+            setManualForm({ ...EMPTY_MANUAL });
+            setEditingDraftId(null);
+            setEditingChallengeStatus(null);
+            setView('list');
+            fetchChallenges();
         } catch (err) { setToast({ message: err.message || 'Failed to save.', type: 'error' }); }
         finally { setManualSaving(false); }
     };
@@ -474,8 +476,8 @@ const Challenges = () => {
                     onSaveDraft={() => handleManualSave('draft')}
                     onSavePublish={() => handleManualSave('published')}
                     onPreview={() => setPreviewForm(JSON.parse(JSON.stringify(manualForm)))}
-                    onCancel={() => { setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setImportErrors([]); setView('list'); }}
-                    highlight={importHighlight} editingDraftId={editingDraftId} />
+                    onCancel={() => { setManualForm({ ...EMPTY_MANUAL }); setEditingDraftId(null); setEditingChallengeStatus(null); setImportErrors([]); setView('list'); }}
+                    highlight={importHighlight} editingDraftId={editingDraftId} editingChallengeStatus={editingChallengeStatus} />
             )}
 
             {/* ── AI Generator ────────────────────────── */}
@@ -594,6 +596,7 @@ const Challenges = () => {
                         {challenges.map(ch => (
                             <ChallengeRow key={ch._id} challenge={ch}
                                 onTogglePublish={() => handleTogglePublish(ch)}
+                                onEdit={() => handleEditChallenge(ch)}
                                 onDelete={() => handleDeleteChallenge(ch)} />
                         ))}
                     </div>
@@ -791,7 +794,7 @@ const PreviewModal = ({ form, onClose, onPublish }) => {
 const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
     const dc = DIFF_COLORS[ch.difficulty] || DIFF_COLORS.Medium;
     return (
-        <div className="flex flex-col gap-3 p-4 rounded-xl transition-all sm:flex-row sm:items-center sm:gap-4"
+        <div className="flex items-center gap-4 p-3 rounded-xl transition-all"
             style={{ background: 'var(--color-bg-input)', border: '1px solid rgba(250,204,21,0.15)' }}>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -805,10 +808,28 @@ const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
                         {ch.testCases?.length > 0 && <span className="inline-flex items-center gap-1"><FileSpreadsheet size={12} strokeWidth={2.1} />{ch.testCases.length} tests</span>}
                 </div>
             </div>
-            <div className="flex w-full flex-wrap items-center gap-2 shrink-0 sm:w-auto sm:justify-end">
-                <ActionButton label="Edit" tone="blue" icon={Pencil} onClick={() => onEdit(ch)} />
-                <ActionButton label="Publish" tone="green" icon={Upload} onClick={onPublish} />
-                <ActionButton label="Delete" tone="red" icon={Trash2} onClick={onDelete} />
+            <div className="flex items-center gap-2 shrink-0">
+                <ActionButton
+                    label="Edit"
+                    tone="blue"
+                    icon={Pencil}
+                    onClick={() => onEdit(ch)}
+                    title="Edit challenge"
+                />
+                <ActionButton
+                    label="Publish"
+                    tone="green"
+                    icon={Upload}
+                    onClick={onPublish}
+                    title="Publish challenge"
+                />
+                <ActionButton
+                    label="Delete"
+                    tone="red"
+                    icon={Trash2}
+                    onClick={onDelete}
+                    title="Delete challenge"
+                />
             </div>
         </div>
     );
@@ -861,7 +882,7 @@ const SectionHeader = ({ label, required, error, highlight }) => (
     </div>
 );
 
-const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, onAddItem, onRemoveItem, onSaveDraft, onSavePublish, onCancel, onPreview, highlight = {}, editingDraftId }) => {
+const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, onAddItem, onRemoveItem, onSaveDraft, onSavePublish, onCancel, onPreview, highlight = {}, editingDraftId, editingChallengeStatus }) => {
     const [collapsed, setCollapsed] = useState({});
     const toggle = (s) => setCollapsed(p => ({ ...p, [s]: !p[s] }));
 
@@ -872,12 +893,12 @@ const ManualChallengeForm = ({ form, errors, saving, onUpdate, onUpdateArray, on
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold">
-                        {editingDraftId ? 'Edit Draft' : 'Create Challenge'}
+                        {editingDraftId ? 'Edit Challenge' : 'Create Challenge'}
                     </h2>
                     {editingDraftId && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.25)' }}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                            Editing Draft
+                            {editingChallengeStatus === 'published' ? 'Editing Published' : 'Editing Draft'}
                         </span>
                     )}
                 </div>
@@ -1192,7 +1213,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
 /* ═══════════════════════════════════════════════════════════════════
    CHALLENGE ROW
    ═══════════════════════════════════════════════════════════════════ */
-const ChallengeRow = ({ challenge, onTogglePublish, onDelete }) => {
+const ChallengeRow = ({ challenge, onTogglePublish, onEdit, onDelete }) => {
     const dc = DIFF_COLORS[challenge.difficulty] || DIFF_COLORS.Medium;
     const isPublished = challenge.status === 'published';
     return (
@@ -1218,23 +1239,20 @@ const ChallengeRow = ({ challenge, onTogglePublish, onDelete }) => {
                 </div>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                {isPublished ? (
-                    <ActionButton
-                        label="Unpublish"
-                        tone="amber"
-                        icon={EyeOff}
-                        onClick={onTogglePublish}
-                        title="Unpublish challenge"
-                    />
-                ) : (
-                    <ActionButton
-                        label="Publish"
-                        tone="green"
-                        icon={Upload}
-                        onClick={onTogglePublish}
-                        title="Publish challenge"
-                    />
-                )}
+                <ActionButton
+                    label={isPublished ? 'Unpublish' : 'Publish'}
+                    tone={isPublished ? 'amber' : 'green'}
+                    icon={isPublished ? EyeOff : Check}
+                    onClick={onTogglePublish}
+                    title={isPublished ? 'Unpublish challenge' : 'Publish challenge'}
+                />
+                <ActionButton
+                    label="Edit"
+                    tone="blue"
+                    icon={Pencil}
+                    onClick={onEdit}
+                    title="Edit challenge"
+                />
                 <ActionButton
                     label="Delete"
                     tone="red"

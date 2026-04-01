@@ -151,7 +151,7 @@ const BattleSummaryPage = () => {
                                     className={`battle-scoreboard__avatar ${winner === 'opponent' ? 'battle-scoreboard__avatar--winner' : 'battle-scoreboard__avatar--opponent'}`}
                                 />
                             ) : (
-                                <div className="battle-ai-avatar battle-ai-avatar--lg" style={{ margin: '0 auto 1rem', border: '4px solid #475569' }}>🤖</div>
+                                <div className="battle-ai-avatar battle-ai-avatar--lg" style={{ margin: '0 auto 1rem', border: '4px solid #475569' }}>AI</div>
                             )}
                             <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.5rem' }}>
                                 {battle.opponent?.name || 'Unknown'}

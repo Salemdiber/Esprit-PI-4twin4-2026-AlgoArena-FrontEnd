@@ -78,7 +78,7 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                 {isWaiting ? (
                     <div className="battle-waiting-avatar">👤</div>
                 ) : isAI ? (
-                    <div className="battle-ai-avatar">🤖</div>
+                    <div className="battle-ai-avatar">AI</div>
                 ) : (
                     <img
                         src={battle.opponent?.avatar || ''}
@@ -161,7 +161,7 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                     className="battle-btn battle-btn--primary battle-btn--full"
                     onClick={() => onEnter?.(battle.id)}
                 >
-                    Enter Battle
+                    Start Battle
                 </button>
             )}
         </div>
