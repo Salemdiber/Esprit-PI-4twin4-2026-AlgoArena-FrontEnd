@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Text, VStack } from '@chakra-ui/react';
 
@@ -235,7 +235,21 @@ const MaintenanceGate = ({ children }) => {
 const SpeedChallengeGate = ({ children }) => {
   const { currentUser, isLoggedIn } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+  const [speedChallengesDisabled, setSpeedChallengesDisabled] = useState(false);
+
+  // Check platform setting once on mount (unconditional hook)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await settingsService.getSettings();
+        if (!cancelled && s && s.disableSpeedChallenges) setSpeedChallengesDisabled(true);
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Paths where speed challenge is NOT required
   const exemptPaths = [
@@ -263,9 +277,10 @@ const SpeedChallengeGate = ({ children }) => {
   });
 
   // If not logged in or path is exempt, allow through
-  if (!isLoggedIn || isExemptPath) {
-    return children;
-  }
+  if (!isLoggedIn || isExemptPath) return children;
+
+  // If platform-wide flag disables speed challenges, bypass the gate entirely
+  if (speedChallengesDisabled) return children;
 
   // Check if user has completed speed challenge
   if (currentUser && !currentUser.speedChallengeCompleted) {

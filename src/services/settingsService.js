@@ -80,4 +80,14 @@ export const settingsService = {
             body: JSON.stringify({ codeExecutionLimit: value }),
         });
     },
+
+    // ------------------------------------
+    // PATCH /settings/disable-speed-challenges → Toggle speed challenges (admin only)
+    // ------------------------------------
+    toggleSpeedChallenges: async (value) => {
+        return apiClient('/settings/disable-speed-challenges', {
+            method: 'PATCH',
+            body: JSON.stringify({ disableSpeedChallenges: value }),
+        });
+    },
 };
