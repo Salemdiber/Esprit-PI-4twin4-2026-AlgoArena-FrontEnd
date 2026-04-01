@@ -4,10 +4,17 @@
  * Displays scoreboard, round timeline, current challenge,
  * and simulation controls.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBattleState } from '../hooks/useBattleState';
-import { BattleStatus, difficultyBadgeMap } from '../types/battle.types';
+import {
+    BattleStatus,
+    getTotalPlayerScore,
+    getTotalOpponentScore,
+    RoundStatus,
+    difficultyBadgeMap,
+} from '../types/battle.types';
+import ScoreBoard from '../components/ScoreBoard';
 import BattleTimeline from '../components/BattleTimeline';
 import '../battles.css';
 
@@ -61,8 +68,9 @@ const ActiveBattlePage = () => {
         );
     }
 
+    const playerScore = getTotalPlayerScore(battle);
+    const opponentScore = getTotalOpponentScore(battle);
     const currentRound = battle.rounds[battle.currentRoundIndex] || null;
-    const [aiTyping, setAiTyping] = useState(false);
 
     // Format timer
     const timerMins = Math.floor(timer.remaining / 60);
@@ -72,27 +80,6 @@ const ActiveBattlePage = () => {
     // Current challenge info
     const challenge = currentRound?.challenge;
     const diffBadge = currentRound ? difficultyBadgeMap[currentRound.difficulty] : null;
-
-    const opponentName = battle.opponent?.name || 'AI Master';
-    const opponentLeague = battle.opponent?.league || 'AI League';
-
-    const testCases = useMemo(() => {
-        if (!challenge) return [];
-        if (Array.isArray(challenge.testCases) && challenge.testCases.length > 0) {
-            return challenge.testCases.slice(0, 3);
-        }
-        if (challenge.example?.input) {
-            return [{ input: challenge.example.input, output: challenge.example.output }];
-        }
-        return [];
-    }, [challenge]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setAiTyping((prev) => !prev);
-        }, 2400);
-        return () => clearInterval(interval);
-    }, []);
 
     return (
         <div className="battle-page">
@@ -114,130 +101,86 @@ const ActiveBattlePage = () => {
                     </p>
                 </div>
 
+                {/* Scoreboard */}
+                <div className="battle-card battle-card--glow battle-mb-xl">
+                    <ScoreBoard
+                        battle={battle}
+                        playerScore={playerScore}
+                        opponentScore={opponentScore}
+                    />
+                </div>
+
+                {/* Timeline */}
                 <div className="battle-mb-xl">
                     <h2 className="battle-text-xl battle-font-bold battle-mb-md">Round Timeline</h2>
-                    <div className="battle-card" style={{ padding: '1rem' }}>
+                    <div className="battle-card">
                         <BattleTimeline rounds={battle.rounds} currentRoundIndex={battle.currentRoundIndex} />
                     </div>
                 </div>
 
-                <div className="battle-active-layout">
-                    {/* Challenge Panel */}
-                    <section className="battle-panel">
-                        <div className="battle-panel-header">
-                            <h2 className="battle-text-lg battle-font-semibold">Challenge</h2>
-                            <div className="battle-panel-meta">
-                                <span className="battle-text-muted">{timerStr}</span>
-                            </div>
-                        </div>
-                        {currentRound && challenge ? (
-                            <div className="battle-panel-content">
-                                <div className="battle-chip-row">
-                                    {diffBadge && (
-                                        <span className={`battle-badge battle-badge--${diffBadge.color}`}>
-                                            {diffBadge.label}
-                                        </span>
-                                    )}
-                                    {challenge.tags.map(tag => (
-                                        <span key={tag} className="battle-badge battle-badge--gray">{tag}</span>
-                                    ))}
-                                </div>
-                                <h3 className="battle-text-xl battle-font-bold" style={{ marginBottom: '0.5rem' }}>
-                                    {challenge.title}
-                                </h3>
-                                <p className="battle-text-muted" style={{ marginBottom: '1rem' }}>{challenge.description}</p>
-
-                                <div className="battle-challenge-meta">
-                                    <span className="battle-meta-pill">⏱️ {timerStr}</span>
-                                    <span className="battle-meta-pill">⭐ {challenge.maxPoints} XP</span>
-                                </div>
-
-                                <h4 className="battle-text-sm battle-text-muted" style={{ marginTop: '1.25rem', marginBottom: '0.5rem' }}>Test Cases</h4>
-                                {testCases.length === 0 ? (
-                                    <div className="battle-empty">No test cases available.</div>
-                                ) : (
-                                    <div className="battle-testcases">
-                                        {testCases.map((tc, idx) => (
-                                            <div key={`tc-${idx}`} className="battle-testcase">
-                                                <div className="battle-testcase-line">Input: <span>{tc.input}</span></div>
-                                                <div className="battle-testcase-line">Output: <span className="battle-text-green">{tc.output}</span></div>
-                                            </div>
-                                        ))}
-                                    </div>
+                {/* Current Challenge */}
+                {currentRound && challenge && (
+                    <div className="battle-mb-xl">
+                        <h2 className="battle-text-xl battle-font-bold battle-mb-md">Current Challenge</h2>
+                        <div className="battle-card battle-card--glow">
+                            {/* Tags */}
+                            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                {diffBadge && (
+                                    <span className={`battle-badge battle-badge--${diffBadge.color}`}>
+                                        {diffBadge.label}
+                                    </span>
                                 )}
+                                {challenge.tags.map(tag => (
+                                    <span key={tag} className="battle-badge battle-badge--gray">{tag}</span>
+                                ))}
                             </div>
-                        ) : (
-                            <div className="battle-empty">No active challenge.</div>
-                        )}
-                    </section>
 
-                    {/* Editor Panel */}
-                    <section className="battle-panel battle-panel--editor">
-                        <div className="battle-panel-header">
-                            <div className="battle-editor-title">Your Solution</div>
-                            <select className="battle-language-select">
-                                <option>JavaScript</option>
-                                <option>Python</option>
-                            </select>
-                        </div>
-                        <div className="battle-editor-area">
-                            <pre>
-    {`function twoSum(nums, target) {
-      const map = new Map();
-      for (let i = 0; i < nums.length; i++) {
-        const complement = target - nums[i];
-        if (map.has(complement)) {
-          return [map.get(complement), i];
-        }
-        map.set(nums[i], i);
-      }
-      return [];
-    }`}
-                            </pre>
-                        </div>
-                        <div className="battle-editor-actions">
-                            <button className="battle-btn battle-btn--primary battle-btn--lg">Run Code</button>
-                            <button className="battle-btn battle-btn--secondary battle-btn--lg">Submit</button>
-                            <button
-                                className="battle-btn battle-btn--secondary"
-                                onClick={() => simulateCompleteRound(battle.id)}
-                                title="Simulate completing this round with random scores"
-                            >
-                                ⚡ Simulate Round
-                            </button>
-                        </div>
-                        <div className="battle-console">
-                            <div className="battle-console-title">Console Output</div>
-                            <div className="battle-console-line">✓ Test case 1 passed</div>
-                            <div className="battle-console-line">✓ Test case 2 passed</div>
-                            <div className="battle-console-meta">Runtime: 52ms • Memory: 42.1MB</div>
-                        </div>
-                    </section>
+                            <h3 className="battle-text-xl battle-font-bold" style={{ marginBottom: '0.75rem' }}>
+                                {challenge.title}
+                            </h3>
+                            <p className="battle-text-muted battle-mb-md">{challenge.description}</p>
 
-                    {/* AI Opponent Panel */}
-                    <section className="battle-panel battle-panel--opponent">
-                        <div className="battle-panel-header">
-                            <h2 className="battle-text-lg battle-font-semibold">AI Opponent</h2>
-                            <span className="battle-badge battle-badge--purple">LIVE</span>
-                        </div>
-                        <div className="battle-opponent-card">
-                            <div className="battle-opponent-avatar">🤖</div>
-                            <div>
-                                <div className="battle-opponent-name">{opponentName}</div>
-                                <div className="battle-text-muted">{opponentLeague}</div>
+                            {/* Code Example */}
+                            {challenge.example?.input && (
+                                <div className="battle-code-block battle-mb-md">
+                                    <pre style={{ margin: 0 }}>
+                                        {`Input: ${challenge.example.input}\nOutput: ${challenge.example.output}\nExplanation: ${challenge.example.explanation}`}
+                                    </pre>
+                                </div>
+                            )}
+
+                            {/* Meta */}
+                            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>⏱️</span>
+                                    <span className="battle-text-muted">
+                                        Time Remaining: <strong className="battle-text-cyan">{timerStr}</strong>
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>⭐</span>
+                                    <span className="battle-text-muted">
+                                        Max Points: <strong className="battle-text-yellow">{challenge.maxPoints} XP</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <button className="battle-btn battle-btn--primary battle-btn--lg" style={{ flex: 1 }}>
+                                    Enter Coding Arena →
+                                </button>
+                                <button
+                                    className="battle-btn battle-btn--secondary"
+                                    onClick={() => simulateCompleteRound(battle.id)}
+                                    title="Simulate completing this round with random scores"
+                                >
+                                    ⚡ Simulate Round
+                                </button>
                             </div>
                         </div>
-                        <div className="battle-opponent-status">
-                            <span className={`battle-status-dot ${aiTyping ? 'battle-status-dot--active' : ''}`} />
-                            <span>{aiTyping ? 'Typing...' : 'Idle'}</span>
-                        </div>
-                        <div className="battle-typing-indicator">
-                            <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
-                            <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
-                            <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
-                        </div>
-                    </section>
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

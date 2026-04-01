@@ -161,7 +161,7 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                     className="battle-btn battle-btn--primary battle-btn--full"
                     onClick={() => onEnter?.(battle.id)}
                 >
-                    Start Battle
+                    Enter Battle
                 </button>
             )}
         </div>

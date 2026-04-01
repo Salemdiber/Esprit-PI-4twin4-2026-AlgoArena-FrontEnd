@@ -23,10 +23,10 @@ const BattleListPage = () => {
         selectBattle,
         openCreateModal,
         cancelBattle,
-        isLoading,
-        error,
     } = useBattleState();
 
+    // Loading state (simulated – will be replaced with real API call)
+    const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState({ modes: [], statuses: [], search: '' });
     const [aiBattlesEnabled, setAiBattlesEnabled] = useState(true);
 
@@ -36,6 +36,15 @@ const BattleListPage = () => {
             .then((data) => setAiBattlesEnabled(data?.aiBattles ?? true))
             .catch(() => setAiBattlesEnabled(true));
     }, []);
+
+    // Simulate data fetching
+    useEffect(() => {
+        // In production: replace with actual API call
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [filters]);
 
     // Filter battles
     const filteredBattles = useMemo(() => {
@@ -112,12 +121,6 @@ const BattleListPage = () => {
                                 + Create Battle
                             </button>
                         </div>
-
-                        {error && (
-                            <div className="battle-card" style={{ marginBottom: '1rem', borderColor: 'var(--color-red-500)' }}>
-                                <p className="battle-text-muted" style={{ color: 'var(--color-red-500)' }}>{error}</p>
-                            </div>
-                        )}
 
                         {/* Battle Grid */}
                         {filteredBattles.length === 0 ? (
