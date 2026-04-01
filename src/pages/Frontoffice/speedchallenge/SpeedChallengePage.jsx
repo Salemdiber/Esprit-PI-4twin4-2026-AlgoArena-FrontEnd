@@ -10,7 +10,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useParams } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../auth/context/AuthContext';
+import { useAuth, redirectBasedOnRole } from '../auth/context/AuthContext';
 import { Toast, useToast } from '@chakra-ui/react';
 import {
     Box, Flex, Text, Button, VStack, HStack, Image, Icon, Heading,
@@ -35,6 +35,12 @@ import Logo from '../../../assets/logo_algoarena.png';
 
 // Key used to persist the placement so the SignIn page can read it
 const PLACEMENT_STORAGE_KEY = 'sc_placement';
+const SPEED_CHALLENGE_RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD'];
+
+const clampSpeedChallengeRank = (rank) => {
+    const normalized = String(rank || '').toUpperCase();
+    return SPEED_CHALLENGE_RANK_ORDER.includes(normalized) ? normalized : 'GOLD';
+};
 
 // ─── Debounce helper for session autosave ─────────────────────
 const debounce = (fn, delay) => {
@@ -112,7 +118,7 @@ const IntroScreen = ({ onStart, loading = false }) => (
                 opacity={0.2}
                 className="float-animation"
             >
-                O(n log n) → Platinum
+                O(n log n) → Gold
             </Text>
             <Text
                 position="absolute"
@@ -241,8 +247,6 @@ const IntroScreen = ({ onStart, loading = false }) => (
                                 { label: 'Bronze', color: '#cd7f32' },
                                 { label: 'Silver', color: '#c0c0c0' },
                                 { label: 'Gold', color: '#facc15' },
-                                { label: 'Platinum', color: '#22d3ee' },
-                                { label: 'Diamond', color: '#a855f7' },
                             ].map((r) => (
                                 <Box
                                     key={r.label}
@@ -321,6 +325,8 @@ const ChallengeArena = ({
 }) => {
     const [disableCopyPaste, setDisableCopyPaste] = useState(false);
     const [disableTabSwitch, setDisableTabSwitch] = useState(false);
+    const activeSubmissionRef = useRef(0);
+    const currentIndexRef = useRef(currentIndex);
 
     useEffect(() => {
         let cancelled = false;
@@ -349,11 +355,17 @@ const ChallengeArena = ({
             });
         return () => { cancelled = true; };
     }, []);
+
+    useEffect(() => {
+        currentIndexRef.current = currentIndex;
+    }, [currentIndex]);
+
     const problem = problems[currentIndex];
     const [submitState, setSubmitState] = useState('idle'); // idle | running | success | error
     const [feedback, setFeedback] = useState('');
 
     const handleSubmit = useCallback(() => {
+        if (submitState === 'running') return;
         if (!codes[problem.id]?.trim()) {
             setFeedback('⚠️ Please write some code before submitting.');
             setSubmitState('error');
@@ -361,8 +373,20 @@ const ChallengeArena = ({
         }
         setSubmitState('running');
         setFeedback('');
+        const submissionToken = activeSubmissionRef.current + 1;
+        activeSubmissionRef.current = submissionToken;
+        const submittedProblemId = problem.id;
         // Simulate test run (1.5s)
         setTimeout(() => {
+            const currentProblem = problems[currentIndexRef.current];
+            if (
+                activeSubmissionRef.current !== submissionToken ||
+                !currentProblem ||
+                currentProblem.id !== submittedProblemId
+            ) {
+                return;
+            }
+
             const isCorrect = Math.random() > 0.25; // 75% success for demo
             if (isCorrect) {
                 setSubmitState('success');
@@ -464,7 +488,10 @@ const ChallengeArena = ({
                         <Button
                             key={p.id}
                             size="xs"
-                            onClick={() => setCurrentIndex(i)}
+                            onClick={() => {
+                                activeSubmissionRef.current += 1;
+                                setCurrentIndex(i);
+                            }}
                             px={3}
                             py={1}
                             h="auto"
@@ -592,23 +619,27 @@ const ChallengeArena = ({
 
                             <HStack spacing={2}>
                                 {/* Skip to next */}
-                                {currentIndex < problems.length - 1 && (
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        color="gray.500"
-                                        _hover={{ color: 'gray.300' }}
-                                        fontSize="xs"
-                                        fontFamily="mono"
-                                        onClick={() => {
-                                            setFeedback('');
-                                            setSubmitState('idle');
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    color="gray.500"
+                                    _hover={{ color: 'gray.300' }}
+                                    fontSize="xs"
+                                    fontFamily="mono"
+                                    onClick={() => {
+                                        activeSubmissionRef.current += 1;
+                                        setFeedback('');
+                                        setSubmitState('idle');
+
+                                        if (currentIndex < problems.length - 1) {
                                             setCurrentIndex(currentIndex + 1);
-                                        }}
-                                    >
-                                        Skip →
-                                    </Button>
-                                )}
+                                        } else {
+                                            onFinish();
+                                        }
+                                    }}
+                                >
+                                    {currentIndex < problems.length - 1 ? 'Skip →' : 'Skip & Finish'}
+                                </Button>
 
                                 {/* Submit */}
                                 <Button
@@ -646,7 +677,7 @@ const SpeedChallengePage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
-    const { updateCurrentUser, currentUser } = useAuth();
+    const { updateCurrentUser, currentUser, reload } = useAuth();
     const [phase, setPhase] = useState(PHASE.INTRO);
     const [isDisabled, setIsDisabled] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(true);
@@ -907,7 +938,7 @@ const SpeedChallengePage = () => {
     };
 
     const handleFinish = useCallback(
-        (timeout = false) => {
+        async (timeout = false) => {
             clearInterval(timerRef.current);
             const used = TOTAL_SECONDS - (timeout ? 0 : secondsLeft);
 
@@ -916,6 +947,36 @@ const SpeedChallengePage = () => {
             setPlacement(fallback);
             setElapsedSeconds(used);
             setAiAnalysis(false); // false = loading
+
+            try {
+                localStorage.setItem('speedChallengeResultPending', JSON.stringify({
+                    pending: true,
+                    userId: currentUser?.userId ?? currentUser?._id ?? currentUser?.id ?? null,
+                }));
+            } catch (_) { }
+
+            // Mark speed challenge as completed BEFORE showing results.
+            // This ensures page refresh shows the user as already-completed.
+            let completionConfirmed = false;
+            try {
+                await userService.completeSpeedChallenge();
+                completionConfirmed = true;
+                // Clear the saved session so it can't be resumed
+                try {
+                    await userService.clearSpeedTestSession();
+                } catch (_) { }
+                // Reload entire auth context to sync completion flag
+                await reload();
+            } catch (err) {
+                console.warn('Failed to mark speed challenge as completed:', err);
+                // Fallback: at least update locally
+                updateCurrentUser?.({ speedChallengeCompleted: true });
+            }
+
+            // Debug log
+            console.debug('Speed challenge completion confirmed:', completionConfirmed);
+
+            // Now safe to show results; backend has confirmed completion
             setPhase(PHASE.RESULT);
 
             // ── AI classification (async, non-blocking) ──────────────────────
@@ -936,28 +997,16 @@ const SpeedChallengePage = () => {
                 .then((r) => r.json())
                 .then((aiResult) => {
                     setAiAnalysis(aiResult);
-                    // Use AI rank as the authoritative placement
-                    const authoritative = {
-                        rank: aiResult.rank,
-                        label: aiResult.label,
-                        color: aiResult.color,
-                        gradient: aiResult.gradient,
-                        xp: aiResult.xp,
-                        message: aiResult.message,
-                    };
+                    const authoritative = fallback;
                     setPlacement(authoritative);
 
-                    // Persist AI-derived rank to backend
+                    // Persist the solved-count-based rank to backend (completion already done above)
                     userService.updatePlacement({
-                        rank: aiResult.rank,
-                        xp: aiResult.xp,
-                        level: aiResult.rank,
+                        rank: authoritative.rank,
+                        xp: authoritative.xp,
+                        level: authoritative.rank,
                     }).then(() => {
-                        updateCurrentUser({ rank: aiResult.rank, xp: aiResult.xp, level: aiResult.rank });
-                        // Mark speed challenge as completed
-                        return userService.completeSpeedChallenge().then(() => {
-                            updateCurrentUser({ speedChallengeCompleted: true });
-                        }).catch(() => { });
+                        updateCurrentUser({ rank: authoritative.rank, xp: authoritative.xp, level: authoritative.rank });
                     }).catch(() => { });
 
                     try {
@@ -967,26 +1016,37 @@ const SpeedChallengePage = () => {
                 .catch(() => {
                     // AI failed — keep fallback placement, mark analysis as unavailable
                     setAiAnalysis(null);
+                    const cappedFallbackRank = clampSpeedChallengeRank(fallback.rank);
+                    const cappedFallback = cappedFallbackRank === fallback.rank
+                        ? fallback
+                        : {
+                            ...fallback,
+                            rank: cappedFallbackRank,
+                            label: cappedFallbackRank === 'BRONZE' ? 'Bronze' : cappedFallbackRank === 'SILVER' ? 'Silver' : 'Gold',
+                            color: cappedFallbackRank === 'BRONZE' ? '#cd7f32' : cappedFallbackRank === 'SILVER' ? '#c0c0c0' : '#facc15',
+                            gradient: cappedFallbackRank === 'BRONZE'
+                                ? ['#cd7f32', '#a0522d']
+                                : cappedFallbackRank === 'SILVER'
+                                    ? ['#c0c0c0', '#a8a8a8']
+                                    : ['#facc15', '#f59e0b'],
+                        };
+                    // Speed challenge already marked as completed above, just update rank
                     userService.updatePlacement({
-                        rank: fallback.rank,
-                        xp: fallback.xp,
-                        level: fallback.rank,
+                        rank: cappedFallback.rank,
+                        xp: cappedFallback.xp,
+                        level: cappedFallback.rank,
                     }).then(() => {
-                        updateCurrentUser({ rank: fallback.rank, xp: fallback.xp, level: fallback.rank });
-                        // Mark speed challenge as completed even if AI failed
-                        return userService.completeSpeedChallenge().then(() => {
-                            updateCurrentUser({ speedChallengeCompleted: true });
-                        }).catch(() => { });
+                        updateCurrentUser({ rank: cappedFallback.rank, xp: cappedFallback.xp, level: cappedFallback.rank });
                     }).catch(() => { });
                     try {
                         localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify({
-                            rank: fallback.rank, label: fallback.label,
-                            color: fallback.color, xp: fallback.xp, message: fallback.message,
+                            rank: cappedFallback.rank, label: cappedFallback.label,
+                            color: cappedFallback.color, xp: cappedFallback.xp, message: cappedFallback.message,
                         }));
                     } catch (_) { }
                 });
         },
-        [secondsLeft, solvedIds, activeProblems, codes, languages]
+        [secondsLeft, solvedIds, activeProblems, codes, languages, updateCurrentUser]
     );
 
     // Update handleFinishRef whenever handleFinish changes
@@ -1010,7 +1070,66 @@ const SpeedChallengePage = () => {
         }));
     }, [activeProblems]);
 
-    const handleDone = () => navigate('/', { replace: true });
+    const handleDone = useCallback(async () => {
+        const fromPath = location.state?.from?.pathname
+            ? `${location.state.from.pathname}${location.state.from.search || ''}${location.state.from.hash || ''}`
+            : null;
+        const userIdentifier = currentUser?.userId ?? currentUser?._id ?? currentUser?.id ?? null;
+
+        const markJustCompleted = (identifier) => {
+            try {
+                localStorage.setItem('speedChallengeJustCompleted', JSON.stringify({
+                    completedAt: Date.now(),
+                    userId: identifier,
+                }));
+            } catch (_) { }
+        };
+
+        try {
+            // Final verification: ensure profile has speedChallengeCompleted: true
+            const profile = await userService.getProfile('me');
+            console.debug('Profile after completion:', { 
+                speedChallengeCompleted: profile?.speedChallengeCompleted,
+                userId: profile?.userId ?? profile?._id ?? profile?.id
+            });
+
+            const profileUserId = profile?.userId ?? profile?._id ?? profile?.id ?? userIdentifier;
+            
+            if (!profile?.speedChallengeCompleted) {
+                // If somehow not marked, manually mark it now
+                console.warn('Profile missing speedChallengeCompleted flag, re-marking...');
+                await userService.completeSpeedChallenge();
+                const freshProfile = await userService.getProfile('me');
+                updateCurrentUser?.({ ...freshProfile, speedChallengeCompleted: true });
+            } else {
+                updateCurrentUser?.({ ...profile, speedChallengeCompleted: true });
+            }
+            
+            // Mark in localStorage that we just completed speed challenge.
+            // This prevents immediate re-redirect if profile sync is slow.
+            markJustCompleted(profileUserId);
+            
+        } catch (err) {
+            console.error('Failed to verify completion status:', err);
+            // Fallback: update locally and proceed anyway
+            updateCurrentUser?.({ speedChallengeCompleted: true });
+            markJustCompleted(userIdentifier);
+        }
+
+        // Ensure the local auth state is already marked before leaving the page.
+        updateCurrentUser?.({ speedChallengeCompleted: true });
+        markJustCompleted(userIdentifier);
+        try {
+            localStorage.removeItem('sc_pending');
+            localStorage.removeItem('speedChallengeResultPending');
+        } catch (_) { }
+        
+        const fallbackTarget = redirectBasedOnRole(currentUser || { role: 'USER' });
+        const target = fromPath || fallbackTarget;
+
+        // Return to the page the user came from, or the normal platform entry point.
+        navigate(target, { replace: true });
+    }, [currentUser, location.state, navigate, updateCurrentUser]);
 
     // ── If checking status, show loading ──
     if (checkingStatus) {

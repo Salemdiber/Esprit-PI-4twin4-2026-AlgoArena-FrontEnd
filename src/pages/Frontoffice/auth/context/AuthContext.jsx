@@ -63,6 +63,12 @@ export const redirectBasedOnRole = (user) => {
     return '/';
 };
 
+export const hasCompletedSpeedChallenge = (user) => {
+    if (!user) return false;
+    const rank = String(user.rank || user.level || '').trim();
+    return user.speedChallengeCompleted === true || rank.length > 0;
+};
+
 const DEFAULT_AVATAR =
     'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
 
@@ -191,36 +197,39 @@ export const AuthProvider = ({ children }) => {
 
     const isLoggedIn = !!currentUser;
 
+    const establishSession = useCallback(async (accessToken) => {
+        if (!accessToken) return null;
+
+        setToken(accessToken);
+
+        // Fetch complete profile details
+        const profile = await userService.getProfile('me', accessToken);
+        const user = { ...profile };
+
+        setCurrentUser(user);
+        writeStorage({ user });
+
+        if (authChannel.current) {
+            authChannel.current.postMessage({ type: 'LOGIN', payload: { user } });
+        }
+
+        return user;
+    }, []);
+
     /**
      * login – authenticates user via API
      */
     const login = useCallback(async (username, password, recaptchaToken) => {
         try {
             const data = await authService.login({ username, password, recaptchaToken });
-            if (data.access_token) {
-                setToken(data.access_token);
-
-                // Fetch complete profile details
-                const profile = await userService.getProfile('me', data.access_token);
-                // profile from /user/me has rank+xp; data.user from JWT only has basic claims.
-                // Merge: data.user provides base, profile overrides (has rank, xp, avatar, bio…)
-                const user = { ...data.user, role: data.role || profile?.role || 'USER', ...profile };
-
-                setCurrentUser(user);
-                writeStorage({ user });
-
-                if (authChannel.current) {
-                    authChannel.current.postMessage({ type: 'LOGIN', payload: { user } });
-                }
-
-                toast({ title: 'Welcome Back!', status: 'success', duration: 3000, isClosable: true });
-                return user;
-            }
+            const user = await establishSession(data.access_token);
+            toast({ title: 'Welcome Back!', status: 'success', duration: 3000, isClosable: true });
+            return user;
         } catch (error) {
             toast({ title: 'Login failed', description: error.message, status: 'error', duration: 4000, isClosable: true });
             throw error;
         }
-    }, [toast]);
+    }, [establishSession, toast]);
 
     /**
      * signup – creates new account
@@ -228,13 +237,14 @@ export const AuthProvider = ({ children }) => {
     const signup = useCallback(async (username, email, password, recaptchaToken, avatar) => {
         try {
             const data = await authService.register({ username, email, password, recaptchaToken, avatar });
-            toast({ title: 'Account created successfully', description: 'You can now sign in.', status: 'success', duration: 4000, isClosable: true });
-            return data;
+            const user = await establishSession(data.access_token);
+            toast({ title: 'Account created successfully', description: 'You are now signed in.', status: 'success', duration: 4000, isClosable: true });
+            return user;
         } catch (error) {
             toast({ title: 'Registration failed', description: error.message, status: 'error', duration: 4000, isClosable: true });
             throw error;
         }
-    }, [toast]);
+    }, [establishSession, toast]);
 
     /**
      * logout – clears session.
