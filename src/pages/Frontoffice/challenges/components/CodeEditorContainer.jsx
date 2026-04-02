@@ -42,6 +42,15 @@ const CodeEditorContainer = ({
             }}
             onPasteCapture={handlePasteBlock}
             onContextMenuCapture={handlePasteBlock}
+            onDragOverCapture={(event) => {
+                if (!pasteBlocked) return;
+                event.preventDefault();
+            }}
+            onDropCapture={(event) => {
+                if (!pasteBlocked) return;
+                event.preventDefault();
+                if (onPasteBlocked) onPasteBlocked();
+            }}
         >
             <CodeEditor
                 code={code}
@@ -69,7 +78,7 @@ const CodeEditorContainer = ({
                     border="1px solid"
                     borderColor="orange.500"
                 >
-                    Paste disabled after reset
+                    ⚠️ Paste disabled — type your solution manually
                 </Text>
             )}
         </Box>

@@ -39,3 +39,27 @@ export async function fetchRankStats() {
         return null;
     }
 }
+
+export async function fetchUserStreak() {
+    try {
+        const data = await apiClient('/user/me/streak', { method: 'GET' });
+        return {
+            currentStreak: Number(data?.currentStreak ?? 0),
+            longestStreak: Number(data?.longestStreak ?? 0),
+            lastLoginDate: data?.lastLoginDate ?? null,
+            streakMessage: data?.streakMessage ?? '',
+            recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity.map(Boolean) : [false, false, false, false, false, false, false],
+        };
+    } catch {
+        return null;
+    }
+}
+
+export async function fetchUserAttempts() {
+    try {
+        const data = await apiClient('/user/attempts', { method: 'GET' });
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
+}

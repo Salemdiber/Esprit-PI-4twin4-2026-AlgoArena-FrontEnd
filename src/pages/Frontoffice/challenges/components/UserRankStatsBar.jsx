@@ -11,11 +11,14 @@ import {
     Flex,
     Text,
     Badge,
-    Progress,
     Icon,
     Skeleton,
+    HStack,
+    Tooltip,
     useColorModeValue,
 } from '@chakra-ui/react';
+import { FiCalendar, FiCheckCircle, FiStar, FiZap } from 'react-icons/fi';
+import { FaTrophy } from 'react-icons/fa';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { RANK_META } from '../data/mockChallenges';
 
@@ -61,6 +64,33 @@ const useAnimatedProgress = (targetValue) => {
     return animatedValue;
 };
 
+const ProgressTrack = ({ value, accentStart, accentEnd, label }) => (
+    <Box
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.max(0, Math.min(100, Math.round(value || 0)))}
+        position="relative"
+        h="14px"
+        borderRadius="full"
+        bg="rgba(148, 163, 184, 0.18)"
+        border="1px solid rgba(148, 163, 184, 0.24)"
+        overflow="hidden"
+        boxShadow="inset 0 1px 2px rgba(15, 23, 42, 0.24)"
+    >
+        <Box
+            h="100%"
+            w={`${Math.max(0, Math.min(100, value || 0))}%`}
+            minW={(value || 0) > 0 ? '10px' : '0'}
+            bgGradient={`linear(to-r, ${accentStart}, ${accentEnd})`}
+            borderRadius="full"
+            transition="width 0.95s ease"
+            boxShadow="0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 8px 18px rgba(34, 211, 238, 0.14)"
+        />
+    </Box>
+);
+
 const RankStatsSkeleton = () => (
     <Flex
         bg="var(--color-bg-secondary)"
@@ -92,7 +122,85 @@ const RankStatsSkeleton = () => (
     </Flex>
 );
 
-const UnrankedBar = ({ xp, streak }) => {
+const getStreakTheme = (streak) => {
+    if (streak >= 50) return { accent: '#facc15', bg: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.35)', pulse: true };
+    if (streak >= 20) return { accent: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.35)', pulse: true };
+    if (streak >= 10) return { accent: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', pulse: true };
+    if (streak >= 5) return { accent: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', pulse: false };
+    return { accent: '#fb923c', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.35)', pulse: false };
+};
+const StreakPanel = ({ streakDetails }) => {
+    const currentStreak = Number(streakDetails?.currentStreak || 0);
+    const longestStreak = Number(streakDetails?.longestStreak || 0);
+    const recentActivity = Array.isArray(streakDetails?.recentActivity)
+        ? streakDetails.recentActivity.slice(-7)
+        : [false, false, false, false, false, false, false];
+    const message = streakDetails?.streakMessage || 'Keep showing up daily to build your coding streak.';
+    const theme = getStreakTheme(currentStreak);
+
+    return (
+        <Box
+            minW={{ base: '100%', lg: '320px' }}
+            maxW={{ base: '100%', lg: '360px' }}
+            px={4}
+            py={3}
+            borderRadius='14px'
+            bg={theme.bg}
+            border='1px solid'
+            borderColor={theme.border}
+            boxShadow={theme.pulse ? `0 0 22px ${theme.border}` : 'none'}
+        >
+            <HStack justify='space-between' align='center' mb={1}>
+                <HStack spacing={2}>
+                    <Icon
+                        as={currentStreak >= 10 ? FiZap : FlameIcon}
+                        boxSize={5}
+                        color={theme.accent}
+                        opacity={theme.pulse && currentStreak > 3 ? 0.95 : 1}
+                    />
+                    <Text fontFamily='heading' fontWeight='black' color={theme.accent} fontSize='xl'>
+                        {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+                    </Text>
+                </HStack>
+                <Badge borderRadius='full' px={2.5} py={1} colorScheme='orange' variant='subtle'>
+                    <HStack spacing={1}>
+                        <Icon as={FiStar} boxSize={3} />
+                        <Text>Streak</Text>
+                    </HStack>
+                </Badge>
+            </HStack>
+            <Text fontSize='xs' color='var(--color-text-secondary)' mb={2} lineHeight='1.5'>
+                {message}
+            </Text>
+            <HStack spacing={1.5} mb={1.5}>
+                {recentActivity.map((active, index) => (
+                    <Tooltip key={`${active}-${index}`} label={active ? 'Active day' : 'Missed day'} hasArrow>
+                        <Flex
+                            w={5}
+                            h={5}
+                            borderRadius='full'
+                            bg={active ? theme.bg : 'rgba(148,163,184,0.15)'}
+                            border='1px solid'
+                            borderColor={active ? theme.border : 'rgba(148,163,184,0.35)'}
+                            align='center'
+                            justify='center'
+                        >
+                            <Icon as={active ? FiCheckCircle : FiCalendar} boxSize={3} color={active ? theme.accent : 'gray.400'} />
+                        </Flex>
+                    </Tooltip>
+                ))}
+            </HStack>
+            <HStack spacing={1.5}>
+                <Icon as={FaTrophy} boxSize={3.5} color='yellow.300' />
+                <Text fontSize='xs' color='var(--color-text-muted)'>
+                    Longest streak: {longestStreak} day{longestStreak !== 1 ? 's' : ''}
+                </Text>
+            </HStack>
+        </Box>
+    );
+};
+
+const UnrankedBar = ({ xp, streakDetails }) => {
     const textSec = useColorModeValue('gray.500', 'gray.400');
     const textPrim = useColorModeValue('gray.800', 'gray.100');
     const mutedBg = useColorModeValue('gray.100', 'whiteAlpha.100');
@@ -154,48 +262,31 @@ const UnrankedBar = ({ xp, streak }) => {
                         {progressPercent}%
                     </Badge>
                 </Flex>
-                <Progress
+                <ProgressTrack
                     value={animatedProgress}
-                    size="md"
-                    borderRadius="full"
-                    bg="var(--color-tag-bg)"
-                    sx={{
-                        '& > div': {
-                            transition: 'width 0.95s ease',
-                            bgGradient: 'linear(to-r, #d97706, #f59e0b)',
-                            borderRadius: 'full',
-                        },
-                    }}
+                    accentStart="#d97706"
+                    accentEnd="#f59e0b"
+                    label="Progress to Bronze"
                 />
                 <Text fontSize="xs" color={textSec} mt={1.5}>
                     {(xp ?? 0).toLocaleString()} / {BRONZE_XP_TARGET.toLocaleString()} XP
                 </Text>
             </Box>
 
-            {streak > 0 && (
-                <Flex alignItems="center" gap={2} justify={{ base: 'flex-start', lg: 'flex-end' }}>
-                    <FlameIcon w={5} h={5} color="red.500" />
-                    <Box>
-                        <Text fontSize="xs" color={textSec}>Streak</Text>
-                        <Text fontFamily="heading" fontWeight="bold" color="red.500">
-                            {streak} day{streak !== 1 ? 's' : ''}
-                        </Text>
-                    </Box>
-                </Flex>
-            )}
+            <StreakPanel streakDetails={streakDetails} />
         </Flex>
     );
 };
 
 const UserRankStatsBar = () => {
-    const { user, rankMeta, xpToNextRank, progressPercent, isLoadingStats } = useChallengeContext();
+    const { user, streakDetails, rankMeta, xpToNextRank, progressPercent, isLoadingStats } = useChallengeContext();
     const textSec = useColorModeValue('gray.500', 'gray.400');
     const textPrim = useColorModeValue('gray.800', 'gray.100');
     const mutedBg = useColorModeValue('gray.100', 'whiteAlpha.100');
     const animatedProgress = useAnimatedProgress(progressPercent);
 
     if (isLoadingStats) return <RankStatsSkeleton />;
-    if (!user.rank || !rankMeta) return <UnrankedBar xp={user.xp} streak={user.streak} />;
+    if (!user.rank || !rankMeta) return <UnrankedBar xp={user.xp} streakDetails={streakDetails} />;
 
     const currentIdx = RANK_ORDER.indexOf(user.rank);
     const nextRankKey = currentIdx >= 0 && currentIdx < RANK_ORDER.length - 1
@@ -268,18 +359,11 @@ const UserRankStatsBar = () => {
                             {progressPercent}%
                         </Badge>
                     </Flex>
-                    <Progress
+                    <ProgressTrack
                         value={animatedProgress}
-                        size="md"
-                        borderRadius="full"
-                        bg="var(--color-tag-bg)"
-                        sx={{
-                            '& > div': {
-                                transition: 'width 0.95s ease',
-                                bgGradient: `linear(to-r, ${rankMeta.gradient[0]}, ${rankMeta.gradient[1]})`,
-                                borderRadius: 'full',
-                            },
-                        }}
+                        accentStart={rankMeta.gradient[0]}
+                        accentEnd={rankMeta.gradient[1]}
+                        label={`Progress to ${nextRankLabel}`}
                     />
                     <Text fontSize="xs" color={textSec} mt={1.5}>
                         {(user.xp ?? 0).toLocaleString()} / {(xpToNextRank ?? 0).toLocaleString()} XP
@@ -291,31 +375,17 @@ const UserRankStatsBar = () => {
                         <Text fontSize="sm" color={textSec} fontWeight="medium">Maximum rank achieved</Text>
                         <Badge borderRadius="full" px={2.5} py={1} colorScheme="purple" variant="subtle">100%</Badge>
                     </Flex>
-                    <Progress
+                    <ProgressTrack
                         value={100}
-                        size="md"
-                        borderRadius="full"
-                        bg="var(--color-tag-bg)"
-                        sx={{
-                            '& > div': {
-                                bgGradient: 'linear(to-r, #a855f7, #7c3aed)',
-                                borderRadius: 'full',
-                            },
-                        }}
+                        accentStart="#a855f7"
+                        accentEnd="#7c3aed"
+                        label="Maximum rank achieved"
                     />
                     <Text fontSize="xs" color={textSec} mt={1.5}>You have reached the top competitive tier.</Text>
                 </Box>
             )}
 
-            <Flex alignItems="center" gap={2} justify={{ base: 'flex-start', lg: 'flex-end' }}>
-                <FlameIcon w={5} h={5} color="red.500" />
-                <Box>
-                    <Text fontSize="xs" color={textSec}>Streak</Text>
-                    <Text fontFamily="heading" fontWeight="bold" color="red.500">
-                        {(user.streak ?? 0)} day{(user.streak ?? 0) !== 1 ? 's' : ''}
-                    </Text>
-                </Box>
-            </Flex>
+            <StreakPanel streakDetails={streakDetails} />
         </Flex>
     );
 };

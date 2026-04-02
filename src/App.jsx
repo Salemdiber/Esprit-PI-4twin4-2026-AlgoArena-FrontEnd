@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Text, VStack } from '@chakra-ui/react';
+import { LockIcon } from '@chakra-ui/icons';
 
 // Accessibility
 import AccessibilityProvider from './accessibility/context/AccessibilityContext';
@@ -40,7 +41,7 @@ const BattleSummaryPage = lazy(() => import('./pages/Frontoffice/battles/pages/B
 import { BattleProvider } from './pages/Frontoffice/battles';
 import { ChallengeProvider } from './pages/Frontoffice/challenges';
 import { ProfileProvider } from './pages/Frontoffice/profile';
-import { AuthProvider, useAuth } from './pages/Frontoffice/auth/context/AuthContext';
+import { AuthProvider, useAuth, hasCompletedSpeedChallenge } from './pages/Frontoffice/auth/context/AuthContext';
 import { settingsService } from './services/settingsService';
 import { getToken } from './services/cookieUtils';
 
@@ -110,73 +111,435 @@ const ChallengesAuthGuard = ({ children }) => {
     return (
       <Box
         minH="100vh"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
         px={{ base: 4, md: 6 }}
-        py={{ base: 24, md: 28 }}
+        py={{ base: 8, md: 10 }}
         bg="var(--color-bg-primary)"
-        bgImage="radial-gradient(circle at 20% 10%, rgba(34, 211, 238, 0.14), transparent 42%), radial-gradient(circle at 80% 90%, rgba(14, 165, 233, 0.13), transparent 46%)"
+        bgImage="radial-gradient(circle at 14% 18%, rgba(34, 211, 238, 0.16), transparent 24%), radial-gradient(circle at 88% 14%, rgba(59, 130, 246, 0.16), transparent 22%), radial-gradient(circle at 80% 82%, rgba(14, 165, 233, 0.16), transparent 26%), linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.12))"
+        position="relative"
+        overflow="hidden"
       >
-        <VStack
-          spacing={5}
-          textAlign="center"
-          maxW="lg"
-          w="100%"
-          p={{ base: 6, md: 8 }}
-          borderRadius="2xl"
-          border="1px solid var(--color-border)"
-          bg="var(--color-bg-card)"
-          boxShadow="0 28px 64px rgba(2, 6, 23, 0.35)"
-          animation="fadeIn 0.3s ease"
+        <Box
+          position="absolute"
+          inset="0"
+          bg="linear-gradient(135deg, rgba(2, 6, 23, 0.14), transparent 50%, rgba(2, 6, 23, 0.2))"
+          pointerEvents="none"
+        />
+        <Box
+          position="relative"
+          maxW="7xl"
+          mx="auto"
+          minH="calc(100vh - 4rem)"
+          display="grid"
+          gridTemplateColumns={{ base: '1fr', lg: '0.98fr 1.02fr' }}
+          gap={{ base: 5, md: 6 }}
+          alignItems="center"
         >
-          <Box
-            w="62px"
-            h="62px"
-            borderRadius="18px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            bg="rgba(34, 211, 238, 0.12)"
-            border="1px solid rgba(34, 211, 238, 0.25)"
-            color="cyan.300"
+          <VStack
+            align="stretch"
+            spacing={6}
+            p={{ base: 6, md: 8 }}
+            borderRadius="28px"
+            border="1px solid var(--color-border)"
+            bg="rgba(15, 23, 42, 0.68)"
+            backdropFilter="blur(18px)"
+            boxShadow="0 30px 70px rgba(2, 6, 23, 0.4)"
+            animation="fadeIn 0.3s ease"
           >
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
-            </svg>
-          </Box>
-          <Text fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color="var(--color-text-heading)">
-            Access Restricted
-          </Text>
-          <Text color="var(--color-text-secondary)" maxW="md">
-            You must sign in or create an account to solve challenges.
-          </Text>
-          <VStack spacing={3} w="100%" pt={1}>
-            <Button
-              w="100%"
-              colorScheme="cyan"
-              size="lg"
-              onClick={() => navigate('/signin', { state: { from: location } })}
-              boxShadow="0 14px 30px rgba(34, 211, 238, 0.22)"
-              _hover={{ transform: 'translateY(-1px)', boxShadow: '0 18px 34px rgba(34, 211, 238, 0.26)' }}
-              transition="all 0.2s ease"
+            <Box display="flex" alignItems="center" gap="12px" flexWrap="wrap">
+              <Box
+                w="58px"
+                h="58px"
+                borderRadius="18px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                bg="linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(14, 165, 233, 0.16))"
+                border="1px solid rgba(34, 211, 238, 0.25)"
+                color="cyan.200"
+              >
+                <LockIcon boxSize={7} />
+              </Box>
+              <Box>
+                <Text fontSize="sm" letterSpacing="0.18em" textTransform="uppercase" color="cyan.200" fontWeight="700">
+                  Locked Training Zone
+                </Text>
+                <Text color="var(--color-text-secondary)" fontSize="sm">
+                  Sign in to unlock algorithm drills, timed practice, and challenge history.
+                </Text>
+              </Box>
+            </Box>
+
+            <Box>
+              <Text
+                fontFamily="heading"
+                fontSize={{ base: '3xl', md: '5xl' }}
+                lineHeight="1.02"
+                fontWeight="800"
+                color="var(--color-text-heading)"
+                maxW="12ch"
+              >
+                Step into the challenge lab.
+              </Text>
+              <Text mt={4} color="var(--color-text-secondary)" fontSize={{ base: 'md', md: 'lg' }} maxW="xl">
+                Access the full challenge flow only after authentication: curated problems, submission tracking, progress stats, and your training streak.
+              </Text>
+            </Box>
+
+            <Box
+              display="grid"
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gap={3}
             >
-              Sign In
-            </Button>
-            <Button
-              w="100%"
-              variant="outline"
-              size="lg"
-              onClick={() => navigate('/signup')}
-              borderColor="rgba(34, 211, 238, 0.28)"
-              _hover={{ bg: 'rgba(34, 211, 238, 0.08)', transform: 'translateY(-1px)' }}
-              transition="all 0.2s ease"
+              {[
+                { label: 'Practice pool', value: '120+' },
+                { label: 'Time attack', value: 'On' },
+                { label: 'Rank flow', value: 'Synced' },
+              ].map((item) => (
+                <Box
+                  key={item.label}
+                  p={4}
+                  borderRadius="20px"
+                  border="1px solid rgba(148, 163, 184, 0.16)"
+                  bg="rgba(15, 23, 42, 0.52)"
+                >
+                  <Text color="cyan.200" fontWeight="800" fontSize="2xl" lineHeight="1">
+                    {item.value}
+                  </Text>
+                  <Text mt={1} color="var(--color-text-secondary)" fontSize="sm">
+                    {item.label}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+
+            <Box
+              display="grid"
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gap={3}
             >
-              Create Account
-            </Button>
+              {[
+                'Solve ranked challenges',
+                'Compare runtime and XP',
+                'Review your progress',
+              ].map((item) => (
+                <Box
+                  key={item}
+                  p={3.5}
+                  borderRadius="16px"
+                  bg="rgba(34, 211, 238, 0.07)"
+                  border="1px solid rgba(34, 211, 238, 0.18)"
+                  color="var(--color-text-secondary)"
+                  fontSize="sm"
+                >
+                  {item}
+                </Box>
+              ))}
+            </Box>
+
+            <VStack spacing={3} align="stretch">
+              <Button
+                w="100%"
+                colorScheme="cyan"
+                size="lg"
+                onClick={() => navigate('/signin', { state: { from: location } })}
+                boxShadow="0 14px 30px rgba(34, 211, 238, 0.22)"
+                _hover={{ transform: 'translateY(-1px)', boxShadow: '0 18px 34px rgba(34, 211, 238, 0.26)' }}
+                transition="all 0.2s ease"
+              >
+                Sign In
+              </Button>
+              <Button
+                w="100%"
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/signup')}
+                borderColor="rgba(34, 211, 238, 0.28)"
+                _hover={{ bg: 'rgba(34, 211, 238, 0.08)', transform: 'translateY(-1px)' }}
+                transition="all 0.2s ease"
+              >
+                Create Account
+              </Button>
+            </VStack>
           </VStack>
-        </VStack>
+
+          <Box
+            p={{ base: 5, md: 6 }}
+            borderRadius="28px"
+            border="1px solid rgba(148, 163, 184, 0.18)"
+            bg="rgba(2, 6, 23, 0.45)"
+            boxShadow="0 24px 60px rgba(2, 6, 23, 0.3)"
+            backdropFilter="blur(16px)"
+          >
+            <Box
+              mb={4}
+              p={4}
+              borderRadius="22px"
+              bg="linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(15, 23, 42, 0.72))"
+              border="1px solid rgba(34, 211, 238, 0.2)"
+            >
+              <Text fontSize="sm" color="cyan.200" fontWeight="700" letterSpacing="0.14em" textTransform="uppercase">
+                Access preview
+              </Text>
+              <Text mt={2} fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="800" color="white">
+                Your problem set is waiting
+              </Text>
+              <Text mt={2} color="rgba(226, 232, 240, 0.82)">
+                Authentication unlocks the full challenge workspace, including timer-driven sessions and submission history.
+              </Text>
+            </Box>
+
+            <Box display="grid" gridTemplateColumns="1fr" gap={3}>
+              {[
+                { title: 'Timed drills', detail: 'Practice under pressure with structured timers', tone: 'rgba(59, 130, 246, 0.14)' },
+                { title: 'Submission review', detail: 'Inspect your attempts and iteration history', tone: 'rgba(14, 165, 233, 0.14)' },
+                { title: 'Skill progress', detail: 'Keep your rank and XP progression in sync', tone: 'rgba(34, 211, 238, 0.14)' },
+              ].map((card) => (
+                <Box
+                  key={card.title}
+                  p={4}
+                  borderRadius="20px"
+                  bg={card.tone}
+                  border="1px solid rgba(148, 163, 184, 0.16)"
+                >
+                  <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
+                    <Text color="white" fontWeight="700">
+                      {card.title}
+                    </Text>
+                    <Box w="10px" h="10px" borderRadius="999px" bg="cyan.300" />
+                  </Box>
+                  <Text mt={1.5} color="rgba(226, 232, 240, 0.82)" fontSize="sm">
+                    {card.detail}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
+  return children;
+};
+
+const BattlesAuthGuard = ({ children }) => {
+  const { isLoggedIn, isAuthLoading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasToken = Boolean(getToken());
+
+  if (isAuthLoading || (hasToken && !isLoggedIn)) {
+    return <RouteLoader />;
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <Box
+        minH="100vh"
+        px={{ base: 4, md: 6 }}
+        py={{ base: 8, md: 10 }}
+        bg="var(--color-bg-primary)"
+        bgImage="radial-gradient(circle at 12% 18%, rgba(34, 211, 238, 0.18), transparent 24%), radial-gradient(circle at 88% 12%, rgba(59, 130, 246, 0.16), transparent 22%), radial-gradient(circle at 78% 82%, rgba(14, 165, 233, 0.18), transparent 26%), linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.12))"
+        position="relative"
+        overflow="hidden"
+      >
+        <Box
+          position="absolute"
+          inset="0"
+          bg="linear-gradient(135deg, rgba(2, 6, 23, 0.14), transparent 50%, rgba(2, 6, 23, 0.2))"
+          pointerEvents="none"
+        />
+        <Box
+          position="relative"
+          maxW="7xl"
+          mx="auto"
+          minH="calc(100vh - 4rem)"
+          display="grid"
+          gridTemplateColumns={{ base: '1fr', lg: '1.05fr 0.95fr' }}
+          gap={{ base: 5, md: 6 }}
+          alignItems="center"
+        >
+          <VStack
+            align="stretch"
+            spacing={6}
+            p={{ base: 6, md: 8 }}
+            borderRadius="28px"
+            border="1px solid var(--color-border)"
+            bg="rgba(15, 23, 42, 0.68)"
+            backdropFilter="blur(18px)"
+            boxShadow="0 30px 70px rgba(2, 6, 23, 0.4)"
+            animation="fadeIn 0.3s ease"
+          >
+            <Box display="flex" alignItems="center" gap="12px" flexWrap="wrap">
+              <Box
+                w="58px"
+                h="58px"
+                borderRadius="18px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                bg="linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(14, 165, 233, 0.16))"
+                border="1px solid rgba(34, 211, 238, 0.25)"
+                color="cyan.200"
+              >
+                <LockIcon boxSize={7} />
+              </Box>
+              <Box>
+                <Text fontSize="sm" letterSpacing="0.18em" textTransform="uppercase" color="cyan.200" fontWeight="700">
+                  Restricted Arena
+                </Text>
+                <Text color="var(--color-text-secondary)" fontSize="sm">
+                  Sign in to join live battles, ranked runs, and post-match analytics.
+                </Text>
+              </Box>
+            </Box>
+
+            <Box>
+              <Text
+                fontFamily="heading"
+                fontSize={{ base: '3xl', md: '5xl' }}
+                lineHeight="1.02"
+                fontWeight="800"
+                color="var(--color-text-heading)"
+                maxW="12ch"
+              >
+                Enter the battle arena.
+              </Text>
+              <Text mt={4} color="var(--color-text-secondary)" fontSize={{ base: 'md', md: 'lg' }} maxW="xl">
+                Unlock live matchups, strategic rounds, and your personal performance dashboard. The arena stays locked until your account is authenticated.
+              </Text>
+            </Box>
+
+            <Box
+              display="grid"
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gap={3}
+            >
+              {[
+                { label: 'Live battles', value: '24/7' },
+                { label: 'Ranked flow', value: 'Enabled' },
+                { label: 'XP tracking', value: 'Synced' },
+              ].map((item) => (
+                <Box
+                  key={item.label}
+                  p={4}
+                  borderRadius="20px"
+                  border="1px solid rgba(148, 163, 184, 0.16)"
+                  bg="rgba(15, 23, 42, 0.52)"
+                >
+                  <Text color="cyan.200" fontWeight="800" fontSize="2xl" lineHeight="1">
+                    {item.value}
+                  </Text>
+                  <Text mt={1} color="var(--color-text-secondary)" fontSize="sm">
+                    {item.label}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+
+            <Box
+              display="grid"
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gap={3}
+            >
+              {[
+                'Join the ranked ladder',
+                'Track your win streaks',
+                'Review battle replays',
+              ].map((item) => (
+                <Box
+                  key={item}
+                  p={3.5}
+                  borderRadius="16px"
+                  bg="rgba(34, 211, 238, 0.07)"
+                  border="1px solid rgba(34, 211, 238, 0.18)"
+                  color="var(--color-text-secondary)"
+                  fontSize="sm"
+                >
+                  {item}
+                </Box>
+              ))}
+            </Box>
+
+            <VStack spacing={3} align="stretch">
+              <Button
+                w="100%"
+                colorScheme="cyan"
+                size="lg"
+                onClick={() => navigate('/signin', { state: { from: location } })}
+                boxShadow="0 14px 30px rgba(34, 211, 238, 0.22)"
+                _hover={{ transform: 'translateY(-1px)', boxShadow: '0 18px 34px rgba(34, 211, 238, 0.26)' }}
+                transition="all 0.2s ease"
+              >
+                Sign In
+              </Button>
+              <Button
+                w="100%"
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/signup')}
+                borderColor="rgba(34, 211, 238, 0.28)"
+                _hover={{ bg: 'rgba(34, 211, 238, 0.08)', transform: 'translateY(-1px)' }}
+                transition="all 0.2s ease"
+              >
+                Create Account
+              </Button>
+            </VStack>
+          </VStack>
+
+          <Box
+            p={{ base: 5, md: 6 }}
+            borderRadius="28px"
+            border="1px solid rgba(148, 163, 184, 0.18)"
+            bg="rgba(2, 6, 23, 0.45)"
+            boxShadow="0 24px 60px rgba(2, 6, 23, 0.3)"
+            backdropFilter="blur(16px)"
+          >
+            <Box
+              mb={4}
+              p={4}
+              borderRadius="22px"
+              bg="linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(15, 23, 42, 0.72))"
+              border="1px solid rgba(34, 211, 238, 0.2)"
+            >
+              <Text fontSize="sm" color="cyan.200" fontWeight="700" letterSpacing="0.14em" textTransform="uppercase">
+                Access preview
+              </Text>
+              <Text mt={2} fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="800" color="white">
+                Your battle cockpit awaits
+              </Text>
+              <Text mt={2} color="rgba(226, 232, 240, 0.82)">
+                Authentication unlocks the full competition flow, including matchmaking, battle details, and summary screens.
+              </Text>
+            </Box>
+
+            <Box display="grid" gridTemplateColumns="1fr" gap={3}>
+              {[
+                { title: 'Matchmaking', detail: 'Queue against AI or upcoming opponents', tone: 'rgba(59, 130, 246, 0.14)' },
+                { title: 'Battle insight', detail: 'See rounds, scores, and timing breakdowns', tone: 'rgba(14, 165, 233, 0.14)' },
+                { title: 'Progress feed', detail: 'Keep your rank and XP in sync', tone: 'rgba(34, 211, 238, 0.14)' },
+              ].map((card) => (
+                <Box
+                  key={card.title}
+                  p={4}
+                  borderRadius="20px"
+                  bg={card.tone}
+                  border="1px solid rgba(148, 163, 184, 0.16)"
+                >
+                  <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
+                    <Text color="white" fontWeight="700">
+                      {card.title}
+                    </Text>
+                    <Box w="10px" h="10px" borderRadius="999px" bg="cyan.300" />
+                  </Box>
+                  <Text mt={1.5} color="rgba(226, 232, 240, 0.82)" fontSize="sm">
+                    {card.detail}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
       </Box>
     );
   }
@@ -237,6 +600,8 @@ const SpeedChallengeGate = ({ children }) => {
   const location = useLocation();
   const [speedChallengesDisabled, setSpeedChallengesDisabled] = useState(false);
 
+  const userIdentifier = currentUser?.userId ?? currentUser?._id ?? currentUser?.id ?? null;
+
   // Check platform setting once on mount (unconditional hook)
   useEffect(() => {
     let cancelled = false;
@@ -254,7 +619,6 @@ const SpeedChallengeGate = ({ children }) => {
   // Paths where speed challenge is NOT required
   const exemptPaths = [
     '/',                        // landing page
-    '/speed-challenge',         // the test itself
     '/admin',                   // admin routes
     '/login',
     '/signin',
@@ -267,10 +631,10 @@ const SpeedChallengeGate = ({ children }) => {
     '/reset-expired',
     '/notfound',
     '/profile/2fa-setup'        // 2FA setup page
+    // NOTE: /speed-challenge is NOT exempt — it's only accessible to users who haven't completed it
   ];
 
   const isExemptPath = exemptPaths.some((p) => {
-    if (p === '/speed-challenge') return location.pathname === p || location.pathname.startsWith(p);
     if (p === '/admin') return location.pathname.startsWith(p);
     if (p === '/profile/2fa-setup') return location.pathname === p || location.pathname.startsWith(p);
     return location.pathname === p;
@@ -282,10 +646,48 @@ const SpeedChallengeGate = ({ children }) => {
   // If platform-wide flag disables speed challenges, bypass the gate entirely
   if (speedChallengesDisabled) return children;
 
+  const completedSpeedChallenge = hasCompletedSpeedChallenge(currentUser);
+  const resultPending = (() => {
+    try {
+      const raw = localStorage.getItem('speedChallengeResultPending');
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      const userIdentifier = currentUser?.userId ?? currentUser?._id ?? currentUser?.id ?? null;
+      return !!data?.pending && data?.userId === userIdentifier;
+    } catch {
+      return false;
+    }
+  })();
+
+  // Check if we just completed speed challenge (grace period to avoid redirect bouncing)
+  const justCompletedStr = localStorage.getItem('speedChallengeJustCompleted');
+  const justCompleted = justCompletedStr ? (() => {
+    try {
+      const data = JSON.parse(justCompletedStr);
+      const ageMs = Date.now() - data.completedAt;
+      // Grace period = 3 seconds to prevent bouncing
+      return ageMs < 3000 && data.userId === userIdentifier;
+    } catch {
+      return false;
+    }
+  })() : false;
+
+  // Check if trying to access /speed-challenge
+  const isSpeedChallengePath = location.pathname === '/speed-challenge' || location.pathname.startsWith('/speed-challenge');
+  
+  // If user has completed, don't allow access to /speed-challenge
+  if (completedSpeedChallenge && isSpeedChallengePath && !resultPending) {
+    try {
+      localStorage.removeItem('speedChallengeJustCompleted');
+    } catch (_) { }
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
   // Check if user has completed speed challenge
-  if (currentUser && !currentUser.speedChallengeCompleted) {
+  if (currentUser && !completedSpeedChallenge) {
     // Redirect to speed challenge if not completed
-    if (location.pathname !== '/speed-challenge') {
+    // BUT: allow grace period after just completing
+    if (!isSpeedChallengePath && !justCompleted) {
       return <Navigate to="/speed-challenge" state={{ from: location }} replace />;
     }
   }
@@ -323,9 +725,9 @@ function App() {
                           {/* Public Routes with global header+footer */}
                           <Route element={<PublicLayout />}>
                             <Route path="/" element={<LandingPage />} />
-                            <Route path="/battles" element={<BattleListPage />} />
-                            <Route path="/battles/:id" element={<ActiveBattlePage />} />
-                            <Route path="/battles/:id/summary" element={<BattleSummaryPage />} />
+                            <Route path="/battles" element={<BattlesAuthGuard><BattleListPage /></BattlesAuthGuard>} />
+                            <Route path="/battles/:id" element={<BattlesAuthGuard><ActiveBattlePage /></BattlesAuthGuard>} />
+                            <Route path="/battles/:id/summary" element={<BattlesAuthGuard><BattleSummaryPage /></BattlesAuthGuard>} />
                             <Route path="/challenges" element={<ChallengesAuthGuard><ChallengesListPage /></ChallengesAuthGuard>} />
                             <Route path="/leaderboard" element={<LeaderboardPage />} />
                             <Route path="/profile" element={<ProfilePage />} />

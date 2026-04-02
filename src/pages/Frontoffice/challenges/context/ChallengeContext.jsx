@@ -16,7 +16,7 @@ import {
     Rank,
 } from '../data/mockChallenges';
 import { challengeService } from '../../../../services/challengeService';
-import { fetchRankStats } from '../../../../services/userStatsService';
+import { fetchRankStats, fetchUserStreak } from '../../../../services/userStatsService';
 import { judgeService } from '../../../../services/judgeService';
 import { useAuth } from '../../auth/context/AuthContext';
 
@@ -40,6 +40,7 @@ const ActionTypes = {
     SET_CHALLENGES: 'SET_CHALLENGES',
     SET_LOADING: 'SET_LOADING',
     SET_USER_STATS: 'SET_USER_STATS',
+    SET_STREAK: 'SET_STREAK',
     SET_PROGRESS: 'SET_PROGRESS',
     UPSERT_PROGRESS: 'UPSERT_PROGRESS',
     SELECT_CHALLENGE: 'SELECT_CHALLENGE',
@@ -144,6 +145,10 @@ const normalizeProgressEntry = (entry) => {
         bestMemory: latestSuccessfulSubmission?.memoryAllocated || null,
         earnedXp: Number(entry.xpAwarded || 0),
         failedAttempts: Number(entry.failedAttempts || 0),
+        attemptStatus: entry.attemptStatus || 'completed',
+        incompleteAttemptCount: Number(entry.incompleteAttemptCount || 0),
+        gracePeriodExpiresAt: entry.gracePeriodExpiresAt || null,
+        attemptStartedAt: entry.attemptStartedAt || null,
         solveTimeSeconds: entry.solveTimeSeconds ?? latestSuccessfulSubmission?.solveTimeSeconds ?? null,
         solvedAt: entry.solvedAt || null,
         latestSubmission,
@@ -185,6 +190,13 @@ const initialState = {
     challenges: [],
     userProgress: [],
     user: { rank: null, xp: 0, streak: 0 },
+    streakDetails: {
+        currentStreak: 0,
+        longestStreak: 0,
+        lastLoginDate: null,
+        streakMessage: '',
+        recentActivity: [false, false, false, false, false, false, false],
+    },
     isLoadingChallenges: true,
     isLoadingStats: true,
 
@@ -232,6 +244,23 @@ function challengeReducer(state, action) {
                     isMaxRank: action.payload.isMaxRank,
                 },
                 isLoadingStats: false,
+            };
+        case ActionTypes.SET_STREAK:
+            return {
+                ...state,
+                user: {
+                    ...state.user,
+                    streak: action.payload.currentStreak,
+                },
+                streakDetails: {
+                    currentStreak: Number(action.payload.currentStreak || 0),
+                    longestStreak: Number(action.payload.longestStreak || 0),
+                    lastLoginDate: action.payload.lastLoginDate || null,
+                    streakMessage: action.payload.streakMessage || '',
+                    recentActivity: Array.isArray(action.payload.recentActivity)
+                        ? action.payload.recentActivity.map(Boolean).slice(-7)
+                        : [false, false, false, false, false, false, false],
+                },
             };
         case ActionTypes.SET_PROGRESS:
             return { ...state, userProgress: action.payload };
@@ -443,9 +472,10 @@ export const ChallengeProvider = ({ children }) => {
         const loadData = async () => {
             dispatch({ type: ActionTypes.SET_LOADING, payload: true });
             try {
-                const [apiChallenges, stats, progressRes] = await Promise.all([
+                const [apiChallenges, stats, streakRes, progressRes] = await Promise.all([
                     challengeService.getPublished(),
                     fetchRankStats(),
+                    fetchUserStreak(),
                     judgeService.getProgress(),
                 ]);
 
@@ -460,6 +490,16 @@ export const ChallengeProvider = ({ children }) => {
                     type: ActionTypes.SET_USER_STATS,
                     payload: stats || { rank: null, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
                 });
+                dispatch({
+                    type: ActionTypes.SET_STREAK,
+                    payload: streakRes || {
+                        currentStreak: stats?.streak ?? 0,
+                        longestStreak: stats?.streak ?? 0,
+                        lastLoginDate: null,
+                        streakMessage: '',
+                        recentActivity: [false, false, false, false, false, false, false],
+                    },
+                });
 
                 const normalizedProgress = Array.isArray(progressRes?.progress)
                     ? progressRes.progress.map(normalizeProgressEntry)
@@ -472,6 +512,16 @@ export const ChallengeProvider = ({ children }) => {
                     dispatch({
                         type: ActionTypes.SET_USER_STATS,
                         payload: { rank: null, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
+                    });
+                    dispatch({
+                        type: ActionTypes.SET_STREAK,
+                        payload: {
+                            currentStreak: 0,
+                            longestStreak: 0,
+                            lastLoginDate: null,
+                            streakMessage: '',
+                            recentActivity: [false, false, false, false, false, false, false],
+                        },
                     });
                     dispatch({ type: ActionTypes.SET_PROGRESS, payload: [] });
                 }
@@ -516,6 +566,10 @@ export const ChallengeProvider = ({ children }) => {
 
     const pauseSession = useCallback(() => dispatch({ type: ActionTypes.SET_PAUSED, payload: true }), []);
     const resumeSession = useCallback(() => dispatch({ type: ActionTypes.SET_PAUSED, payload: false }), []);
+    const setElapsedSeconds = useCallback((seconds) => {
+        const safe = Math.max(0, Number(seconds || 0));
+        dispatch({ type: ActionTypes.UPDATE_TIME, payload: safe });
+    }, []);
 
     const setEditorSettings = useCallback((settingsPatch) => {
         const merged = {
@@ -607,10 +661,13 @@ export const ChallengeProvider = ({ children }) => {
                 dispatch({ type: ActionTypes.SET_TIMER_RUNNING, payload: false });
 
                 try {
-                    const stats = await fetchRankStats();
+                    const [stats, streakRes] = await Promise.all([fetchRankStats(), fetchUserStreak()]);
                     if (stats) {
                         dispatch({ type: ActionTypes.SET_USER_STATS, payload: stats });
                         updateCurrentUser?.({ rank: stats.rank, xp: stats.xp });
+                    }
+                    if (streakRes) {
+                        dispatch({ type: ActionTypes.SET_STREAK, payload: streakRes });
                     }
                 } catch (statsError) {
                     console.error('Failed to refresh rank stats after solve:', statsError);
@@ -715,6 +772,7 @@ export const ChallengeProvider = ({ children }) => {
         hintAvailable,
         pauseSession,
         resumeSession,
+        setElapsedSeconds,
         resetWorkspace,
         setEditorSettings,
         setEditorFullscreen,
@@ -741,6 +799,7 @@ export const ChallengeProvider = ({ children }) => {
         hintAvailable,
         pauseSession,
         resumeSession,
+        setElapsedSeconds,
         resetWorkspace,
         setEditorSettings,
         setEditorFullscreen,
