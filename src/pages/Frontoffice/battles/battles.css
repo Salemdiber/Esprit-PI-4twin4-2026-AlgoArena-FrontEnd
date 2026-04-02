@@ -161,6 +161,58 @@
     color: var(--color-text-muted);
 }
 
+.battle-hints {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.battle-hints-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.battle-hint-card {
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    overflow: hidden;
+}
+
+.battle-hint-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: none;
+    padding: 0.65rem 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color 0.2s ease;
+    text-align: left;
+}
+
+.battle-hint-toggle:hover {
+    color: var(--color-cyan-400);
+}
+
+.battle-hint-toggle-icon {
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+}
+
+.battle-hint-body {
+    padding: 0 0.9rem 0.75rem;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
 .battle-editor-title {
     font-weight: 600;
     color: var(--color-text-primary);
@@ -205,6 +257,12 @@
     overflow: auto;
 }
 
+.battle-editor-area--code {
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
 .battle-editor-actions {
     display: flex;
     flex-wrap: wrap;
@@ -215,9 +273,9 @@
 .battle-console {
     margin-top: 1.25rem;
     border-radius: 14px;
-    border: 1px solid var(--color-border);
-    background: rgba(15, 23, 42, 0.6);
-    padding: 1rem;
+    border: none;
+    background: transparent;
+    padding: 0;
     font-size: 0.8rem;
 }
 
@@ -240,6 +298,40 @@
 .battle-panel--opponent {
     border: 1px solid rgba(139, 92, 246, 0.35);
     box-shadow: 0 0 35px rgba(139, 92, 246, 0.15);
+}
+
+.battle-opponent-metrics {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+}
+
+.battle-opponent-metrics--player {
+    border-top: 1px dashed var(--color-border);
+    padding-top: 0.65rem;
+}
+
+.battle-opponent-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--color-text-secondary);
+}
+
+.battle-opponent-metric strong {
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+
+.battle-opponent-criteria {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
 }
 
 .battle-opponent-card {
@@ -320,6 +412,57 @@
 
 .battle-panel-section {
     margin-top: 1rem;
+}
+
+.battle-results-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.battle-result-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.battle-result-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--color-text-primary);
+}
+
+.battle-result-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.battle-result-metric strong {
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+
+.battle-result-criteria {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+}
+
+.battle-result-winner {
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
 }
 
 .battle-empty {

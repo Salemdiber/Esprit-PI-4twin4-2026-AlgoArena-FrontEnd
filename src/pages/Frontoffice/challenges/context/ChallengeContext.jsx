@@ -460,10 +460,12 @@ export const ChallengeProvider = ({ children }) => {
     const location = useLocation();
     const { isLoggedIn, isAuthLoading, updateCurrentUser } = useAuth();
     const isChallengesRoute = location.pathname === '/challenges' || location.pathname.startsWith('/challenges/');
+    const isBattlesRoute = location.pathname === '/battles' || location.pathname.startsWith('/battles/');
 
     useEffect(() => {
-        const shouldLoadData = isChallengesRoute && isLoggedIn && !isAuthLoading;
-        if (!shouldLoadData) {
+        const shouldLoadStats = (isChallengesRoute || isBattlesRoute) && isLoggedIn && !isAuthLoading;
+        const shouldLoadChallenges = isChallengesRoute;
+        if (!shouldLoadStats) {
             dispatch({ type: ActionTypes.RESET_FEATURE_STATE });
             return;
         }
@@ -473,7 +475,7 @@ export const ChallengeProvider = ({ children }) => {
             dispatch({ type: ActionTypes.SET_LOADING, payload: true });
             try {
                 const [apiChallenges, stats, streakRes, progressRes] = await Promise.all([
-                    challengeService.getPublished(),
+                    shouldLoadChallenges ? challengeService.getPublished() : Promise.resolve([]),
                     fetchRankStats(),
                     fetchUserStreak(),
                     judgeService.getProgress(),
@@ -481,10 +483,12 @@ export const ChallengeProvider = ({ children }) => {
 
                 if (cancelled) return;
 
-                dispatch({
-                    type: ActionTypes.SET_CHALLENGES,
-                    payload: Array.isArray(apiChallenges) ? apiChallenges.map(transformChallenge) : [],
-                });
+                if (shouldLoadChallenges) {
+                    dispatch({
+                        type: ActionTypes.SET_CHALLENGES,
+                        payload: Array.isArray(apiChallenges) ? apiChallenges.map(transformChallenge) : [],
+                    });
+                }
 
                 dispatch({
                     type: ActionTypes.SET_USER_STATS,
@@ -530,7 +534,7 @@ export const ChallengeProvider = ({ children }) => {
 
         loadData();
         return () => { cancelled = true; };
-    }, [isChallengesRoute, isLoggedIn, isAuthLoading]);
+    }, [isChallengesRoute, isBattlesRoute, isLoggedIn, isAuthLoading]);
 
     const selectedChallenge = useMemo(
         () => state.challenges.find(c => c.id === state.selectedChallengeId) || null,
@@ -715,6 +719,21 @@ export const ChallengeProvider = ({ children }) => {
         }
     }, [state.selectedChallengeId, state.elapsedSeconds, state.failedCount, state.hintsUnlocked]);
 
+    const refreshUserStats = useCallback(async () => {
+        try {
+            const [stats, streakRes] = await Promise.all([fetchRankStats(), fetchUserStreak()]);
+            if (stats) {
+                dispatch({ type: ActionTypes.SET_USER_STATS, payload: stats });
+                updateCurrentUser?.({ rank: stats.rank, xp: stats.xp });
+            }
+            if (streakRes) {
+                dispatch({ type: ActionTypes.SET_STREAK, payload: streakRes });
+            }
+        } catch (statsError) {
+            console.error('Failed to refresh user stats:', statsError);
+        }
+    }, [updateCurrentUser]);
+
     useEffect(() => {
         if (!state.selectedChallengeId) return;
         if (!state.isTimerRunning || state.isPaused || state.isChallengeSolved) return;
@@ -770,6 +789,7 @@ export const ChallengeProvider = ({ children }) => {
         submitSolution,
         requestHint,
         hintAvailable,
+        refreshUserStats,
         pauseSession,
         resumeSession,
         setElapsedSeconds,

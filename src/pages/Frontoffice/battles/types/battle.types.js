@@ -86,6 +86,24 @@ export const difficultyBadgeMap = {
     opponentScore: number,
     timeSpent: string,      // "mm:ss"
     efficiency: number,     // 0-100
+        playerResult: {
+            executionTimeMs: number,
+            timeComplexity: string,
+            spaceComplexity: string,
+            score: number,
+            criteria: string[],
+            passedCount: number,
+            total: number,
+        } | null,
+        opponentResult: {
+            executionTimeMs: number,
+            timeComplexity: string,
+            spaceComplexity: string,
+            score: number,
+            criteria: string[],
+            passedCount: number,
+            total: number,
+        } | null,
   }
 
   Battle: {
@@ -123,6 +141,8 @@ export function createRound(index, challenge = null) {
         opponentScore: 0,
         timeSpent: '0:00',
         efficiency: 0,
+        playerResult: null,
+        opponentResult: null,
     };
 }
 
@@ -180,6 +200,14 @@ export function getRoundsWon(battle, side = 'player') {
 }
 
 export function getWinner(battle) {
+    if (battle.totalRounds <= 1) {
+        const playerScore = getTotalPlayerScore(battle);
+        const opponentScore = getTotalOpponentScore(battle);
+        if (playerScore > opponentScore) return 'player';
+        if (opponentScore > playerScore) return 'opponent';
+        return 'draw';
+    }
+
     const playerWins = getRoundsWon(battle, 'player');
     const opponentWins = getRoundsWon(battle, 'opponent');
     if (playerWins > opponentWins) return 'player';
