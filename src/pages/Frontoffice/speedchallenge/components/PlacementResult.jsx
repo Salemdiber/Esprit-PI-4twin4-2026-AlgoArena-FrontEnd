@@ -3,6 +3,17 @@ import { Box, Flex, Text, VStack, Button, HStack, Icon } from '@chakra-ui/react'
 import { MdMilitaryTech, MdDiamond, MdSmartToy } from 'react-icons/md';
 import { motion } from 'framer-motion';
 
+const toDisplayText = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try {
+        return JSON.stringify(value);
+    } catch (_) {
+        return String(value);
+    }
+};
+
 const MotionBox = motion.create(Box);
 
 const RANK_VISUALS = {
@@ -161,16 +172,16 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                             <Flex align="center" justify="space-between" mb={b.composite > 0 ? 2 : 0}>
                                 <HStack spacing={2}>
                                     <Text fontSize="xs" fontWeight="semibold" color="white">
-                                        {b.title}
+                                        {toDisplayText(b.title)}
                                     </Text>
                                     <Text fontSize="9px" fontFamily="mono" color={diffColor(b.difficulty)}
                                         textTransform="uppercase" letterSpacing="0.06em">
-                                        {b.difficulty}
+                                        {toDisplayText(b.difficulty)}
                                     </Text>
                                 </HStack>
                                 {b.composite > 0 ? (
                                     <Text fontSize="xs" fontFamily="mono" fontWeight="bold" color="white">
-                                        {b.composite}<Text as="span" color="gray.600">/100</Text>
+                                        {toDisplayText(b.composite)}<Text as="span" color="gray.600">/100</Text>
                                     </Text>
                                 ) : (
                                     <Text fontSize="xs" fontFamily="mono" color="gray.600">skipped</Text>
@@ -202,7 +213,7 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                                     </Flex>
                                     {b.notes && (
                                         <Text fontSize="10px" color="gray.500" fontStyle="italic" lineHeight="1.5">
-                                            {b.notes}
+                                            {toDisplayText(b.notes)}
                                         </Text>
                                     )}
                                 </>
@@ -399,7 +410,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                             textAlign="center"
                         >
                             <Text fontSize="sm" color="gray.300" lineHeight="1.7">
-                                {placement.message}
+                                {toDisplayText(placement.message)}
                             </Text>
                         </Box>
 
@@ -428,10 +439,10 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round">
                                                     <path d="M20 6 9 17l-5-5" />
                                                 </svg>
-                                                <Text fontSize="sm" color="white" fontWeight="medium">{p.title}</Text>
+                                                <Text fontSize="sm" color="white" fontWeight="medium">{toDisplayText(p.title)}</Text>
                                                 <Box ml="auto">
                                                     <Text fontSize="xs" color={p.difficultyColor} fontFamily="mono">
-                                                        {p.difficulty}
+                                                        {toDisplayText(p.difficulty)}
                                                     </Text>
                                                 </Box>
                                             </Flex>

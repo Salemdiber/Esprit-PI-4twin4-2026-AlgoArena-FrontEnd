@@ -42,6 +42,17 @@ const clampSpeedChallengeRank = (rank) => {
     return SPEED_CHALLENGE_RANK_ORDER.includes(normalized) ? normalized : 'GOLD';
 };
 
+const toDisplayText = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try {
+        return JSON.stringify(value);
+    } catch (_) {
+        return String(value);
+    }
+};
+
 // ─── Debounce helper for session autosave ─────────────────────
 const debounce = (fn, delay) => {
     let timeoutId;
@@ -853,20 +864,28 @@ const SpeedChallengePage = () => {
     const mapServerToProblem = (item, idx) => {
         const id = `gen-${idx + 1}`;
         const samples = item.samples || item.tests || item.examples || [];
-        const examples = samples.map((s) => ({ input: s.input || '', output: s.output || '', explanation: s.explanation || '' }));
-        const testCases = samples.map((s) => ({ input: s.input || '', expected: s.output || '' }));
+        const examples = samples.map((s) => ({
+            input: toDisplayText(s.input),
+            output: toDisplayText(s.output),
+            explanation: toDisplayText(s.explanation),
+        }));
+        const testCases = samples.map((s) => ({
+            input: toDisplayText(s.input),
+            expected: toDisplayText(s.output),
+        }));
+        const difficultyText = toDisplayText(item.difficulty || 'Easy');
         return {
             id,
             index: idx + 1,
-            difficulty: (item.difficulty || 'Easy').toUpperCase(),
-            difficultyColor: item.difficulty === 'Hard' ? '#ef4444' : item.difficulty === 'Medium' ? '#facc15' : '#22c55e',
-            title: item.title || `Generated Problem ${idx + 1}`,
-            description: item.statement || item.description || '',
+            difficulty: difficultyText.toUpperCase(),
+            difficultyColor: difficultyText.toLowerCase() === 'hard' ? '#ef4444' : difficultyText.toLowerCase() === 'medium' ? '#facc15' : '#22c55e',
+            title: toDisplayText(item.title || `Generated Problem ${idx + 1}`),
+            description: toDisplayText(item.statement || item.description || ''),
             examples,
-            constraints: Array.isArray(item.constraints) ? item.constraints : (item.constraints ? [String(item.constraints)] : []),
+            constraints: Array.isArray(item.constraints) ? item.constraints.map((constraint) => toDisplayText(constraint)) : (item.constraints ? [toDisplayText(item.constraints)] : []),
             starterCode: { javascript: '// write your solution here' },
             testCases,
-            xpReward: item.difficulty === 'Hard' ? 250 : item.difficulty === 'Medium' ? 120 : 50,
+            xpReward: difficultyText.toLowerCase() === 'hard' ? 250 : difficultyText.toLowerCase() === 'medium' ? 120 : 50,
         };
     };
 
