@@ -24,6 +24,93 @@ import { battlesService } from '../../../../services/battlesService';
 import { challengeService } from '../../../../services/challengeService';
 import { useAuth } from '../../auth/context/AuthContext';
 
+const BATTLE_RESULTS_PREFIX = 'battle-results:';
+const BATTLE_PLAN_PREFIX = 'battle-plan:';
+
+const loadStoredBattle = (battleId) => {
+    if (!battleId) return null;
+    try {
+        const raw = localStorage.getItem(`${BATTLE_RESULTS_PREFIX}${battleId}`);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
+const persistBattleSnapshot = (battle) => {
+    if (!battle?.id) return;
+    const snapshot = {
+        id: battle.id,
+        status: battle.status,
+        completedAt: battle.completedAt || null,
+        rounds: battle.rounds.map((round) => ({
+            index: round.index,
+            status: round.status,
+            result: round.result,
+            playerScore: round.playerScore,
+            opponentScore: round.opponentScore,
+            timeSpent: round.timeSpent,
+            efficiency: round.efficiency,
+            playerResult: round.playerResult || null,
+            opponentResult: round.opponentResult || null,
+        })),
+    };
+    try {
+        localStorage.setItem(`${BATTLE_RESULTS_PREFIX}${battle.id}`, JSON.stringify(snapshot));
+    } catch {
+        // ignore storage errors
+    }
+};
+
+const buildPlanKey = (payload = {}) => {
+    const userId = payload.userId || payload.playerId || 'unknown';
+    const roundNumber = Number(payload.roundNumber || payload.totalRounds || 0);
+    const battleType = payload.battleType || payload.mode || 'unknown';
+    const challengeId = payload.challengeId || 'unknown';
+    return `${userId}:${battleType}:${roundNumber}:${challengeId}`;
+};
+
+const loadBattlePlan = (battleId) => {
+    if (!battleId) return null;
+    try {
+        const raw = localStorage.getItem(`${BATTLE_PLAN_PREFIX}${battleId}`);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
+const loadBattlePlanByKey = (payload) => {
+    const key = buildPlanKey(payload);
+    try {
+        const raw = localStorage.getItem(`${BATTLE_PLAN_PREFIX}key:${key}`);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
+const storeBattlePlan = (battleId, challengeIds, payload) => {
+    if ((!battleId && !payload) || !Array.isArray(challengeIds) || !challengeIds.length) return;
+    try {
+        if (battleId) {
+            localStorage.setItem(`${BATTLE_PLAN_PREFIX}${battleId}`, JSON.stringify({
+                battleId,
+                challengeIds,
+            }));
+        }
+        if (payload) {
+            const key = buildPlanKey(payload);
+            localStorage.setItem(`${BATTLE_PLAN_PREFIX}key:${key}`, JSON.stringify({
+                battleId: battleId || null,
+                challengeIds,
+            }));
+        }
+    } catch {
+        // ignore storage errors
+    }
+};
+
 // ─── Initial State ──────────────────────────────────────
 
 const initialState = {
@@ -72,6 +159,7 @@ const ActionTypes = {
     START_ROUND: 'START_ROUND',             // mark round IN_PROGRESS
     COMPLETE_ROUND: 'COMPLETE_ROUND',       // finish current round
     COMPLETE_BATTLE: 'COMPLETE_BATTLE',     // mark battle COMPLETED
+    SET_ROUND_RESULT: 'SET_ROUND_RESULT',
 
     // Timer
     SET_TIMER: 'SET_TIMER',
@@ -239,6 +327,8 @@ function battleReducer(state, action) {
                             opponentScore,
                             timeSpent,
                             efficiency,
+                            playerResult: r.playerResult || null,
+                            opponentResult: r.opponentResult || null,
                         };
                     });
 
@@ -273,6 +363,27 @@ function battleReducer(state, action) {
                         : b
                 ),
             };
+
+        case ActionTypes.SET_ROUND_RESULT: {
+            const { battleId, roundIndex, side, result } = action.payload;
+            return {
+                ...state,
+                battles: state.battles.map(b => {
+                    if (b.id !== battleId) return b;
+                    const updatedRounds = b.rounds.map((r, i) => {
+                        if (i !== roundIndex) return r;
+                        const updates = side === 'player'
+                            ? { playerResult: result, playerScore: result?.score ?? r.playerScore }
+                            : { opponentResult: result, opponentScore: result?.score ?? r.opponentScore };
+                        return {
+                            ...r,
+                            ...updates,
+                        };
+                    });
+                    return { ...b, rounds: updatedRounds };
+                }),
+            };
+        }
 
         // ── Timer ────────────────────────────────────────
         case ActionTypes.SET_TIMER:
@@ -349,11 +460,15 @@ export function BattleProvider({ children }) {
         const challenge = challengesById[challengeId];
         if (!challenge) return null;
         return {
+            id: challenge._id || challenge.id || challengeId,
             title: challenge.title,
             description: challenge.description,
             tags: Array.isArray(challenge.tags) ? challenge.tags : [],
             example: challenge.examples?.[0] || { input: '', output: '', explanation: '' },
             maxPoints: challenge.xpReward || 500,
+            hints: Array.isArray(challenge.hints) ? challenge.hints : [],
+            testCases: Array.isArray(challenge.testCases) ? challenge.testCases : [],
+            starterCode: challenge.starterCode || {},
         };
     };
 
@@ -363,8 +478,16 @@ export function BattleProvider({ children }) {
         const totalRounds = Math.max(1, Number(battle?.roundNumber) || 1);
         const baseChallenge = mapChallenge(battle?.challengeId);
         const typePool = filterChallengesByType(battle?.selectChallengeType || '');
+        const storedPlan = loadBattlePlan(battle?._id || battle?.idBattle || battle?.id) || loadBattlePlanByKey({
+            userId: battle?.userId || currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username,
+            battleType: battle?.battleType,
+            roundNumber: totalRounds,
+            challengeId: battle?.challengeId || baseChallenge?.id,
+        });
+        const plannedIds = Array.isArray(storedPlan?.challengeIds) ? storedPlan.challengeIds : [];
         const rounds = Array.from({ length: totalRounds }, (_, i) => {
-            const fallback = baseChallenge || mapChallenge(typePool[i % Math.max(1, typePool.length)]?._id);
+            const planned = plannedIds[i] ? mapChallenge(plannedIds[i]) : null;
+            const fallback = planned || baseChallenge || mapChallenge(typePool[i % Math.max(1, typePool.length)]?._id);
             const round = createRound(i, fallback || undefined);
             if (status === BattleStatus.COMPLETED) {
                 round.status = RoundStatus.COMPLETED;
@@ -386,7 +509,7 @@ export function BattleProvider({ children }) {
             }
             : null;
 
-        return {
+        const mapped = {
             id: battle?._id || battle?.idBattle || battle?.id,
             mode,
             status,
@@ -406,6 +529,37 @@ export function BattleProvider({ children }) {
             timeLimit: 900,
             difficulty: Difficulty.MEDIUM,
         };
+
+        const stored = loadStoredBattle(mapped.id);
+        if (stored?.rounds?.length) {
+            const mergedRounds = mapped.rounds.map((round) => {
+                const storedRound = stored.rounds.find((r) => r.index === round.index);
+                if (!storedRound) return round;
+                return {
+                    ...round,
+                    status: storedRound.status || round.status,
+                    result: storedRound.result || round.result,
+                    playerScore: storedRound.playerScore ?? round.playerScore,
+                    opponentScore: storedRound.opponentScore ?? round.opponentScore,
+                    timeSpent: storedRound.timeSpent ?? round.timeSpent,
+                    efficiency: storedRound.efficiency ?? round.efficiency,
+                    playerResult: storedRound.playerResult ?? round.playerResult,
+                    opponentResult: storedRound.opponentResult ?? round.opponentResult,
+                };
+            });
+
+            return {
+                ...mapped,
+                rounds: mergedRounds,
+                status: stored.status || mapped.status,
+                completedAt: stored.completedAt ? new Date(stored.completedAt) : mapped.completedAt,
+                currentRoundIndex: stored.status === BattleStatus.COMPLETED
+                    ? mergedRounds.length - 1
+                    : mapped.currentRoundIndex,
+            };
+        }
+
+        return mapped;
     };
 
     // Timer tick effect
@@ -419,6 +573,21 @@ export function BattleProvider({ children }) {
         }
         return () => clearInterval(timerRef.current);
     }, [state.timer.isRunning]);
+
+    useEffect(() => {
+        state.battles.forEach((battle) => {
+            const hasResults = battle.rounds.some((round) =>
+                round.status === RoundStatus.COMPLETED ||
+                round.playerScore > 0 ||
+                round.opponentScore > 0 ||
+                round.playerResult ||
+                round.opponentResult
+            );
+            if (hasResults) {
+                persistBattleSnapshot(battle);
+            }
+        });
+    }, [state.battles]);
 
     const refreshChallenges = useCallback(async () => {
         try {
@@ -505,7 +674,34 @@ export function BattleProvider({ children }) {
         };
 
         try {
-            await battlesService.create(payload);
+            const created = await battlesService.create(payload);
+            let battleId = created?._id || created?.idBattle || created?.id;
+            const assignedIds = assigned.map((ch) => ch?._id).filter(Boolean);
+
+            if (!battleId) {
+                try {
+                    const resp = await battlesService.getAll();
+                    const list = Array.isArray(resp?.battles) ? resp.battles : Array.isArray(resp) ? resp : [];
+                    const candidates = list.filter((item) => (
+                        (item?.userId === payload.userId || item?.userId == payload.userId) &&
+                        item?.challengeId === payload.challengeId &&
+                        Number(item?.roundNumber || 0) === Number(payload.roundNumber || 0) &&
+                        item?.battleType === payload.battleType
+                    ));
+                    if (candidates.length) {
+                        const newest = candidates.sort((a, b) => {
+                            const aTime = new Date(a?.createdAt || 0).getTime();
+                            const bTime = new Date(b?.createdAt || 0).getTime();
+                            return bTime - aTime;
+                        })[0];
+                        battleId = newest?._id || newest?.idBattle || newest?.id;
+                    }
+                } catch {
+                    // ignore lookup failures
+                }
+            }
+
+            storeBattlePlan(battleId, assignedIds, payload);
             dispatch({ type: ActionTypes.CLOSE_CREATE_MODAL });
             await refreshBattles();
         } catch (err) {
@@ -532,6 +728,10 @@ export function BattleProvider({ children }) {
 
     const completeRound = useCallback((payload) => {
         dispatch({ type: ActionTypes.COMPLETE_ROUND, payload });
+    }, []);
+
+    const setRoundResult = useCallback((payload) => {
+        dispatch({ type: ActionTypes.SET_ROUND_RESULT, payload });
     }, []);
 
     const completeBattle = useCallback((id) => {
@@ -592,6 +792,7 @@ export function BattleProvider({ children }) {
         activateBattle,
         startRound,
         completeRound,
+        setRoundResult,
         completeBattle,
         startTimer,
         stopTimer,

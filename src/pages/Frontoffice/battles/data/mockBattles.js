@@ -13,6 +13,7 @@ import {
 
 const challenges = [
     {
+        id: 'mock-ch-1',
         title: 'Two Sum Problem',
         description: 'Given an array of integers and a target, return indices of the two numbers that add up to the target.',
         tags: ['ARRAYS', 'HASH MAP'],
@@ -21,9 +22,23 @@ const challenges = [
             output: '[0, 1]',
             explanation: 'Because nums[0] + nums[1] == 9, we return [0, 1].',
         },
+        testCases: [
+            { input: 'nums = [2,7,11,15], target = 9', output: '[0, 1]' },
+            { input: 'nums = [3,2,4], target = 6', output: '[1, 2]' },
+            { input: 'nums = [3,3], target = 6', output: '[0, 1]' },
+        ],
+        hints: [
+            'Use a hash map to remember seen values and their indices.',
+            'For each number, look for its complement in the map.',
+            'Return the pair as soon as you find a match.',
+        ],
+        starterCode: {
+            javascript: 'function solve(nums, target) {\n  // TODO: implement\n  return [];\n}\n',
+        },
         maxPoints: 500,
     },
     {
+        id: 'mock-ch-2',
         title: 'Maximum Subarray Sum',
         description: 'Given an integer array, find the contiguous subarray which has the largest sum and return its sum. Implement an efficient solution with optimal time complexity.',
         tags: ['ARRAYS', 'DYNAMIC PROGRAMMING'],
@@ -32,9 +47,23 @@ const challenges = [
             output: '6',
             explanation: '[4,-1,2,1] has the largest sum = 6.',
         },
+        testCases: [
+            { input: 'nums = [-2,1,-3,4,-1,2,1,-5,4]', output: '6' },
+            { input: 'nums = [1]', output: '1' },
+            { input: 'nums = [5,4,-1,7,8]', output: '23' },
+        ],
+        hints: [
+            'Track the best sum ending at each index.',
+            'Reset the running sum when it becomes negative.',
+            'Keep a global maximum while you iterate.',
+        ],
+        starterCode: {
+            javascript: 'function solve(nums) {\n  // TODO: implement\n  return 0;\n}\n',
+        },
         maxPoints: 500,
     },
     {
+        id: 'mock-ch-3',
         title: 'Binary Tree Traversal',
         description: 'Given the root of a binary tree, return the inorder traversal of its nodes\' values efficiently.',
         tags: ['TREES', 'RECURSION'],
@@ -43,9 +72,23 @@ const challenges = [
             output: '[1,3,2]',
             explanation: 'Inorder traversal visits left, root, right.',
         },
+        testCases: [
+            { input: 'root = [1,null,2,3]', output: '[1,3,2]' },
+            { input: 'root = []', output: '[]' },
+            { input: 'root = [1]', output: '[1]' },
+        ],
+        hints: [
+            'Traverse left subtree, then node, then right subtree.',
+            'Use a stack if you want to avoid recursion.',
+            'Watch for null nodes in the array representation.',
+        ],
+        starterCode: {
+            javascript: 'function solve(root) {\n  // TODO: implement\n  return [];\n}\n',
+        },
         maxPoints: 500,
     },
     {
+        id: 'mock-ch-4',
         title: 'Valid Parentheses',
         description: 'Given a string containing just the characters (){}[], determine if the input string is valid.',
         tags: ['STACK', 'STRINGS'],
@@ -54,9 +97,23 @@ const challenges = [
             output: 'true',
             explanation: 'All brackets are properly closed in order.',
         },
+        testCases: [
+            { input: 's = "()[]{}"', output: 'true' },
+            { input: 's = "(]"', output: 'false' },
+            { input: 's = "([{}])"', output: 'true' },
+        ],
+        hints: [
+            'Use a stack to track opening brackets.',
+            'When you see a closing bracket, it must match the stack top.',
+            'At the end, the stack should be empty.',
+        ],
+        starterCode: {
+            javascript: 'function solve(s) {\n  // TODO: implement\n  return false;\n}\n',
+        },
         maxPoints: 500,
     },
     {
+        id: 'mock-ch-5',
         title: 'Merge K Sorted Lists',
         description: 'You are given an array of k linked-lists, each sorted in ascending order. Merge all lists into one sorted linked-list.',
         tags: ['LINKED LIST', 'HEAP'],
@@ -64,6 +121,19 @@ const challenges = [
             input: 'lists = [[1,4,5],[1,3,4],[2,6]]',
             output: '[1,1,2,3,4,4,5,6]',
             explanation: 'Merge all three sorted lists into a single sorted list.',
+        },
+        testCases: [
+            { input: 'lists = [[1,4,5],[1,3,4],[2,6]]', output: '[1,1,2,3,4,4,5,6]' },
+            { input: 'lists = []', output: '[]' },
+            { input: 'lists = [[]]', output: '[]' },
+        ],
+        hints: [
+            'A min-heap helps pick the smallest head each step.',
+            'Only store the current node of each list in the heap.',
+            'Advance the list whose node you popped.',
+        ],
+        starterCode: {
+            javascript: 'function solve(lists) {\n  // TODO: implement\n  return [];\n}\n',
         },
         maxPoints: 500,
     },

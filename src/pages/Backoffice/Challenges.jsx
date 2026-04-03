@@ -51,6 +51,14 @@ const ACTION_COMPACT_STYLE = {
     flex: '0 0 auto',
 };
 
+const getDuplicateMessage = (err) => {
+    if (!err) return '';
+    const message = err?.message || '';
+    const status = Number(err?.status || err?.payload?.statusCode || 0);
+    if (status === 409 || /already exists|duplicate/i.test(message)) return message;
+    return '';
+};
+
 /* ═══════════════════════════════════════════════════════════════════
    TOAST
    ═══════════════════════════════════════════════════════════════════ */
@@ -58,7 +66,9 @@ const Toast = ({ message, type, onClose }) => {
     useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
     const c = type === 'success'
         ? { bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)', text: '#22c55e', icon: Check }
-        : { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', text: '#ef4444', icon: X };
+        : type === 'warning'
+            ? { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.4)', text: '#f59e0b', icon: AlertTriangle }
+            : { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', text: '#ef4444', icon: X };
     const Icon = c.icon;
     return (
         <div className="fixed top-6 right-6 z-50 animate-scale-in" style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: '12px', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px', backdropFilter: 'blur(12px)', maxWidth: '400px' }}>
@@ -176,7 +186,17 @@ const Challenges = () => {
             setToast({ message: `"${result.title}" published successfully!`, type: 'success' });
             setAiResult(null); setAiForm({ description: '', difficulty: 'Medium', topic: 'Arrays', testCases: 5 });
             setView('list'); fetchChallenges();
-        } catch (err) { setToast({ message: err.message || 'Failed to publish.', type: 'error' }); }
+        } catch (err) {
+            const duplicateMessage = getDuplicateMessage(err);
+            if (duplicateMessage) {
+                setToast({
+                    message: `Duplicate Challenge: ${duplicateMessage}. The AI generated a challenge with an existing title. Click "Generate" again for a new challenge.`,
+                    type: 'warning',
+                });
+                return;
+            }
+            setToast({ message: err.message || 'Failed to publish.', type: 'error' });
+        }
         finally { setPublishing(false); }
     };
 
@@ -196,7 +216,17 @@ const Challenges = () => {
             await challengeService.create(payload);
             setToast({ message: `"${result.title}" saved as draft.`, type: 'success' });
             setAiResult(null); fetchChallenges();
-        } catch (err) { setToast({ message: err.message || 'Failed to save draft.', type: 'error' }); }
+        } catch (err) {
+            const duplicateMessage = getDuplicateMessage(err);
+            if (duplicateMessage) {
+                setToast({
+                    message: `Duplicate Challenge: ${duplicateMessage}. The AI generated a challenge with an existing title. Click "Generate" again for a new challenge.`,
+                    type: 'warning',
+                });
+                return;
+            }
+            setToast({ message: err.message || 'Failed to save draft.', type: 'error' });
+        }
         finally { setPublishing(false); }
     };
 
@@ -214,7 +244,38 @@ const Challenges = () => {
             Object.keys(data).forEach(k => { if (data[k] && (typeof data[k] === 'string' ? data[k].trim() : true)) hl[k] = true; });
             setImportHighlight(hl);
             setTimeout(() => setImportHighlight({}), 4000);
-            if (!errors.length) setToast({ message: `Imported "${data.title || 'challenge'}" successfully!`, type: 'success' });
+            if (!errors.length) {
+                try {
+                    const payload = {
+                        title: String(data.title || '').trim(),
+                        description: String(data.description || '').trim(),
+                        difficulty: data.difficulty || 'Medium',
+                        tags: [data.topic || 'Arrays'],
+                        constraints: Array.isArray(data.constraints) ? data.constraints.filter(Boolean) : [],
+                        examples: Array.isArray(data.examples) ? data.examples.filter((item) => item?.input) : [],
+                        testCases: Array.isArray(data.testCases) ? data.testCases.filter((item) => item?.input) : [],
+                        hints: Array.isArray(data.hints) ? data.hints.filter(Boolean) : [],
+                        xpReward: Number(data.xpReward || XP_MAP[data.difficulty || 'Medium'] || 120),
+                        estimatedTime: Number(data.estimatedTime || TIME_MAP[data.difficulty || 'Medium'] || 25),
+                        starterCode: data.starterCode || { javascript: '' },
+                        aiGenerated: false,
+                        status: 'draft',
+                    };
+                    await challengeService.create(payload);
+                    setToast({ message: `Imported 1/1 challenges. 0 skipped due to duplicate titles.`, type: 'success' });
+                    fetchChallenges();
+                } catch (err) {
+                    const duplicateMessage = getDuplicateMessage(err);
+                    if (duplicateMessage) {
+                        setToast({
+                            message: `Imported 0/1 challenges. 1 skipped due to duplicate titles: ${data.title || 'Untitled Challenge'}`,
+                            type: 'warning',
+                        });
+                    } else {
+                        setToast({ message: err.message || 'Failed to import challenge.', type: 'error' });
+                    }
+                }
+            }
             setView('manual');
         }
     };
@@ -315,7 +376,14 @@ const Challenges = () => {
             setEditingChallengeStatus(null);
             setView('list');
             fetchChallenges();
-        } catch (err) { setToast({ message: err.message || 'Failed to save.', type: 'error' }); }
+        } catch (err) {
+            const duplicateMessage = getDuplicateMessage(err);
+            if (duplicateMessage) {
+                setToast({ message: `Duplicate Challenge: ${duplicateMessage}`, type: 'warning' });
+                return;
+            }
+            setToast({ message: err.message || 'Failed to save.', type: 'error' });
+        }
         finally { setManualSaving(false); }
     };
 

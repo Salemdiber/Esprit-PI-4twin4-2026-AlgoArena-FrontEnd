@@ -4,33 +4,64 @@
  * Computes metrics dynamically from round data.
  */
 import React from 'react';
-import { getAvgEfficiency, getAvgTime } from '../types/battle.types';
+
+const clampPercent = (value) => Math.max(0, Math.min(100, Math.round(value || 0)));
+
+const computeAverage = (values) => {
+    if (!values.length) return 0;
+    return values.reduce((sum, v) => sum + v, 0) / values.length;
+};
+
+const formatMsAsTime = (ms) => {
+    const totalSeconds = Math.max(0, Math.round((ms || 0) / 1000));
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
 
 const PerformanceAnalytics = ({ battle }) => {
-    // Compute averages from rounds
-    const playerAvgTime = getAvgTime(battle);
-    const playerEfficiency = getAvgEfficiency(battle, 'player');
+    const roundsWithResults = battle.rounds.filter((round) =>
+        round.playerResult || round.opponentResult
+    );
 
-    // Compute opponent avg time (mocked but consistent)
-    const completedRounds = battle.rounds.filter(r => r.status === 'COMPLETED');
-    const opponentAvgTimeSecs = completedRounds.length > 0
-        ? Math.round(
-            completedRounds.reduce((sum, r) => {
-                const parts = r.timeSpent.split(':');
-                return sum + parseInt(parts[0]) * 60 + parseInt(parts[1]) + 45; // offset for opponent
-            }, 0) / completedRounds.length
-        )
-        : 0;
-    const oppMins = Math.floor(opponentAvgTimeSecs / 60);
-    const oppSecs = opponentAvgTimeSecs % 60;
-    const opponentAvgTime = `${oppMins}:${oppSecs.toString().padStart(2, '0')}`;
+    const maxPoints = roundsWithResults.map((round) => round.challenge?.maxPoints || 500);
 
-    // Opponent efficiency (derived, slightly lower)
-    const oppEfficiency = Math.max(0, playerEfficiency - 6 - Math.floor(Math.random() * 5));
+    const playerTimes = roundsWithResults
+        .map((round) => round.playerResult?.executionTimeMs)
+        .filter((value) => Number.isFinite(value));
+    const opponentTimes = roundsWithResults
+        .map((round) => round.opponentResult?.executionTimeMs)
+        .filter((value) => Number.isFinite(value));
 
-    // Code quality (derived from efficiency with small variance)
-    const playerQuality = Math.min(100, playerEfficiency + 4);
-    const oppQuality = Math.min(100, oppEfficiency + 3);
+    const playerScores = roundsWithResults.map((round) => round.playerResult?.score || 0);
+    const opponentScores = roundsWithResults.map((round) => round.opponentResult?.score || 0);
+
+    const playerPassRates = roundsWithResults.map((round) => {
+        const passed = Number(round.playerResult?.passedCount || 0);
+        const total = Number(round.playerResult?.total || 0);
+        return total > 0 ? (passed / total) * 100 : 0;
+    });
+
+    const opponentPassRates = roundsWithResults.map((round) => {
+        const passed = Number(round.opponentResult?.passedCount || 0);
+        const total = Number(round.opponentResult?.total || 0);
+        return total > 0 ? (passed / total) * 100 : 0;
+    });
+
+    const playerAvgTimeMs = computeAverage(playerTimes);
+    const opponentAvgTimeMs = computeAverage(opponentTimes);
+    const playerAvgTime = formatMsAsTime(playerAvgTimeMs);
+    const opponentAvgTime = formatMsAsTime(opponentAvgTimeMs);
+
+    const playerEfficiency = clampPercent(
+        computeAverage(playerScores.map((score, idx) => (score / Math.max(1, maxPoints[idx])) * 100))
+    );
+    const oppEfficiency = clampPercent(
+        computeAverage(opponentScores.map((score, idx) => (score / Math.max(1, maxPoints[idx])) * 100))
+    );
+
+    const playerQuality = clampPercent(computeAverage(playerPassRates));
+    const oppQuality = clampPercent(computeAverage(opponentPassRates));
 
     // Convert time string to percentage (higher is worse, so invert for display)
     const timeToPercent = (timeStr) => {

@@ -7,6 +7,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBattleState } from '../hooks/useBattleState';
+import { useChallengeContext } from '../../challenges/context/ChallengeContext';
 import {
     getTotalPlayerScore,
     getTotalOpponentScore,
@@ -14,6 +15,7 @@ import {
     getRoundsWon,
     getXPEarned,
     getRankProgress,
+    BattleMode,
 } from '../types/battle.types';
 import ScoreBoard from '../components/ScoreBoard';
 import RoundCard from '../components/RoundCard';
@@ -24,6 +26,7 @@ const BattleSummaryPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { battles, selectBattle, deselectBattle } = useBattleState();
+    const { refreshUserStats } = useChallengeContext();
 
     const battle = battles.find(b => b.id === id);
 
@@ -31,6 +34,10 @@ const BattleSummaryPage = () => {
         if (id) selectBattle(id);
         return () => deselectBattle();
     }, [id, selectBattle, deselectBattle]);
+
+    useEffect(() => {
+        refreshUserStats?.();
+    }, [refreshUserStats]);
 
     if (!battle) {
         return (
@@ -54,6 +61,13 @@ const BattleSummaryPage = () => {
     const xpEarned = getXPEarned(battle);
     const rankProgress = getRankProgress(battle);
 
+    const isAiBattle = battle.mode === BattleMode.ONE_VS_AI;
+    const winnerName = winner === 'player'
+        ? battle.player.name
+        : winner === 'opponent'
+            ? (isAiBattle ? 'I got you!' : battle.opponent?.name || 'Opponent')
+            : 'Draw';
+
     // Duration
     const durationMins = battle.completedAt && battle.createdAt
         ? Math.round((new Date(battle.completedAt) - new Date(battle.createdAt)) / 60000)
@@ -65,13 +79,55 @@ const BattleSummaryPage = () => {
             ? 'battle-defeat-banner'
             : 'battle-draw-banner';
 
-    const bannerEmoji = winner === 'player' ? '🏆' : winner === 'opponent' ? '😔' : '🤝';
-    const bannerTitle = winner === 'player' ? 'VICTORY!' : winner === 'opponent' ? 'DEFEAT' : 'DRAW';
-    const bannerSubtitle = winner === 'player'
-        ? `You defeated ${battle.opponent?.name}`
+    const bannerEmoji = winner === 'player' ? '🏆' : winner === 'opponent' ? (isAiBattle ? '🤖' : '😔') : '🤝';
+    const bannerTitle = winner === 'player'
+        ? `${battle.player.name} wins!`
         : winner === 'opponent'
-            ? `${battle.opponent?.name} won this battle`
+            ? (isAiBattle ? 'I got you!' : 'DEFEAT')
+            : 'DRAW';
+    const bannerSubtitle = winner === 'player'
+        ? `${battle.player.name} outpaced ${battle.opponent?.name || 'the opponent'}`
+        : winner === 'opponent'
+            ? (isAiBattle ? 'The bot edged you out this time.' : `${battle.opponent?.name} won this battle`)
             : `It's a tie with ${battle.opponent?.name}`;
+
+    const aggregateResults = (side) => {
+        const results = battle.rounds
+            .map((round) => (side === 'player' ? round.playerResult : round.opponentResult))
+            .filter(Boolean);
+
+        if (!results.length) return null;
+
+        const avgExecutionMs = Math.round(results.reduce((sum, r) => sum + (r.executionTimeMs || 0), 0) / results.length);
+        const totalScore = results.reduce((sum, r) => sum + (r.score || 0), 0);
+        const mostCommon = (values) => {
+            const freq = values.reduce((acc, val) => {
+                if (!val) return acc;
+                acc[val] = (acc[val] || 0) + 1;
+                return acc;
+            }, {});
+            return Object.keys(freq).sort((a, b) => freq[b] - freq[a])[0] || 'Unknown';
+        };
+
+        const timeComplexity = mostCommon(results.map((r) => r.timeComplexity));
+        const spaceComplexity = mostCommon(results.map((r) => r.spaceComplexity));
+
+        return {
+            avgExecutionMs,
+            totalScore,
+            timeComplexity,
+            spaceComplexity,
+            criteria: [
+                `Rounds won: ${side === 'player' ? playerWins : opponentWins}`,
+                `Total score: ${totalScore}`,
+                `Avg execution: ${avgExecutionMs}ms`,
+                `Complexity: ${timeComplexity} / ${spaceComplexity}`,
+            ],
+        };
+    };
+
+    const playerAggregate = aggregateResults('player');
+    const opponentAggregate = aggregateResults('opponent');
 
     return (
         <div className="battle-page">
@@ -166,6 +222,71 @@ const BattleSummaryPage = () => {
                             </p>
                             <p className="battle-text-xs battle-text-muted battle-text-uppercase">Final Score</p>
                         </div>
+                    </div>
+                </div>
+
+                {/* Detailed Results */}
+                <div className="battle-mb-xl">
+                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">Detailed Results</h2>
+                    <div className="battle-results-grid">
+                        <div className="battle-result-card">
+                            <div className="battle-result-title">{battle.player.name}</div>
+                            {playerAggregate ? (
+                                <>
+                                    <div className="battle-result-metric">
+                                        <span>Execution Time</span>
+                                        <strong>{playerAggregate.avgExecutionMs}ms</strong>
+                                    </div>
+                                    <div className="battle-result-metric">
+                                        <span>Time / Space</span>
+                                        <strong>{playerAggregate.timeComplexity} / {playerAggregate.spaceComplexity}</strong>
+                                    </div>
+                                    <div className="battle-result-metric">
+                                        <span>Score</span>
+                                        <strong>{playerAggregate.totalScore}</strong>
+                                    </div>
+                                    <div className="battle-result-criteria">
+                                        {playerAggregate.criteria.map((item, idx) => (
+                                            <div key={`player-crit-${idx}`}>{item}</div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="battle-empty">No performance data yet.</div>
+                            )}
+                        </div>
+
+                        <div className="battle-result-card">
+                            <div className="battle-result-title">
+                                {winner === 'opponent' && isAiBattle ? '🤖 I got you!' : battle.opponent?.name || 'Opponent'}
+                            </div>
+                            {opponentAggregate ? (
+                                <>
+                                    <div className="battle-result-metric">
+                                        <span>Execution Time</span>
+                                        <strong>{opponentAggregate.avgExecutionMs}ms</strong>
+                                    </div>
+                                    <div className="battle-result-metric">
+                                        <span>Time / Space</span>
+                                        <strong>{opponentAggregate.timeComplexity} / {opponentAggregate.spaceComplexity}</strong>
+                                    </div>
+                                    <div className="battle-result-metric">
+                                        <span>Score</span>
+                                        <strong>{opponentAggregate.totalScore}</strong>
+                                    </div>
+                                    <div className="battle-result-criteria">
+                                        {opponentAggregate.criteria.map((item, idx) => (
+                                            <div key={`opp-crit-${idx}`}>{item}</div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="battle-empty">No performance data yet.</div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="battle-result-winner">
+                        Winner: <strong>{winnerName}</strong>
                     </div>
                 </div>
 
