@@ -1,14 +1,14 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Salemdiber/Esprit-PI-4twin4-2026-AlgoArena-FrontEnd/main/public/logo_algoarena.png" alt="AlgoArena Logo" width="200" />
-  <h1>AlgoArena — Backend API</h1>
+  <img src="public/logo_algoarena.png" alt="AlgoArena Logo" width="200" />
+  <h1>AlgoArena — Frontend</h1>
   <p><strong>A competitive programming platform where developers sharpen their algorithmic skills</strong></p>
 </div>
 
-![NestJS](https://img.shields.io/badge/NestJS-11.0.1-E0234E?logo=nestjs)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178C6?logo=typescript)
-![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%207.6.0-47A248?logo=mongodb)
-![Docker](https://img.shields.io/badge/Docker-dockerode%204.0.10-2496ED?logo=docker)
-![License](https://img.shields.io/badge/License-UNLICENSED-lightgrey)
+![React](https://img.shields.io/badge/React-19.2.0-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-types%20ready-3178C6?logo=typescript)
+![Chakra UI](https://img.shields.io/badge/Chakra_UI-2.8.2-319795?logo=chakraui)
+![Vite](https://img.shields.io/badge/Vite-7.3.1-646CFF?logo=vite)
+![License](https://img.shields.io/badge/License-Unspecified-lightgrey)
 
 ## Table of Contents
 - [About The Project](#about-the-project)
@@ -20,134 +20,137 @@
 - [Installation And Setup](#installation-and-setup)
 - [Available Scripts](#available-scripts)
 - [Environment Variables](#environment-variables)
-- [API Endpoints](#api-endpoints)
-- [Docker Setup](#docker-setup)
+- [Pages And Routes](#pages-and-routes)
+- [Screenshots](#screenshots)
 - [Related Repositories](#related-repositories)
 - [Team](#team)
 - [License](#license)
 
 ## About The Project
-AlgoArena Backend is the core API layer that powers authentication, challenge management, code evaluation, analytics, and platform operations for the AlgoArena ecosystem.
+AlgoArena is a competitive programming platform designed to help learners and professionals practice algorithmic problem solving in a structured, engaging environment. It combines coding challenges, ranking progression, and real submission feedback to support continuous skill growth.
 
-Built with NestJS and MongoDB (Mongoose), it provides structured modules for user accounts, admin workflows, AI-assisted challenge generation, sandboxed execution, and operational visibility. The backend is designed to support both day-to-day learner activity and administrative governance at platform scale.
+This repository contains the frontend application built with React, Vite, and Chakra UI. It delivers the full user interface for challenge solving, profile and leaderboard experiences, battle views, and the administrative dashboard used to manage platform operations.
 
-For stakeholders, this service is where business rules and platform reliability live: secure account operations, role-based controls, progress tracking, challenge lifecycle management, and admin reporting.
+The product is built for students, developers preparing for interviews, and competitive programmers who need a reliable space to practice under realistic constraints. It also supports administrators with tooling for analytics, challenge workflows, and system visibility.
 
-The backend integrates external services (Groq and Docker) to enable AI generation and isolated code execution while persisting user progression and audit history.
+What makes the experience strong is the integration of AI-assisted flows and sandboxed code execution from the backend, combined with gamification (XP, rank progress, streaks) and modern UX patterns.
 
 ## Key Features
-**Authentication And Identity**
-- ? Registration and login with reCAPTCHA validation
-- ? JWT-based auth and refresh token flow
-- ? Google and GitHub OAuth callbacks
-- ? Password reset and verification workflow
-- ? Role-based authorization using guards and roles decorator
+**Authentication And Access**
+- ? Sign in and sign up flows with reCAPTCHA integration
+- ? OAuth callback flow for social authentication
+- ? Password recovery and reset pages
+- ? Protected admin routes (role-based)
+- ? Challenge access guard for unauthenticated users
 
-**Challenge And Judge System**
-- ? Challenge CRUD and publish/unpublish endpoints
-- ? Public challenge browsing endpoints
-- ? Judge submission endpoint with per-test-case evaluation
-- ? Hint generation endpoint for challenge solving flow
-- ? Progress endpoints for challenge/user solve tracking
+**Challenge Experience**
+- ? Challenge list and full challenge play page
+- ? Monaco-based code editor integration
+- ? Submission and progress integration through judge APIs
+- ? AI Judge and submission feedback tabs in challenge flow
+- ? Timer, execution state, and workspace state management through challenge context/hooks
 
-**AI And Content Automation**
-- ? AI challenge generation endpoint under admin scope (`/admin/challenges/generate-ai`)
-- ? AI analysis service integration in judge flows
-- ? AI detection endpoint for challenge content (`/challenges/ai-detection/analyze`)
+**Competitive Experience**
+- ? Battle listing, active battle view, and battle summary pages
+- ? Leaderboard page and rank display components
+- ? Speed challenge page and onboarding gate flow
 
-**Sandboxed Execution And Monitoring**
-- ? Docker sandbox execution service for JavaScript/Python code
-- ? Container naming pattern with `AlgoArenaSandbox-*`
-- ? Execution timeout/resource limits in container host config
-- ? Persistent sandbox metrics storage (`sandbox_metrics` collection)
-- ? Admin sandbox monitoring endpoint (`/admin/sandbox/status`)
+**User Account Experience**
+- ? Profile page and two-factor setup page
+- ? Rank stats retrieval and profile-related API integrations
 
-**Admin And Operations**
-- ? Admin analytics endpoints (`/admin/stats/*`)
-- ? Settings management endpoints
-- ? System health endpoint
-- ? Sessions endpoint
-- ? Audit log endpoints with confirm/rollback operations
+**Admin Dashboard**
+- ? Dashboard analytics cards and charts
+- ? Challenge management page
+- ? Activity logs page
+- ? Users, sessions, settings, system health, AI logs, and additional admin pages
+- ? Sandbox Monitor widget with backend polling (`/admin/sandbox/status`)
 
-**Additional Platform Services**
-- ? User profile, rank stats, XP updates, avatar upload, and speed challenge session APIs
-- ? Plagiarism detection API namespace (`/api/plagiarism/*`)
-- ? Swagger docs setup (`/api/docs`) with production protection logic
+**Platform UX And Quality**
+- ? Global accessibility provider, accessibility UI, and navigation registration
+- ? Theme provider + Chakra theme setup
+- ? Central API client with token handling and refresh flow
+- ? Vite proxy resilience for backend startup downtime (503 fallback message)
 
 ## Architecture Overview
 ```text
-+------------------------------------------------------------------------------+
-¦                               NestJS Backend                                ¦
-¦                                                                              ¦
-¦  +---------------+  +----------------+  +----------------+  +------------+  ¦
-¦  ¦ Auth Module   ¦  ¦ Challenges     ¦  ¦ Judge Module   ¦  ¦ User Module¦  ¦
-¦  ¦ OAuth + JWT   ¦  ¦ CRUD + Public  ¦  ¦ Docker Exec +  ¦  ¦ Profile +  ¦  ¦
-¦  ¦ + Password    ¦  ¦ listing + AI   ¦  ¦ AI Analysis    ¦  ¦ Rank/XP    ¦  ¦
-¦  +---------------+  +----------------+  +----------------+  +------------+  ¦
-¦         ¦                    ¦                   ¦                 ¦         ¦
-¦  +------------------------------------------------------------------------+  ¦
-¦  ¦                    Core Platform Services Layer                         ¦  ¦
-¦  ¦  Analytics  |  Settings  |  Sessions  |  Audit Logs  |  Onboarding     ¦  ¦
-¦  +--------------------------------------------------------------------------+  ¦
-¦                ¦                          ¦                          ¦         ¦
-+----------------+--------------------------+--------------------------+---------+
-                 ¦                          ¦                          ¦
-                 ?                          ?                          ?
-        +----------------+         +-----------------+         +-----------------+
-        ¦ MongoDB        ¦         ¦ Docker Engine   ¦         ¦ External AI APIs ¦
-        ¦ via Mongoose   ¦         ¦ sandbox runtime ¦         ¦ Groq / Anthropic ¦
-        +----------------+         +-----------------+         +-----------------+
++----------------------------------------------------------------------+
+¦                           Client Browser                            ¦
+¦                                                                      ¦
+¦  +---------------------+   +----------------------+                 ¦
+¦  ¦ Frontoffice UI      ¦   ¦ Backoffice UI        ¦                 ¦
+¦  ¦ - Challenges        ¦   ¦ - Dashboard          ¦                 ¦
+¦  ¦ - Battles           ¦   ¦ - Challenges         ¦                 ¦
+¦  ¦ - Leaderboard       ¦   ¦ - Activity Logs      ¦                 ¦
+¦  ¦ - Profile/Auth      ¦   ¦ - Settings/Users     ¦                 ¦
+¦  +---------------------+   +----------------------+                 ¦
+¦             ¦                         ¦                              ¦
+¦      +-----------------------------------------------------------+   ¦
+¦      ¦ React 19 + Chakra UI + React Router + Context Providers   ¦   ¦
+¦      ¦ API Client (token + refresh), service layer, route guards ¦   ¦
+¦      +------------------------------------------------------------+   ¦
++--------------------------------------+---------------------------------+
+                                       ¦ HTTP/REST (proxied by Vite)
+                                       ?
++----------------------------------------------------------------------+
+¦                       NestJS Backend API                            ¦
+¦                 (authentication, judging, analytics)                ¦
++----------------------------------------------------------------------+
 ```
 
 ## Tech Stack
 | Technology | Version | Purpose |
 |---|---|---|
-| NestJS Core | 11.0.1 | API framework |
-| TypeScript | 5.7.3 | Language/runtime typing |
-| Mongoose | 7.6.0 | MongoDB ODM |
-| MongoDB driver | 6.21.0 | DB connectivity |
-| @nestjs/mongoose | 11.0.0 | Nest + Mongoose integration |
-| JWT (`@nestjs/jwt`) | 11.0.2 | Access/refresh token auth |
-| Passport + strategies | 0.6.0 + ecosystem | Local/JWT/OAuth auth strategies |
-| Dockerode | 4.0.10 | Docker sandbox container control |
-| Groq SDK | 0.37.0 | AI generation/inference integration |
-| OpenAI SDK | 6.33.0 | AI integration support |
-| Redis client | 5.11.0 | Cache support |
-| Swagger | 11.2.6 / 5.0.1 | API docs generation and UI |
-| Jest | 30.0.0 | Testing framework |
+| React | 19.2.0 | UI framework |
+| React DOM | 19.2.0 | Browser rendering |
+| React Router DOM | 7.13.0 | Client-side routing |
+| Chakra UI | 2.8.2 | Component system and design primitives |
+| Chakra Icons | 2.2.4 | UI icons |
+| Vite | 7.3.1 | Dev server and build tool |
+| @vitejs/plugin-react | 5.1.1 | React plugin for Vite |
+| Monaco Editor React | 4.7.0 | Code editor embedding |
+| Chart.js | 4.5.1 | Charting engine |
+| react-chartjs-2 | 5.3.1 | React chart bindings |
+| Framer Motion | 12.30.0 | Animations |
+| Lucide React | 0.577.0 | Icon library |
+| React Icons | 5.6.0 | Additional icon packs |
+| Type packages (@types/react, @types/react-dom) | 19.2.5 / 19.2.3 | TypeScript type support |
+| Tailwind CSS (tooling) | 4.1.18 | Utility styling pipeline |
 
 ## Project Structure
 ```text
 src/
-+-- ai/                      # AI generation endpoints/services
-+-- analytics/               # Admin and platform analytics endpoints
-+-- audit-logs/              # Activity/audit logging module
-+-- auth/                    # Auth, JWT, OAuth, password reset, guards
-+-- cache/                   # Redis-backed cache services
-+-- challenges/              # Challenge schemas/controllers/services
-+-- code-executor/           # VM/plagiarism-related execution logic
-+-- judge/                   # Submission judge + docker execution + sandbox metrics
-+-- onboarding/              # Onboarding and classification flows
-+-- sessions/                # Session endpoints/services
-+-- settings/                # Platform settings + maintenance controls
-+-- system-health/           # Health telemetry endpoint/service
-+-- user/                    # User CRUD/profile/rank/speed challenge session APIs
-+-- app.module.ts            # Root module wiring
-+-- main.ts                  # Bootstrap (CORS, validation, cookies, static uploads, swagger)
++-- accessibility/          # Accessibility context, hooks, global UI
++-- assets/                 # Static app assets
++-- components/             # Shared reusable components (charts, layout UI, monitor card)
++-- editor/                 # Editor-related reusable components
++-- hooks/                  # Generic custom hooks
++-- layout/                 # Public/Admin layout shells
++-- pages/
+¦   +-- Backoffice/         # Admin pages (Dashboard, Challenges, ActivityLogs, etc.)
+¦   +-- Frontoffice/        # Auth, challenges, battles, leaderboard, profile, speed challenge
++-- sections/               # Landing page sections
++-- services/               # API client + domain service wrappers
++-- shared/                 # Shared contexts/loaders/skeletons/cursor
++-- theme/                  # Chakra theme extension
++-- App.jsx                 # Root routing and guards
++-- main.jsx                # App bootstrap and providers
+
+public/
++-- logo_algoarena.png      # Project logo
 ```
 
 ## Prerequisites
 - Node.js (LTS recommended, Node 18+)
 - npm (project uses `package-lock.json`)
-- MongoDB instance (local or remote)
-- Docker Engine running (required for judge sandbox execution)
-- Optional: Redis (if cache module is enabled via env)
+- Running backend API (default target `http://localhost:3000` through Vite proxy)
+- Browser with JavaScript enabled
 
 ## Installation And Setup
 1. Clone repository
 ```bash
-git clone git@github.com:Salemdiber/Esprit-PI-4twin4-2026-AlgoArena-BackEnd.git
-cd Esprit-PI-4twin4-2026-AlgoArena-BackEnd
+git clone git@github.com:Salemdiber/Esprit-PI-4twin4-2026-AlgoArena-FrontEnd.git
+cd Esprit-PI-4twin4-2026-AlgoArena-FrontEnd
 ```
 
 2. Install dependencies
@@ -157,167 +160,77 @@ npm install
 
 3. Configure environment
 ```bash
-# no .env.example is present; create .env manually
+# no .env.example is present, create .env manually
 ```
 
-4. Start in development
+4. Start development server
 ```bash
-npm run start:dev
+npm run dev
 ```
 
-5. API default URL
+5. Open app
 ```text
-http://localhost:3000
+http://localhost:5173
 ```
 
 ## Available Scripts
 | Script | Command | Description |
 |---|---|---|
-| Build | `npm run build` | Compile NestJS app into `dist/` |
-| Format | `npm run format` | Prettier format for source and tests |
-| Start | `npm run start` | Start Nest app |
-| Start (dev) | `npm run start:dev` | Start with watch mode |
-| Start (debug) | `npm run start:debug` | Start in debug + watch mode |
-| Start (prod) | `npm run start:prod` | Run compiled output |
-| Lint | `npm run lint` | ESLint for TS sources |
-| Test | `npm run test` | Unit tests |
-| Test (watch) | `npm run test:watch` | Unit tests in watch mode |
-| Test (coverage) | `npm run test:cov` | Coverage run |
-| Test (debug) | `npm run test:debug` | Debug test run |
-| Test (e2e) | `npm run test:e2e` | End-to-end tests |
+| Development | `npm run dev` | Starts Vite dev server |
+| Build | `npm run build` | Builds production assets |
+| Lint | `npm run lint` | Runs ESLint |
+| Preview | `npm run preview` | Serves built output locally |
 
 ## Environment Variables
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `PORT` | No | `3000` | API server port |
-| `CORS_ORIGIN` | No | `http://localhost:5173` | Allowed frontend origins (comma-separated) |
-| `NODE_ENV` | No | `development` | Runtime environment mode |
-| `MONGO_URI` | Yes | `mongodb://localhost:27017/algoarena` (fallback) | MongoDB connection string |
-| `JWT_SECRET` | Yes | `defaultJwtSecret` (fallback) | JWT signing secret |
-| `GOOGLE_CLIENT_ID` | OAuth only | None | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | OAuth only | None | Google OAuth client secret |
-| `GITHUB_CLIENT_ID` | OAuth only | None | GitHub OAuth client ID |
-| `GITHUB_CLIENT_SECRET` | OAuth only | None | GitHub OAuth client secret |
-| `RECAPTCHA_SECRET` | Auth forms | None | Server-side reCAPTCHA verification secret |
-| `SMTP_HOST` | Email | None | SMTP host |
-| `SMTP_PORT` | Email | None | SMTP port |
-| `SMTP_USER` | Email | None | SMTP username |
-| `SMTP_PASS` | Email | None | SMTP password |
-| `EMAIL_FROM` | Email | None | Sender email |
-| `EMAIL_FROM_NAME` | Email | `AlgoArena` (fallback) | Sender display name |
-| `FRONTEND_URL` | Email links | None | Frontend base URL used in emails |
-| `PLATFORM_NAME` | Email templates | `AlgoArena` fallback | Branding name in emails |
-| `PLATFORM_LOGO_URL` | Email templates | None | Logo URL used in email templates |
-| `EMAIL_SMTP_EXISTENCE_CHECK` | Optional | `false` | Enables SMTP existence checks in deliverability service |
-| `GROQ_API_KEY` | AI features | None | Groq API key |
-| `OLLAMA_MODEL` | Optional | `deepseek-coder:6.7b-instruct-q4_K_M` | Fallback model name in challenge generation method |
-| `REDIS_URL` | Optional | None | Redis connection URL |
-| `REDIS_CACHE` | Optional | None | Cache toggle/config value in cache service |
-| `JUDGE_KEEP_CONTAINERS` | Optional | `false` | If `true`, keeps judge containers after execution |
-| `AI_API_KEY` | Optional | None | ArenaJudge external AI key |
-| `AI_MODEL` | Optional | None | ArenaJudge model identifier |
-| `AI_BASE_URL` | Optional | None | ArenaJudge API base URL |
-| `BREVO_SMTP_HOST` | Optional | None | Additional SMTP host setting (present in env) |
-| `BREVO_SMTP_PORT` | Optional | None | Additional SMTP port setting (present in env) |
-| `BREVO_SMTP_USER` | Optional | None | Additional SMTP user setting (present in env) |
-| `DOCKER_HUB_USERNAME` | Optional | None | Docker Hub username reference |
-| `DOCKER_HUB_TOKEN` | Optional | None | Docker Hub token reference |
+| `VITE_RECAPTCHA_SITE_KEY` | Yes (for auth forms) | None | Google reCAPTCHA site key used in sign-in and sign-up pages |
+| `VITE_API_URL` | Optional | `/api` | API base URL used by service clients; if omitted, frontend calls proxied `/api` |
 
-## API Endpoints
-Major discovered endpoints from controllers:
-
-| Method | Endpoint | Description | Auth |
+## Pages And Routes
+| Route | Page | Description | Access |
 |---|---|---|---|
-| GET | `/` | App health hello route | Public |
-| POST | `/auth/register` | Register user | Public |
-| POST | `/auth/check-availability` | Username/email availability | Public |
-| POST | `/auth/login` | Login and issue access token | Public |
-| POST | `/auth/refresh` | Refresh access token | Cookie-based |
-| POST | `/auth/logout` | Logout and clear refresh | Cookie-based |
-| GET | `/auth/google` | Start Google OAuth | Public |
-| GET | `/auth/google/callback` | Google OAuth callback | OAuth flow |
-| GET | `/auth/github` | Start GitHub OAuth | Public |
-| GET | `/auth/github/callback` | GitHub OAuth callback | OAuth flow |
-| POST | `/auth/forgot-password` | Request password reset | Public |
-| POST | `/auth/verify-reset-code` | Verify reset code | Public |
-| POST | `/auth/reset-password` | Reset password with token | Public |
-| GET | `/user/me` | Current user profile | JWT |
-| GET | `/user/me/rank-stats` | Rank/XP stats | JWT |
-| PATCH | `/user/me/xp` | Update XP/rank | JWT |
-| PATCH | `/user/me/avatar` | Upload avatar | JWT |
-| PATCH | `/user/me/password` | Change password | JWT |
-| PATCH | `/user/me/placement` | Update placement | JWT |
-| POST | `/user/me/speed-challenge/complete` | Mark speed challenge complete | JWT |
-| POST | `/user/me/speed-challenge/session/save` | Save speed challenge session | JWT |
-| GET | `/user/me/speed-challenge/session` | Load speed challenge session | JWT |
-| POST | `/user/me/speed-challenge/session/clear` | Clear speed challenge session | JWT |
-| PATCH | `/user/me` | Update profile | JWT |
-| DELETE | `/user/me` | Delete own account | JWT |
-| POST | `/user/admin` | Create admin user | JWT + Admin role |
-| GET | `/user` | List users | (Controller-level business logic; secured by app conventions) |
-| GET | `/user/:id` | Get user by id | Same as above |
-| PATCH | `/user/:id/status` | Update user status | JWT |
-| PATCH | `/user/:id` | Update user | JWT |
-| GET | `/challenges/public` | Public challenge list | Public |
-| GET | `/challenges/public/:id` | Public challenge details | Public |
-| GET | `/challenges` | Challenge list (admin/authorized variants) | Mixed |
-| GET | `/challenges/:id` | Challenge details | Mixed |
-| POST | `/challenges` | Create challenge | Admin-guarded in challenge controller |
-| PATCH | `/challenges/:id` | Update challenge | Admin-guarded in challenge controller |
-| PATCH | `/challenges/:id/publish` | Publish challenge | Admin |
-| PATCH | `/challenges/:id/unpublish` | Unpublish challenge | Admin |
-| DELETE | `/challenges/:id` | Delete challenge | Admin |
-| POST | `/challenges/ai-detection/analyze` | Analyze challenge with AI detection | Public/admin integration endpoint |
-| POST | `/judge/submit` | Submit solution for judging | JWT |
-| POST | `/judge/hint` | Request AI hint | JWT |
-| GET | `/judge/progress` | User challenge progress | JWT |
-| GET | `/judge/progress/:challengeId` | Challenge-specific progress | JWT |
-| GET | `/analytics/insights` | Platform insights | Public/internal |
-| GET | `/admin/stats/overview` | Admin overview stats | Admin dashboard use |
-| GET | `/admin/stats/users` | Admin users stats | Admin dashboard use |
-| GET | `/admin/stats/challenges` | Admin challenge stats | Admin dashboard use |
-| GET | `/admin/stats/submissions` | Admin submission stats | Admin dashboard use |
-| GET | `/admin/sandbox/status` | Sandbox monitor telemetry | JWT + Admin |
-| GET | `/audit-logs` | Audit log list | JWT + Admin |
-| GET | `/audit-logs/stats` | Audit log stats | JWT + Admin |
-| GET | `/audit-logs/:id` | Audit log by id | JWT + Admin |
-| POST | `/audit-logs` | Create audit entry | JWT + Admin |
-| POST | `/audit-logs/confirm/:id` | Confirm audit action | JWT + Admin |
-| POST | `/audit-logs/rollback/:id` | Roll back audit action | JWT + Admin |
-| GET | `/settings` | Get platform settings | Public/consumed by frontend |
-| PUT | `/settings` | Replace settings | Auth + Admin |
-| PATCH | `/settings/user-registration` | Toggle user registration | Auth + Admin |
-| PATCH | `/settings/ai-battles` | Toggle AI battles | Auth + Admin |
-| PATCH | `/settings/maintenance-mode` | Toggle maintenance mode | Auth + Admin |
-| PATCH | `/settings/ollama-enabled` | Toggle ollama mode | Auth + Admin |
-| PATCH | `/settings/api-rate-limit` | Update API rate limits | Auth + Admin |
-| PATCH | `/settings/code-execution-limit` | Update code execution limit | Auth + Admin |
-| GET | `/system-health` | Runtime health metrics | Public/admin view |
-| GET | `/sessions/active` | Active sessions | Available endpoint |
-| POST | `/admin/challenges/generate-ai` | Generate challenges via AI | JWT + Admin |
-| POST | `/api/plagiarism/detect` | Plagiarism detect endpoint | API namespace |
-| POST | `/api/plagiarism/bulk-check` | Bulk plagiarism check | API namespace |
-| POST | `/api/plagiarism/analyze-code` | Code analysis check | API namespace |
+| `/` | LandingPage | Marketing/home entry page | Public |
+| `/signin` | SignIn | User login form | Public |
+| `/signup` | SignUp | User registration form | Public |
+| `/auth/callback` | OAuthCallbackPage | OAuth callback handler | Public |
+| `/forgot-password` | ForgotPasswordPage | Request password reset | Public |
+| `/email-sent` | EmailSentPage | Reset-email confirmation | Public |
+| `/reset-password/:token` | ResetPasswordPage | Reset password with token | Public |
+| `/reset-success` | ResetSuccessPage | Reset completion page | Public |
+| `/reset-expired` | ResetExpiredPage | Expired reset link page | Public |
+| `/battles` | BattleListPage | Browse battles | Public |
+| `/battles/:id` | ActiveBattlePage | Active battle interface | Public |
+| `/battles/:id/summary` | BattleSummaryPage | Battle result summary | Public |
+| `/challenges` | ChallengesListPage | Browse coding challenges | Authenticated |
+| `/challenges/:id` | ChallengePlayPage | Solve challenge in editor | Authenticated |
+| `/leaderboard` | LeaderboardPage | Ranking and standings | Public |
+| `/profile` | ProfilePage | User profile and account settings | Authenticated |
+| `/profile/2fa-setup` | TwoFactorSetupPage | Two-factor setup flow | Authenticated |
+| `/speed-challenge` | SpeedChallengePage | Initial speed challenge / placement flow | Authenticated |
+| `/admin` | Dashboard | Admin dashboard home | Admin/Organizer |
+| `/admin/users` | Users | User administration | Admin/Organizer |
+| `/admin/battles` | Battles | Battle management | Admin/Organizer |
+| `/admin/challenges` | Challenges | Challenge management | Admin/Organizer |
+| `/admin/ai-logs` | AILogs | AI-related logs | Admin/Organizer |
+| `/admin/leaderboards` | Leaderboards | Leaderboard admin tools | Admin/Organizer |
+| `/admin/analytics` | Analytics | Analytics dashboards | Admin/Organizer |
+| `/admin/system-health` | SystemHealth | Health status page | Admin/Organizer |
+| `/admin/settings` | Settings | Platform settings | Admin/Organizer |
+| `/admin/sessions` | Sessions | Session monitoring | Admin/Organizer |
+| `/admin/activity-logs` | ActivityLogs | Audit/activity logs | Admin/Organizer |
+| `/admin/profile` | Profile | Admin profile | Admin/Organizer |
+| `/admin/add-admin` | AddAdmin | Add admin user flow | Admin/Organizer |
+| `/notfound` | NotFoundPage | Not found page | Public |
 
-## Docker Setup
-AlgoArena uses Docker for isolated judge execution in `judge/services/docker-execution.service.ts`.
-
-Current implementation details from code:
-- Container runtime is managed via `dockerode`.
-- Container name prefix: `AlgoArenaSandbox`.
-- Runtime naming pattern: `AlgoArenaSandbox-{timestamp}-{id}`.
-- Containers run with restricted settings (no network, limited memory/CPU, readonly root fs, dropped capabilities).
-- JavaScript and Python runtime images are pulled and used on demand (`node:18-alpine`, `python:3.10-alpine`).
-- Sandbox execution metrics are persisted to MongoDB collection `sandbox_metrics` and exposed via `/admin/sandbox/status`.
-
-Repository note:
-- No root-level `Dockerfile` or `docker-compose.yml` is currently present in this backend repository.
+## Screenshots
+> Screenshots will be added here. To contribute screenshots, run the application and capture the key pages.
 
 ## Related Repositories
 | Repository | URL |
 |---|---|
-| Frontend App | https://github.com/Salemdiber/Esprit-PI-4twin4-2026-AlgoArena-FrontEnd |
 | Backend API | https://github.com/Salemdiber/Esprit-PI-4twin4-2026-AlgoArena-BackEnd |
+| Frontend App | https://github.com/Salemdiber/Esprit-PI-4twin4-2026-AlgoArena-FrontEnd |
 
 ## Team
 Contributors discovered from git history:
@@ -326,6 +239,7 @@ Contributors discovered from git history:
 - MDadem
 - Salem Diber
 - Salemdiber
+- slim00077
 
 ## License
-`UNLICENSED` (from `package.json`).
+No dedicated `LICENSE` file is present in this repository. Package metadata indicates `private: true`.
