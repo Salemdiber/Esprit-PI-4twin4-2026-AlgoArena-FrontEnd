@@ -27,4 +27,30 @@ export const judgeService = {
   getChallengeProgress: async (challengeId) => {
     return apiClient(`/judge/progress/${challengeId}`, { method: 'GET' });
   },
+
+  startAttempt: async (challengeId) => {
+    return apiClient(`/challenges/${challengeId}/attempt/start`, { method: 'POST' });
+  },
+
+  leaveAttempt: async (challengeId, reason = 'left_page') => {
+    return apiClient(`/challenges/${challengeId}/attempt/leave`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  returnAttempt: async (challengeId) => {
+    return apiClient(`/challenges/${challengeId}/attempt/return`, { method: 'POST' });
+  },
+
+  expireAttempt: async (challengeId) => {
+    return apiClient(`/challenges/${challengeId}/attempt/expire`, { method: 'POST' });
+  },
+
+  abandonAttempt: async (challengeId, reason = 'timeout') => {
+    return apiClient(`/challenges/${challengeId}/attempt/abandon`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
 };

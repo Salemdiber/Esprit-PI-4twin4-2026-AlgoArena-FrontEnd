@@ -137,7 +137,10 @@ export const apiClient = async (endpoint, options = {}) => {
 
     if (!response.ok) {
         const errorMsg = data?.message || data?.error || 'Something went wrong';
-        throw new Error(errorMsg);
+        const error = new Error(errorMsg);
+        error.status = response.status;
+        error.payload = data;
+        throw error;
     }
 
     return data;

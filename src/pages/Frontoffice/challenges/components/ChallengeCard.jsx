@@ -44,15 +44,39 @@ const CheckIcon = (props) => (
     </Icon>
 );
 
-const ChallengeCard = ({ challenge }) => {
+const formatGrace = (seconds) => {
+    const mins = Math.floor((seconds || 0) / 60);
+    const secs = (seconds || 0) % 60;
+    return `${String(mins)}:${String(secs).padStart(2, '0')}`;
+};
+
+const ChallengeCard = ({ challenge, graceInfo = null }) => {
     const navigate = useNavigate();
     const { getUserProgress, isRecommended, selectChallenge } = useChallengeContext();
+    const [graceRemainingSeconds, setGraceRemainingSeconds] = React.useState(null);
 
     const progress = getUserProgress(challenge.id);
     const status = progress?.status || ChallengeUserStatus.UNSOLVED;
     const isSolved = status === ChallengeUserStatus.SOLVED;
+    const incompleteAttempts = Number(progress?.incompleteAttemptCount || 0);
+    const hasActiveGrace = graceRemainingSeconds != null && graceRemainingSeconds > 0;
     const recommended = isRecommended(challenge);
     const diffMeta = DIFFICULTY_META[challenge.difficulty];
+
+    React.useEffect(() => {
+        if (!graceInfo?.gracePeriodExpiresAt) {
+            setGraceRemainingSeconds(null);
+            return;
+        }
+
+        const tick = () => {
+            const remaining = Math.max(0, Math.floor((new Date(graceInfo.gracePeriodExpiresAt).getTime() - Date.now()) / 1000));
+            setGraceRemainingSeconds(remaining > 0 ? remaining : null);
+        };
+        tick();
+        const timer = setInterval(tick, 1000);
+        return () => clearInterval(timer);
+    }, [graceInfo]);
 
     const handleStart = () => {
         selectChallenge(challenge.id);
@@ -121,6 +145,34 @@ const ChallengeCard = ({ challenge }) => {
                                 SOLVED
                             </Badge>
                         )}
+
+                        {!isSolved && incompleteAttempts > 0 && (
+                            <Badge
+                                bg="rgba(249,115,22,0.2)"
+                                color="orange.300"
+                                fontSize="xs"
+                                fontWeight="bold"
+                                px={3}
+                                py={1}
+                                borderRadius="8px"
+                            >
+                                Incomplete
+                            </Badge>
+                        )}
+                        {hasActiveGrace && (
+                            <Badge
+                                bg="rgba(245,158,11,0.22)"
+                                color="orange.200"
+                                fontSize="xs"
+                                fontWeight="bold"
+                                px={3}
+                                py={1}
+                                borderRadius="8px"
+                                animation="pulse 1.4s ease-in-out infinite"
+                            >
+                                Return Now • {formatGrace(graceRemainingSeconds)}
+                            </Badge>
+                        )}
                     </HStack>
 
                     {/* Title */}
@@ -168,6 +220,11 @@ const ChallengeCard = ({ challenge }) => {
                             <Text>
                                 Acceptance: <Text as="strong" color={useColorModeValue("gray.800", "gray.100")}>{challenge.acceptanceRate}%</Text>
                             </Text>
+                            {incompleteAttempts > 0 && (
+                                <Text color="orange.300">
+                                    {incompleteAttempts} incomplete attempt{incompleteAttempts !== 1 ? 's' : ''}
+                                </Text>
+                            )}
                         </HStack>
                     )}
                 </Box>

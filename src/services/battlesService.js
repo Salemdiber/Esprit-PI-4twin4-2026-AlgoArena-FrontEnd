@@ -33,4 +33,11 @@ export const battlesService = {
   remove: async (id) => {
     return apiClient(`/battles/${id}`, { method: 'DELETE' });
   },
+
+  submitAiSolution: async (id, data = {}) => {
+    return apiClient(`/battles/${id}/ai-submit`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
