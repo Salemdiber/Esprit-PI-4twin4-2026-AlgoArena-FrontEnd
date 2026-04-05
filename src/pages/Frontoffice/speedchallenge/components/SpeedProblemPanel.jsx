@@ -1,20 +1,9 @@
 import React from 'react';
 import { Box, Text, VStack, HStack, Badge } from '@chakra-ui/react';
 
-const toDisplayText = (value) => {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-    try {
-        return JSON.stringify(value);
-    } catch (_) {
-        return String(value);
-    }
-};
-
 /** Renders markdown-ish description (bold backtick words, newlines) */
 const RenderDescription = ({ text }) => {
-    const parts = toDisplayText(text).split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
     return (
         <Text as="span" color="gray.300" fontSize="sm" lineHeight="1.8">
             {parts.map((part, i) => {
@@ -87,10 +76,10 @@ const SpeedProblemPanel = ({ problem }) => {
                         color={problem.difficultyColor}
                         letterSpacing="0.06em"
                     >
-                        {toDisplayText(problem.difficulty)}
+                        {problem.difficulty}
                     </Box>
-                        <Text fontSize="xs" color="gray.500" fontFamily="mono">
-                            Problem {toDisplayText(problem.index)} / 3
+                    <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                        Problem {problem.index} / 3
                     </Text>
                     <Box ml="auto">
                         <HStack spacing={1}>
@@ -98,7 +87,7 @@ const SpeedProblemPanel = ({ problem }) => {
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                             <Text fontSize="xs" color="yellow.400" fontWeight="semibold">
-                                +{toDisplayText(problem.xpReward)} XP
+                                +{problem.xpReward} XP
                             </Text>
                         </HStack>
                     </Box>
@@ -110,7 +99,7 @@ const SpeedProblemPanel = ({ problem }) => {
                     fontFamily="heading"
                     lineHeight="1.3"
                 >
-                    {toDisplayText(problem.title)}
+                    {problem.title}
                 </Text>
             </Box>
 
@@ -135,16 +124,16 @@ const SpeedProblemPanel = ({ problem }) => {
                         >
                             <Box px={4} py={3} borderBottom="1px solid rgba(255,255,255,0.04)">
                                 <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">Input:</Text>
-                                <Text fontSize="sm" fontFamily="mono" color="cyan.300">{toDisplayText(ex.input)}</Text>
+                                <Text fontSize="sm" fontFamily="mono" color="cyan.300">{ex.input}</Text>
                             </Box>
                             <Box px={4} py={3} borderBottom={ex.explanation ? "1px solid rgba(255,255,255,0.04)" : "none"}>
                                 <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">Output:</Text>
-                                <Text fontSize="sm" fontFamily="mono" color="green.300">{toDisplayText(ex.output)}</Text>
+                                <Text fontSize="sm" fontFamily="mono" color="green.300">{ex.output}</Text>
                             </Box>
                             {ex.explanation && (
                                 <Box px={4} py={3}>
                                     <Text fontSize="xs" color="gray.500" mb={1}>Explanation:</Text>
-                                    <Text fontSize="xs" color="gray.400" lineHeight="1.6">{toDisplayText(ex.explanation)}</Text>
+                                    <Text fontSize="xs" color="gray.400" lineHeight="1.6">{ex.explanation}</Text>
                                 </Box>
                             )}
                         </Box>
@@ -170,7 +159,7 @@ const SpeedProblemPanel = ({ problem }) => {
                                 opacity={0.7}
                             />
                             <Text fontSize="xs" fontFamily="mono" color="gray.400" lineHeight="1.6">
-                                {toDisplayText(c)}
+                                {c}
                             </Text>
                         </HStack>
                     ))}
@@ -196,10 +185,10 @@ const SpeedProblemPanel = ({ problem }) => {
                                 #{i + 1}
                             </Text>
                             <Text fontSize="xs" fontFamily="mono" color="gray.400" flex={1} isTruncated>
-                                {toDisplayText(tc.input)}
+                                {tc.input}
                             </Text>
                             <Text fontSize="xs" fontFamily="mono" color="green.400">
-                                → {toDisplayText(tc.expected)}
+                                → {tc.expected}
                             </Text>
                         </HStack>
                     ))}
