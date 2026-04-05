@@ -443,7 +443,7 @@ export const ChallengeProvider = ({ children }) => {
         const loadData = async () => {
             dispatch({ type: ActionTypes.SET_LOADING, payload: true });
             try {
-                const [apiChallenges, stats, progressRes] = await Promise.all([
+                const [apiChallenges, stats, streakRes, progressRes] = await Promise.all([
                     challengeService.getPublished(),
                     fetchRankStats(),
                     judgeService.getProgress(),
