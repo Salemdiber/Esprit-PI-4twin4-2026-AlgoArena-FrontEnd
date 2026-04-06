@@ -8,54 +8,15 @@
  * All filter state is managed via React useState.
  */
 import React from 'react';
-import { Box, Flex, Text, Button, ButtonGroup, Stack } from '@chakra-ui/react';
+import { Box, Flex, Text } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion.create(Box);
 
-const SCOPES = ['Global', 'Friends', 'Country'];
-const PERIODS = ['Weekly', 'Monthly', 'All-Time'];
-
-const FilterGroup = ({ options, activeOption, onSelect }) => (
-    <ButtonGroup
-        isAttached
-        borderRadius="12px"
-        overflow="hidden"
-        bg="var(--color-bg-secondary)"
-        boxShadow="0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)"
-    >
-        {options.map((option) => {
-            const isActive = option === activeOption;
-            return (
-                <Button
-                    key={option}
-                    onClick={() => onSelect(option)}
-                    px={6}
-                    py={3}
-                    fontFamily="body"
-                    fontWeight={isActive ? 'semibold' : 'medium'}
-                    fontSize="sm"
-                    borderRadius={0}
-                    bg={isActive ? '#22d3ee' : 'transparent'}
-                    color={isActive ? '#0f172a' : 'gray.400'}
-                    _hover={{
-                        bg: isActive ? '#22d3ee' : 'gray.700',
-                        color: isActive ? '#0f172a' : 'white',
-                    }}
-                    transition="all 0.3s"
-                >
-                    {option}
-                </Button>
-            );
-        })}
-    </ButtonGroup>
-);
-
 const LeaderboardHeader = ({
-    scope,
-    setScope,
-    period,
-    setPeriod,
+    eyebrow = 'Elite Championship',
+    title = 'Global Arena',
+    subtitle = 'Where legends compete for supremacy',
 }) => {
     return (
         <MotionBox
@@ -83,7 +44,7 @@ const LeaderboardHeader = ({
                         letterSpacing="wider"
                         color="#22d3ee"
                     >
-                        Elite Championship
+                        {eyebrow}
                     </Text>
                 </Box>
             </Flex>
@@ -99,24 +60,13 @@ const LeaderboardHeader = ({
                 bgGradient="linear(135deg, #22d3ee, #60a5fa)"
                 bgClip="text"
             >
-                Global Arena
+                {title}
             </Text>
 
             {/* Subtitle */}
             <Text fontFamily="body" fontSize={{ base: 'lg', sm: 'xl' }} color="gray.400" mb={8}>
-                Where legends compete for supremacy
+                {subtitle}
             </Text>
-
-            {/* Filters */}
-            <Stack
-                direction={{ base: 'column', sm: 'row' }}
-                spacing={4}
-                justify="center"
-                align="center"
-            >
-                <FilterGroup options={SCOPES} activeOption={scope} onSelect={setScope} />
-                <FilterGroup options={PERIODS} activeOption={period} onSelect={setPeriod} />
-            </Stack>
         </MotionBox>
     );
 };
