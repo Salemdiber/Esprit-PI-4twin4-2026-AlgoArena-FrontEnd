@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ChallengePlayPage - /challenges/:id
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -23,12 +23,19 @@ import {
     ModalHeader,
     ModalBody,
     ModalFooter,
+    ModalCloseButton,
     HStack,
     VStack,
+    Stack,
+    Spinner,
+    Alert,
+    AlertIcon,
+    AlertTitle,
+    AlertDescription,
+    IconButton,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { FiAlertTriangle, FiClock } from 'react-icons/fi';
-import { FaHourglassHalf } from 'react-icons/fa';
+import { FiBookmark, FiCheckCircle, FiClock, FiPlay, FiSave, FiStar, FiX } from 'react-icons/fi';
 import { useChallengeContext } from '../context/ChallengeContext';
 import ChallengeHeader from '../components/ChallengeHeader';
 import ProblemTabs from '../components/ProblemTabs';
@@ -51,7 +58,9 @@ const MenuIcon = (props) => (
 );
 
 const OWNER_STALE_MS = 6000;
-const GRACE_PERIOD_SECONDS = 120;
+const AUTOSAVE_INTERVAL_MS = 30000;
+const AUTOSAVE_DEBOUNCE_MS = 5000;
+const XP_REDUCTION_THRESHOLD_SECONDS = 3600;
 
 const ChallengePlayPage = () => {
     const { id } = useParams();
@@ -72,6 +81,10 @@ const ChallengePlayPage = () => {
         isEditorFullscreen,
         elapsedSeconds,
         setElapsedSeconds,
+        isPaused,
+        submitSolution,
+        rankUpgradeEvent,
+        dismissRankUpgrade,
     } = useChallengeContext();
 
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -80,29 +93,68 @@ const ChallengePlayPage = () => {
     const [pendingLeaveAction, setPendingLeaveAction] = useState(null);
     const [tabBlocked, setTabBlocked] = useState(false);
     const [attemptId, setAttemptId] = useState(null);
-    const [graceRemainingSeconds, setGraceRemainingSeconds] = useState(null);
-    const [returnedFromGrace, setReturnedFromGrace] = useState(false);
-    const [graceExpired, setGraceExpired] = useState(false);
-    const [graceExpiryIso, setGraceExpiryIso] = useState(null);
+    const [showOverHourHint, setShowOverHourHint] = useState(true);
+    const [showFullXpHint, setShowFullXpHint] = useState(true);
+    const [saveState, setSaveState] = useState({ status: 'idle', savedAt: null });
     const [tabToken] = useState(() => `${crypto.randomUUID()}-${performance.now()}`);
     const tabTokenRef = useRef(tabToken);
     const lastLockedToastRef = useRef(0);
-    const graceExpiredModal = useDisclosure();
+    const saveInFlightRef = useRef(false);
+    const resumeToastShownRef = useRef(false);
 
     const starterCode = selectedChallenge?.starterCode?.[language] || '// Start coding here\n';
     const ownerKey = `challenge-active-owner:${id}`;
     const heartbeatKey = `challenge-active-heartbeat:${id}`;
     const takeoverKey = `challenge-active-takeover:${id}`;
-    const graceStorageKey = `challenge-grace:${id}`;
     const attemptStorageKey = `challenge-attempt:${id}`;
+
     const hasUnsavedProgress = useMemo(() => {
         if (!selectedChallenge || isChallengeSolved) return false;
         return code.trim().length > 0 && code !== starterCode;
     }, [selectedChallenge, isChallengeSolved, code, starterCode]);
+
     const shouldProtectAttempt = useMemo(
-        () => Boolean(selectedChallenge && attemptId && !isChallengeSolved && !graceExpired),
-        [selectedChallenge, attemptId, isChallengeSolved, graceExpired],
+        () => Boolean(selectedChallenge && !isChallengeSolved),
+        [selectedChallenge, isChallengeSolved],
     );
+
+    const modeAwareOverHour = elapsedSeconds > XP_REDUCTION_THRESHOLD_SECONDS;
+    const fullXpMinutesRemaining = Math.max(0, Math.floor((XP_REDUCTION_THRESHOLD_SECONDS - elapsedSeconds) / 60));
+
+    const saveAttemptSnapshot = useCallback(async (reason = 'manual_save') => {
+        if (!id || !selectedChallenge || isChallengeSolved) return null;
+        if (saveInFlightRef.current) return null;
+        saveInFlightRef.current = true;
+        setSaveState((prev) => ({ ...prev, status: 'saving' }));
+        try {
+            const response = await judgeService.saveAttempt(id, {
+                attemptId,
+                savedCode: code,
+                elapsedTime: elapsedSeconds,
+                mode: 'challenge',
+                reason,
+            });
+            if (response?.attemptId) {
+                setAttemptId(response.attemptId);
+            }
+            const savedAt = response?.savedAt || new Date().toISOString();
+            setSaveState({ status: 'saved', savedAt });
+            localStorage.setItem(attemptStorageKey, JSON.stringify({
+                challengeId: id,
+                attemptId: response?.attemptId || attemptId || null,
+                startedAt: response?.startedAt || new Date().toISOString(),
+                savedCode: code,
+                elapsedTime: elapsedSeconds,
+            }));
+            return response;
+        } catch (error) {
+            console.error('Failed to save challenge attempt snapshot:', error);
+            setSaveState({ status: 'error', savedAt: null });
+            return null;
+        } finally {
+            saveInFlightRef.current = false;
+        }
+    }, [id, selectedChallenge, isChallengeSolved, attemptId, code, elapsedSeconds, attemptStorageKey]);
 
     useEffect(() => {
         if (id && !isLoadingChallenges) {
@@ -115,82 +167,34 @@ const ChallengePlayPage = () => {
         let cancelled = false;
 
         const initializeAttempt = async () => {
-            const progressDetail = await judgeService.getChallengeProgress(id).catch(() => null);
-            if (progressDetail?.status === 'SOLVED') {
-                return;
-            }
-
-            if (progressDetail?.attemptStatus === 'grace_period' && progressDetail?.gracePeriodExpiresAt) {
-                const expiresAtMs = new Date(progressDetail.gracePeriodExpiresAt).getTime();
-                const remaining = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000));
-                if (remaining > 0) {
-                    const resume = await judgeService.returnAttempt(id);
-                    if (cancelled) return;
-                    if (resume?.allowed) {
-                        const snapshotRaw = localStorage.getItem(graceStorageKey);
-                        const snapshot = snapshotRaw ? JSON.parse(snapshotRaw) : null;
-                        setAttemptId(progressDetail?.attemptId || snapshot?.attemptId || null);
-                        setReturnedFromGrace(true);
-                        setGraceRemainingSeconds(Number(resume.remainingSeconds ?? resume.remainingTime ?? remaining));
-                        setGraceExpiryIso(progressDetail.gracePeriodExpiresAt);
-                        if (snapshot?.editorContent) setCode(snapshot.editorContent);
-                        if (Number.isFinite(snapshot?.elapsedSeconds)) setElapsedSeconds(snapshot.elapsedSeconds);
-                        localStorage.removeItem(graceStorageKey);
-                        return;
-                    }
-                } else {
-                    setGraceExpired(true);
-                    await judgeService.abandonAttempt(id, 'timeout').catch(() => null);
-                    if (!cancelled) graceExpiredModal.onOpen();
-                    localStorage.removeItem(graceStorageKey);
-                    return;
-                }
-            }
-
-            const stored = localStorage.getItem(graceStorageKey);
-            if (stored) {
-                try {
-                    const parsed = JSON.parse(stored);
-                    const expiresAtMs = new Date(parsed.gracePeriodExpiresAt).getTime();
-                    const remaining = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000));
-                    if (remaining > 0) {
-                        const resume = await judgeService.returnAttempt(id);
-                        if (cancelled) return;
-                        if (resume?.allowed) {
-                            setAttemptId(parsed.attemptId || null);
-                            setReturnedFromGrace(true);
-                            setGraceRemainingSeconds(Number(resume.remainingSeconds ?? resume.remainingTime ?? remaining));
-                            setGraceExpiryIso(parsed.gracePeriodExpiresAt || null);
-                            if (parsed.editorContent) setCode(parsed.editorContent);
-                            if (Number.isFinite(parsed.elapsedSeconds)) setElapsedSeconds(parsed.elapsedSeconds);
-                            localStorage.removeItem(graceStorageKey);
-                            return;
-                        }
-                    }
-                } catch {
-                    // ignore malformed grace payload
-                }
-
-                localStorage.removeItem(graceStorageKey);
-                setGraceExpired(true);
-                await judgeService.abandonAttempt(id, 'timeout').catch(() => null);
-                if (!cancelled) {
-                    graceExpiredModal.onOpen();
-                }
-                return;
-            }
-
             const started = await judgeService.startAttempt(id);
             if (cancelled) return;
             setAttemptId(started?.attemptId || null);
-            setReturnedFromGrace(false);
-            setGraceRemainingSeconds(null);
-            setGraceExpiryIso(null);
+
+            const hasSavedCode = typeof started?.savedCode === 'string' && started.savedCode.length > 0;
+            if (hasSavedCode) setCode(started.savedCode);
+            if (Number.isFinite(started?.elapsedTime)) setElapsedSeconds(Number(started.elapsedTime));
+
             localStorage.setItem(attemptStorageKey, JSON.stringify({
                 challengeId: id,
                 attemptId: started?.attemptId || null,
                 startedAt: started?.startedAt || new Date().toISOString(),
+                savedCode: started?.savedCode || '',
+                elapsedTime: Number(started?.elapsedTime || 0),
             }));
+
+            if (started?.resumed && !resumeToastShownRef.current) {
+                resumeToastShownRef.current = true;
+                toast({
+                    title: 'Welcome back!',
+                    description: 'Your progress has been saved. Pick up where you left off!',
+                    status: 'success',
+                    duration: 5000,
+                    isClosable: true,
+                    position: 'top-right',
+                    icon: <Icon as={FiPlay} />,
+                });
+            }
         };
 
         initializeAttempt().catch((error) => {
@@ -200,24 +204,7 @@ const ChallengePlayPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [id, selectedChallenge, isChallengeSolved, graceStorageKey, attemptStorageKey, graceExpiredModal.onOpen, setCode, setElapsedSeconds]);
-
-    useEffect(() => {
-        if (!returnedFromGrace || !graceExpiryIso) return undefined;
-        const expiryMs = new Date(graceExpiryIso).getTime();
-        const tick = async () => {
-            const next = Math.max(0, Math.floor((expiryMs - Date.now()) / 1000));
-            setGraceRemainingSeconds(next);
-            if (next > 0) return;
-            setGraceExpired(true);
-            await judgeService.abandonAttempt(id, 'timeout').catch(() => null);
-            localStorage.removeItem(graceStorageKey);
-            graceExpiredModal.onOpen();
-        };
-        tick();
-        const timer = setInterval(tick, 1000);
-        return () => clearInterval(timer);
-    }, [returnedFromGrace, graceExpiryIso, id, graceExpiredModal.onOpen, graceStorageKey]);
+    }, [id, selectedChallenge, isChallengeSolved, attemptStorageKey, setCode, setElapsedSeconds, toast]);
 
     useEffect(() => {
         return () => deselectChallenge();
@@ -301,7 +288,7 @@ const ChallengePlayPage = () => {
     };
 
     const requestLeave = (action) => {
-        if (shouldProtectAttempt) {
+        if (shouldProtectAttempt && hasUnsavedProgress) {
             setPendingLeaveAction(() => action);
             leaveModal.onOpen();
             return;
@@ -310,45 +297,73 @@ const ChallengePlayPage = () => {
     };
 
     useEffect(() => {
+        if (!shouldProtectAttempt) return undefined;
+        const timer = setInterval(() => {
+            saveAttemptSnapshot('manual_save');
+        }, AUTOSAVE_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [shouldProtectAttempt, saveAttemptSnapshot]);
+
+    useEffect(() => {
+        if (!shouldProtectAttempt) return undefined;
+        const timer = setTimeout(() => {
+            saveAttemptSnapshot('manual_save');
+        }, AUTOSAVE_DEBOUNCE_MS);
+        return () => clearTimeout(timer);
+    }, [code, shouldProtectAttempt, saveAttemptSnapshot]);
+
+    useEffect(() => {
+        if (!shouldProtectAttempt || !isPaused || isChallengeSolved) return;
+        saveAttemptSnapshot('manual_save');
+    }, [isPaused, shouldProtectAttempt, saveAttemptSnapshot, isChallengeSolved]);
+
+    useEffect(() => {
+        if (saveState.status !== 'saved') return undefined;
+        const timer = setTimeout(() => {
+            setSaveState((prev) => (prev.status === 'saved' ? { ...prev, status: 'idle' } : prev));
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [saveState.status]);
+
+    useEffect(() => {
+        if (!shouldProtectAttempt) return undefined;
         const apiBase = import.meta.env.VITE_API_URL || '/api';
         const handleBeforeUnload = (event) => {
-            if (!shouldProtectAttempt) return;
+            if (!hasUnsavedProgress || isChallengeSolved) return;
             try {
                 const token = getToken();
-                const payload = JSON.stringify({ reason: 'tab_closed' });
-                const url = `${apiBase}/challenges/${id}/attempt/leave`;
+                const payload = JSON.stringify({
+                    attemptId,
+                    reason: 'tab_closed',
+                    savedCode: code,
+                    elapsedTime: elapsedSeconds,
+                    mode: 'challenge',
+                });
+                const url = `${apiBase}/challenges/${id}/attempt/save`;
                 if (token) {
                     const xhr = new XMLHttpRequest();
-                    xhr.open('POST', url, false);
+                    xhr.open('PUT', url, false);
                     xhr.setRequestHeader('Content-Type', 'application/json');
                     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
                     xhr.send(payload);
                 } else if (navigator.sendBeacon) {
                     navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
                 }
-
-                localStorage.setItem(graceStorageKey, JSON.stringify({
-                    challengeId: id,
-                    attemptId,
-                    leftAt: new Date().toISOString(),
-                    gracePeriodExpiresAt: graceExpiryIso || new Date(Date.now() + GRACE_PERIOD_SECONDS * 1000).toISOString(),
-                    editorContent: code,
-                    elapsedSeconds,
-                }));
             } catch {
                 // do not block unload
             }
+
             event.preventDefault();
             event.returnValue = '';
         };
 
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [shouldProtectAttempt, id, attemptId, code, elapsedSeconds, graceExpiryIso, graceStorageKey]);
+    }, [shouldProtectAttempt, hasUnsavedProgress, isChallengeSolved, attemptId, code, elapsedSeconds, id]);
 
     useEffect(() => {
         const handleAnchorNavigation = (event) => {
-            if (!shouldProtectAttempt) return;
+            if (!shouldProtectAttempt || !hasUnsavedProgress) return;
             const anchor = event.target?.closest?.('a[href]');
             if (!anchor) return;
             const href = anchor.getAttribute('href');
@@ -366,11 +381,11 @@ const ChallengePlayPage = () => {
 
         document.addEventListener('click', handleAnchorNavigation, true);
         return () => document.removeEventListener('click', handleAnchorNavigation, true);
-    }, [shouldProtectAttempt, navigate]);
+    }, [shouldProtectAttempt, hasUnsavedProgress, navigate]);
 
     useEffect(() => {
         const handlePopState = () => {
-            if (!shouldProtectAttempt) return;
+            if (!shouldProtectAttempt || !hasUnsavedProgress) return;
             window.history.pushState(null, '', window.location.href);
             requestLeave(() => navigate('/challenges'));
         };
@@ -378,33 +393,26 @@ const ChallengePlayPage = () => {
         window.history.pushState(null, '', window.location.href);
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [shouldProtectAttempt, navigate]);
+    }, [shouldProtectAttempt, hasUnsavedProgress, navigate]);
 
-    const handleLeaveConfirm = () => {
+    useEffect(() => {
+        if (!showFullXpHint || modeAwareOverHour || isChallengeSolved) return undefined;
+        const timer = setTimeout(() => setShowFullXpHint(false), 10000);
+        return () => clearTimeout(timer);
+    }, [showFullXpHint, modeAwareOverHour, isChallengeSolved]);
+
+    const handleLeaveConfirm = async () => {
         const action = pendingLeaveAction;
         leaveModal.onClose();
         setPendingLeaveAction(null);
-        if (action) {
-            judgeService.leaveAttempt(id, 'left_page')
-                .then((res) => {
-                    const nextExpiry = res?.gracePeriodExpiresAt
-                        || graceExpiryIso
-                        || new Date(Date.now() + GRACE_PERIOD_SECONDS * 1000).toISOString();
-                    setGraceExpiryIso(nextExpiry);
-                    localStorage.setItem(graceStorageKey, JSON.stringify({
-                        challengeId: id,
-                        attemptId,
-                        leftAt: new Date().toISOString(),
-                        gracePeriodExpiresAt: nextExpiry,
-                        editorContent: code,
-                        elapsedSeconds,
-                    }));
-                })
-                .catch((error) => {
-                    console.error('Failed to set challenge grace period:', error);
-                })
-                .finally(() => action());
-        }
+        await saveAttemptSnapshot('left_page');
+        if (action) action();
+    };
+
+    const handleSubmitFromModal = async () => {
+        leaveModal.onClose();
+        setPendingLeaveAction(null);
+        await submitSolution('submit');
     };
 
     const handleLockedInteraction = () => {
@@ -425,46 +433,37 @@ const ChallengePlayPage = () => {
     const handlePasteBlocked = () => {
         toast({
             title: 'Paste disabled',
-            description: returnedFromGrace
-                ? 'Paste is disabled after return. Please type your solution manually.'
-                : 'Paste is disabled after reset. Please type your solution manually.',
+            description: 'Paste is disabled after reset. Please type your solution manually.',
             status: 'info',
             duration: 2000,
             isClosable: true,
         });
     };
 
-    const formatGrace = (seconds) => {
-        const mins = Math.floor((seconds || 0) / 60);
-        const secs = (seconds || 0) % 60;
-        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    };
-    const graceBannerTone = useMemo(() => {
-        if (!returnedFromGrace || graceRemainingSeconds == null) return 'warning';
-        if (graceRemainingSeconds <= 10) return 'critical';
-        if (graceRemainingSeconds <= 30) return 'danger';
-        return 'warning';
-    }, [returnedFromGrace, graceRemainingSeconds]);
-
-    useEffect(() => {
-        if (!id || !attemptId || isChallengeSolved) return;
-        localStorage.setItem(attemptStorageKey, JSON.stringify({
-            challengeId: id,
-            attemptId,
-            startedAt: new Date().toISOString(),
-            elapsedSeconds,
-            editorContent: code,
-        }));
-    }, [id, attemptId, code, elapsedSeconds, isChallengeSolved, attemptStorageKey]);
-
-    useEffect(() => {
-        if (!isChallengeSolved) return;
-        localStorage.removeItem(graceStorageKey);
-        localStorage.removeItem(attemptStorageKey);
-        setReturnedFromGrace(false);
-        setGraceRemainingSeconds(null);
-        setGraceExpiryIso(null);
-    }, [isChallengeSolved, graceStorageKey, attemptStorageKey]);
+    const autosaveIndicator = useMemo(() => {
+        if (saveState.status === 'saving') {
+            return {
+                icon: <Spinner size="xs" color="blue.300" />,
+                label: 'Saving...',
+                color: 'blue.300',
+            };
+        }
+        if (saveState.status === 'saved') {
+            return {
+                icon: <Icon as={FiCheckCircle} color="green.300" boxSize={3.5} />,
+                label: `Saved${saveState.savedAt ? ` • ${new Date(saveState.savedAt).toLocaleTimeString()}` : ''}`,
+                color: 'green.300',
+            };
+        }
+        if (saveState.status === 'error') {
+            return {
+                icon: <Icon as={FiSave} color="orange.300" boxSize={3.5} />,
+                label: 'Save failed. Retrying automatically...',
+                color: 'orange.300',
+            };
+        }
+        return null;
+    }, [saveState]);
 
     const notFoundHeadingColor = useColorModeValue('gray.800', 'gray.100');
     const notFoundTextColor = useColorModeValue('gray.500', 'gray.400');
@@ -498,33 +497,6 @@ const ChallengePlayPage = () => {
                     </Text>
                     <Button colorScheme="cyan" onClick={useThisTabInstead}>
                         Use This Tab Instead
-                    </Button>
-                </Box>
-            </Box>
-        );
-    }
-
-    if (graceExpired) {
-        return (
-            <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" px={6} bg="var(--color-bg-primary)">
-                <Box
-                    maxW="xl"
-                    w="full"
-                    p={8}
-                    borderRadius="2xl"
-                    bg="var(--color-bg-card)"
-                    border="1px solid"
-                    borderColor="var(--color-border)"
-                    textAlign="center"
-                >
-                    <Text fontFamily="heading" fontWeight="bold" fontSize="3xl" mb={3} color="var(--color-text-heading)">
-                        ❌ Time&apos;s Up
-                    </Text>
-                    <Text color="var(--color-text-secondary)" mb={6}>
-                        Your 120-second grace period has expired. This challenge attempt has been marked as abandoned.
-                    </Text>
-                    <Button colorScheme="orange" onClick={() => navigate('/challenges')}>
-                        Back to Challenges
                     </Button>
                 </Box>
             </Box>
@@ -568,49 +540,6 @@ const ChallengePlayPage = () => {
                 overflow="hidden"
             >
                 <ChallengeHeader onAttemptLeave={requestLeave} />
-
-                {returnedFromGrace && graceRemainingSeconds != null && (
-                    <Flex
-                        align="center"
-                        justify="space-between"
-                        px={{ base: 3, md: 5 }}
-                        py={2.5}
-                        borderBottom="1px solid"
-                        borderColor={
-                            graceBannerTone === 'critical'
-                                ? 'red.400'
-                                : graceBannerTone === 'danger'
-                                    ? 'orange.400'
-                                    : 'orange.300'
-                        }
-                        bg={
-                            graceBannerTone === 'critical'
-                                ? 'rgba(239,68,68,0.2)'
-                                : graceBannerTone === 'danger'
-                                    ? 'rgba(249,115,22,0.18)'
-                                    : 'rgba(245,158,11,0.16)'
-                        }
-                        animation={graceBannerTone === 'critical' ? 'pulse 0.9s ease-in-out infinite' : undefined}
-                    >
-                        <HStack spacing={2.5}>
-                            <Icon
-                                as={FiClock}
-                                color={graceBannerTone === 'critical' ? 'red.200' : 'orange.200'}
-                                boxSize={4.5}
-                            />
-                            <Text
-                                color={graceBannerTone === 'critical' ? 'red.100' : 'orange.100'}
-                                fontWeight="semibold"
-                                fontSize={{ base: 'sm', md: 'md' }}
-                            >
-                                Return Window: {formatGrace(graceRemainingSeconds)} remaining
-                            </Text>
-                        </HStack>
-                        <Text fontSize="xs" color="orange.100" display={{ base: 'none', md: 'block' }}>
-                            Complete and submit before time runs out
-                        </Text>
-                    </Flex>
-                )}
 
                 {!isEditorFullscreen && (
                     <Box
@@ -680,29 +609,64 @@ const ChallengePlayPage = () => {
                     >
                         <EditorToolbar />
 
+                        {modeAwareOverHour && !isChallengeSolved && showOverHourHint && (
+                            <Alert
+                                status="warning"
+                                borderRadius="none"
+                                bg="rgba(245, 158, 11, 0.16)"
+                                borderBottom="1px solid rgba(245, 158, 11, 0.32)"
+                            >
+                                <AlertIcon as={FiClock} color="orange.300" />
+                                <Box flex="1">
+                                    <AlertTitle color="orange.100" fontSize="sm">XP update</AlertTitle>
+                                    <AlertDescription color="orange.200" fontSize="sm">
+                                        You&apos;ve spent over 1 hour on this challenge. XP reward is now 50%
+                                        ({Math.floor(Number(selectedChallenge?.xpReward || 0) * 0.5)} XP instead of {Number(selectedChallenge?.xpReward || 0)} XP).
+                                    </AlertDescription>
+                                </Box>
+                                <IconButton
+                                    aria-label="Dismiss XP info"
+                                    icon={<FiX />}
+                                    size="sm"
+                                    variant="ghost"
+                                    color="orange.200"
+                                    onClick={() => setShowOverHourHint(false)}
+                                />
+                            </Alert>
+                        )}
+
+                        {!modeAwareOverHour && !isChallengeSolved && showFullXpHint && (
+                            <Box px={3} py={2} bg="rgba(34, 211, 238, 0.1)" borderBottom="1px solid rgba(34, 211, 238, 0.24)">
+                                <Text fontSize="sm" color="cyan.200">
+                                    Full XP available for {fullXpMinutesRemaining} more minute{fullXpMinutesRemaining === 1 ? '' : 's'}.
+                                </Text>
+                            </Box>
+                        )}
+
                         <CodeEditorContainer
                             code={code}
                             setCode={setCode}
                             language={language}
-                            readOnly={isEditorLocked || graceExpired}
-                            pasteBlocked={pasteBlockedAfterReset || returnedFromGrace}
+                            readOnly={isEditorLocked}
+                            pasteBlocked={pasteBlockedAfterReset}
                             editorSettings={editorSettings}
                             onLockedInteraction={handleLockedInteraction}
                             onPasteBlocked={handlePasteBlocked}
                         />
-                        {returnedFromGrace && graceRemainingSeconds != null && graceRemainingSeconds > 0 && !isChallengeSolved && (
+
+                        {autosaveIndicator && (
                             <Flex
                                 align="center"
+                                justify="flex-end"
                                 gap={2}
                                 px={3}
-                                py={2}
-                                bg="rgba(245, 158, 11, 0.12)"
-                                borderTop="1px solid rgba(245, 158, 11, 0.35)"
-                                borderBottom="1px solid rgba(245, 158, 11, 0.2)"
+                                py={1.5}
+                                bg="rgba(15, 23, 42, 0.55)"
+                                borderTop="1px solid rgba(148, 163, 184, 0.22)"
                             >
-                                <Icon as={FiAlertTriangle} color="orange.300" />
-                                <Text fontSize="sm" color="orange.200">
-                                    Paste disabled during return window
+                                {autosaveIndicator.icon}
+                                <Text fontSize="xs" color={autosaveIndicator.color}>
+                                    {autosaveIndicator.label}
                                 </Text>
                             </Flex>
                         )}
@@ -712,59 +676,71 @@ const ChallengePlayPage = () => {
                 </Flex>
             </MotionBox>
 
-            <Modal isOpen={leaveModal.isOpen} onClose={leaveModal.onClose} isCentered>
+            <Modal isOpen={leaveModal.isOpen} onClose={leaveModal.onClose} isCentered size="lg">
                 <ModalOverlay bg="blackAlpha.600" />
-                <ModalContent bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)">
-                    <ModalHeader>Leaving Challenge?</ModalHeader>
+                <ModalContent bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)" boxShadow="0 24px 50px rgba(15,23,42,0.45)" overflow="hidden">
+                    <Box h="3px" bg="linear-gradient(90deg, #f59e0b, #facc15)" />
+                    <ModalCloseButton />
+                    <ModalHeader>
+                        <HStack spacing={2}>
+                            <Icon as={FiBookmark} color="amber.300" boxSize={6} />
+                            <Text>Save &amp; Leave?</Text>
+                        </HStack>
+                    </ModalHeader>
                     <ModalBody color="var(--color-text-secondary)">
                         <VStack align="stretch" spacing={4}>
-                            <HStack spacing={3} align="center">
-                                <Icon as={FiClock} color="orange.300" boxSize={5} />
-                                <Text>
-                                    If you leave now, you will have 2 minutes to return and complete this challenge.
+                            <Text>
+                                Your progress will be saved automatically. You can return anytime to complete this challenge.
+                            </Text>
+                            <Flex align="center" gap={2.5} color="var(--color-text-muted)">
+                                <Icon as={FiClock} color="orange.300" />
+                                <Text>You&apos;ve been working on this for {Math.max(1, Math.floor(elapsedSeconds / 60))} minute(s).</Text>
+                            </Flex>
+                            <Alert status="info" variant="subtle" borderRadius="md">
+                                <AlertIcon />
+                                <Text fontSize="sm">
+                                    Note: If you take longer than 1 hour total to complete this challenge, the XP reward will be reduced to 50%.
                                 </Text>
-                            </HStack>
-                            <Text>After 2 minutes, this attempt will be marked as abandoned.</Text>
-                            <Box
-                                px={4}
-                                py={3}
-                                borderRadius="xl"
-                                border="1px solid rgba(245,158,11,0.35)"
-                                bg="rgba(245,158,11,0.12)"
-                                textAlign="center"
-                            >
-                                <Text fontFamily="mono" fontSize="3xl" fontWeight="bold" color="orange.300">
-                                    2:00
-                                </Text>
-                            </Box>
+                            </Alert>
                         </VStack>
                     </ModalBody>
                     <ModalFooter>
-                        <Button colorScheme="blue" mr={3} onClick={leaveModal.onClose}>Stay and Continue</Button>
-                        <Button variant="outline" colorScheme="orange" onClick={handleLeaveConfirm}>Leave Challenge</Button>
+                        <Stack direction={{ base: 'column', md: 'row' }} spacing={3} w="full">
+                            <Button colorScheme="blue" leftIcon={<Icon as={FiPlay} />} px={6} py={3} onClick={leaveModal.onClose} w={{ base: 'full', md: 'auto' }}>
+                                Continue Coding
+                            </Button>
+                            <Button variant="outline" colorScheme="orange" leftIcon={<Icon as={FiBookmark} />} px={6} py={3} onClick={handleLeaveConfirm} w={{ base: 'full', md: 'auto' }}>
+                                Save &amp; Leave
+                            </Button>
+                            {code.trim().length > 0 && (
+                                <Button variant="ghost" colorScheme="green" leftIcon={<Icon as={FiCheckCircle} />} px={6} py={3} onClick={handleSubmitFromModal} w={{ base: 'full', md: 'auto' }}>
+                                    Submit Solution
+                                </Button>
+                            )}
+                        </Stack>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
 
-            <Modal isOpen={graceExpiredModal.isOpen} onClose={() => {}} isCentered closeOnOverlayClick={false}>
+            <Modal isOpen={Boolean(rankUpgradeEvent)} onClose={dismissRankUpgrade} isCentered size="lg" closeOnOverlayClick={false}>
                 <ModalOverlay bg="blackAlpha.700" />
-                <ModalContent bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)">
+                <ModalContent bg="var(--color-bg-card)" border="1px solid var(--color-border)" textAlign="center" py={4}>
                     <ModalHeader>
-                        <HStack spacing={2}>
-                            <Icon as={FaHourglassHalf} color="red.300" />
-                            <Text>Time&apos;s Up</Text>
-                        </HStack>
+                        <VStack spacing={2}>
+                            <Icon as={FiStar} boxSize={10} color={rankUpgradeEvent?.newRank?.badgeColor || '#facc15'} />
+                            <Text fontSize="3xl" fontWeight="black">RANK UP!</Text>
+                            <Text fontSize="md" color="var(--color-text-secondary)">
+                                You are now {rankUpgradeEvent?.newRank?.name || ''} - {rankUpgradeEvent?.newRank?.title || ''}!
+                            </Text>
+                        </VStack>
                     </ModalHeader>
-                    <ModalBody color="var(--color-text-secondary)">
-                        <Text mb={2}>
-                            Your 2-minute return window has expired. This attempt has been marked as incomplete.
+                    <ModalBody>
+                        <Text color="var(--color-text-muted)">
+                            {rankUpgradeEvent?.previousRank?.name || 'Previous'} - {rankUpgradeEvent?.previousRank?.title || ''} {'->'} {rankUpgradeEvent?.newRank?.name || 'New'} - {rankUpgradeEvent?.newRank?.title || ''}
                         </Text>
-                        <Text>You can start a new attempt from the challenges page.</Text>
                     </ModalBody>
-                    <ModalFooter>
-                        <Button colorScheme="orange" onClick={() => navigate('/challenges')}>
-                            Back to Challenges
-                        </Button>
+                    <ModalFooter justifyContent="center">
+                        <Button colorScheme="yellow" onClick={dismissRankUpgrade}>Continue</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

@@ -22,7 +22,7 @@ import { FaTrophy } from 'react-icons/fa';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { RANK_META } from '../data/mockChallenges';
 
-const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
+const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'RUBY', 'EMERALD', 'SAPPHIRE', 'OBSIDIAN', 'ALGOARENA CHAMPION'];
 const BRONZE_XP_TARGET = 500;
 
 const FlameIcon = (props) => (
@@ -231,7 +231,7 @@ const UnrankedBar = ({ xp, streakDetails }) => {
                     <Text fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="black" color={textPrim} lineHeight="1.1">
                         Unranked
                     </Text>
-                    <Text fontSize="xs" color={textSec} mt={1}>Earn XP to unlock your first rank.</Text>
+                    <Text fontSize="xs" color={textSec} mt={1}>Earn XP to unlock your first rank tier.</Text>
                 </Box>
             </Flex>
 
@@ -293,7 +293,7 @@ const UserRankStatsBar = () => {
         ? RANK_ORDER[currentIdx + 1]
         : null;
     const nextRankLabel = nextRankKey
-        ? (RANK_META[nextRankKey]?.label ?? nextRankKey)
+        ? `${RANK_META[nextRankKey]?.label ?? nextRankKey}${RANK_META[nextRankKey]?.title ? ` — ${RANK_META[nextRankKey]?.title}` : ''}`
         : 'Max Rank';
 
     return (
@@ -327,6 +327,9 @@ const UserRankStatsBar = () => {
                     <Text fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="black" color={textPrim} lineHeight="1.1">
                         {rankMeta.label}
                     </Text>
+                    <Text fontSize="sm" color={rankMeta.color || textSec} mt={1} fontWeight="medium">
+                        {user?.rankDetails?.title || rankMeta.title}
+                    </Text>
                     <Badge mt={1.5} colorScheme="cyan" variant="subtle" borderRadius="full">Competitive Tier</Badge>
                 </Box>
             </Flex>
@@ -344,9 +347,9 @@ const UserRankStatsBar = () => {
                     <XPIcon w={3.5} h={3.5} color="yellow.400" />
                     <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">Current XP</Text>
                 </Flex>
-                <Text fontFamily="heading" fontWeight="bold" fontSize="xl" color={textPrim}>
-                    {(user.xp ?? 0).toLocaleString()}
-                </Text>
+                    <Text fontFamily="heading" fontWeight="bold" fontSize="xl" color={textPrim}>
+                        {(user.totalXP ?? user.xp ?? 0).toLocaleString()}
+                    </Text>
             </Flex>
 
             {!user.isMaxRank ? (
@@ -366,7 +369,7 @@ const UserRankStatsBar = () => {
                         label={`Progress to ${nextRankLabel}`}
                     />
                     <Text fontSize="xs" color={textSec} mt={1.5}>
-                        {(user.xp ?? 0).toLocaleString()} / {(xpToNextRank ?? 0).toLocaleString()} XP
+                        {(user.totalXP ?? user.xp ?? 0).toLocaleString()} / {(xpToNextRank ?? 0).toLocaleString()} XP
                     </Text>
                 </Box>
             ) : (
@@ -381,7 +384,7 @@ const UserRankStatsBar = () => {
                         accentEnd="#7c3aed"
                         label="Maximum rank achieved"
                     />
-                    <Text fontSize="xs" color={textSec} mt={1.5}>You have reached the top competitive tier.</Text>
+                    <Text fontSize="xs" color={textSec} mt={1.5}>Max Rank — Champion</Text>
                 </Box>
             )}
 

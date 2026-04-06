@@ -29,9 +29,15 @@ export async function fetchRankStats() {
         if (!data || typeof data.xp !== 'number') return null;
         return {
             rank: data.rank ?? null,
+            rankDetails: data.rankDetails ?? data.rank ?? null,
+            nextRank: data.nextRank ?? null,
+            totalXP: Number(data.totalXP ?? data.xp ?? 0),
+            xpInCurrentRank: Number(data.xpInCurrentRank ?? 0),
+            xpNeededForNextRank: Number(data.xpNeededForNextRank ?? 0),
             xp: Number(data.xp ?? 0),
             nextRankXp: Number(data.nextRankXp ?? 500),
-            progressPercentage: Number(data.progressPercentage ?? 0),
+            progressPercentage: Number(data.progressPercentage ?? data.progressPercent ?? 0),
+            progressPercent: Number(data.progressPercent ?? data.progressPercentage ?? 0),
             streak: Number(data.streak ?? 0),
             isMaxRank: Boolean(data.isMaxRank),
         };

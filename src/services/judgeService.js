@@ -32,10 +32,17 @@ export const judgeService = {
     return apiClient(`/challenges/${challengeId}/attempt/start`, { method: 'POST' });
   },
 
-  leaveAttempt: async (challengeId, reason = 'left_page') => {
+  leaveAttempt: async (challengeId, reason = 'left_page', snapshot = {}) => {
     return apiClient(`/challenges/${challengeId}/attempt/leave`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, ...snapshot }),
+    });
+  },
+
+  saveAttempt: async (challengeId, payload = {}) => {
+    return apiClient(`/challenges/${challengeId}/attempt/save`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     });
   },
 

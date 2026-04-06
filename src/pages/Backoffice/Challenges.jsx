@@ -427,8 +427,15 @@ const Challenges = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            {deleteModal && <ConfirmModal title={deleteModal.title} message={deleteModal.message}
-                onConfirm={deleteModal.onConfirm} onClose={() => setDeleteModal(null)} />}
+            {deleteModal && createPortal(
+                <ConfirmModal
+                    title={deleteModal.title}
+                    message={deleteModal.message}
+                    onConfirm={deleteModal.onConfirm}
+                    onClose={() => setDeleteModal(null)}
+                />,
+                document.body,
+            )}
             {previewForm && typeof previewForm === 'object' && 'difficulty' in previewForm && (
                 <PreviewModal form={previewForm} onClose={() => setPreviewForm(null)}
                     onPublish={() => { setPreviewForm(null); handleManualSave('published'); }} />

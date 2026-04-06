@@ -59,6 +59,7 @@ const TerminalPanel = () => {
         isChallengeSolved,
         isPaused,
         code,
+        currentSubmission,
     } = useChallengeContext();
     const { runCode, submitCode } = useChallengeExecution();
 
@@ -277,6 +278,23 @@ const TerminalPanel = () => {
                                         <Box mb={4} p={3} bg="green.800" borderRadius="md">
                                             <Text fontSize="sm" color="green.100">
                                                 <strong>AI Tip:</strong> {judgeAnalysis}
+                                            </Text>
+                                        </Box>
+                                    )}
+
+                                    {isChallengeSolved && Number(currentSubmission?.xpGained || 0) > 0 && (
+                                        <Box
+                                            mb={4}
+                                            p={3}
+                                            borderRadius="md"
+                                            bg={currentSubmission?.wasReduced ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.18)'}
+                                            border="1px solid"
+                                            borderColor={currentSubmission?.wasReduced ? 'orange.400' : 'green.400'}
+                                        >
+                                            <Text fontSize="sm" color={currentSubmission?.wasReduced ? 'orange.100' : 'green.100'} fontWeight="bold">
+                                                {currentSubmission?.wasReduced
+                                                    ? `You earned ${currentSubmission.xpGained} XP (50% rate after 1 hour). Full XP: ${Math.round(currentSubmission.xpGained * 2)} XP.`
+                                                    : `You earned ${currentSubmission.xpGained} XP!`}
                                             </Text>
                                         </Box>
                                     )}
