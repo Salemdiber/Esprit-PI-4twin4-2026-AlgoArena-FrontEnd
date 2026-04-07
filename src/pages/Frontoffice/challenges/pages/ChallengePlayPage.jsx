@@ -89,7 +89,6 @@ const ChallengePlayPage = () => {
 
     const { isOpen, onOpen, onClose } = useDisclosure();
     const leaveModal = useDisclosure();
-
     const [pendingLeaveAction, setPendingLeaveAction] = useState(null);
     const [tabBlocked, setTabBlocked] = useState(false);
     const [attemptId, setAttemptId] = useState(null);

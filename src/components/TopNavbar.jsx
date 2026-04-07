@@ -2,10 +2,82 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
+import { auditLogService } from '../services/auditLogService';
+
+const NOTIFICATION_STORAGE_KEY = 'algoarena-admin-read-notifications';
+const NOTIFICATION_LIMIT = 5;
+
+const getRelativeTime = (dateValue) => {
+    if (!dateValue) return 'Just now';
+
+    const createdAt = new Date(dateValue);
+    if (Number.isNaN(createdAt.getTime())) return 'Just now';
+
+    const diffMs = Date.now() - createdAt.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return createdAt.toLocaleDateString();
+};
+
+const getNotificationTone = (log) => {
+    const actionType = String(log?.actionType || '').toUpperCase();
+    const status = String(log?.status || '').toLowerCase();
+
+    if (status === 'rolled_back' || actionType.includes('DELETED') || actionType.includes('REMOVED') || actionType.includes('BANNED')) {
+        return 'red';
+    }
+
+    if (status === 'confirmed' || actionType.includes('PUBLISHED') || actionType.includes('SOLVED') || actionType.includes('APPROVED')) {
+        return 'green';
+    }
+
+    if (actionType.includes('UPDATED') || actionType.includes('EDITED') || actionType.includes('CHANGED') || actionType.includes('ROLLED_BACK')) {
+        return 'amber';
+    }
+
+    return 'cyan';
+};
+
+const formatNotificationTitle = (log) => {
+    const actionType = String(log?.actionType || 'Activity Event').replaceAll('_', ' ').toLowerCase();
+    return actionType.charAt(0).toUpperCase() + actionType.slice(1);
+};
+
+const formatNotificationMessage = (log) => {
+    if (log?.description) return log.description;
+
+    const parts = [];
+    if (log?.actor) parts.push(`by ${log.actor}`);
+    if (log?.targetLabel) parts.push(`on ${log.targetLabel}`);
+
+    return parts.length > 0 ? parts.join(' ') : 'A new admin event was recorded.';
+};
+
+const mapNotification = (log, readIds) => ({
+    id: log?._id,
+    title: formatNotificationTitle(log),
+    message: formatNotificationMessage(log),
+    time: getRelativeTime(log?.createdAt),
+    tone: getNotificationTone(log),
+    unread: !readIds.has(log?._id),
+});
 
 const TopNavbar = ({ onToggleSidebar }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [readNotificationIds, setReadNotificationIds] = useState(() => new Set());
+    const [notifLoading, setNotifLoading] = useState(true);
+    const [notifError, setNotifError] = useState('');
     const dropdownRef = useRef(null);
     const notifRef = useRef(null);
     const navigate = useNavigate();
@@ -28,6 +100,76 @@ const TopNavbar = ({ onToggleSidebar }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        try {
+            const stored = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    setReadNotificationIds(new Set(parsed.filter(Boolean)));
+                }
+            }
+        } catch {
+            setReadNotificationIds(new Set());
+        }
+    }, []);
+
+    useEffect(() => {
+        const loadNotifications = async () => {
+            setNotifLoading(true);
+            try {
+                const result = await auditLogService.getLogs({ page: 1, limit: NOTIFICATION_LIMIT });
+                const rows = Array.isArray(result?.data) ? result.data : [];
+                setNotifications(rows.map((log) => mapNotification(log, readNotificationIds)).filter((item) => item.id));
+                setNotifError('');
+            } catch (error) {
+                console.error('Failed to load admin notifications', error);
+                setNotifications([]);
+                setNotifError(error?.message || 'Unable to load notifications');
+            } finally {
+                setNotifLoading(false);
+            }
+        };
+
+        loadNotifications();
+        const intervalId = window.setInterval(loadNotifications, 30000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [readNotificationIds]);
+
+    const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
+
+    const markNotificationsAsRead = (ids) => {
+        if (!ids.length) return;
+
+        setReadNotificationIds((current) => {
+            const next = new Set(current);
+            ids.forEach((id) => next.add(id));
+            try {
+                window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(Array.from(next)));
+            } catch {
+                // Ignore storage failures.
+            }
+            return next;
+        });
+
+        setNotifications((current) => current.map((notification) => (
+            ids.includes(notification.id)
+                ? { ...notification, unread: false }
+                : notification
+        )));
+    };
+
+    const handleMarkAllAsRead = () => {
+        markNotificationsAsRead(notifications.map((notification) => notification.id));
+    };
+
+    const handleNotificationClick = (notification) => {
+        markNotificationsAsRead([notification.id]);
+    };
 
     const handleLogout = () => {
         logout();
@@ -97,7 +239,14 @@ const TopNavbar = ({ onToggleSidebar }) => {
                                     d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                                 />
                             </svg>
-                            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full" style={{ borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--color-bg-secondary)' }} />
+                            {unreadNotificationCount > 0 && (
+                                <span
+                                    className="absolute top-1 right-1 min-w-5 h-5 px-1 flex items-center justify-center bg-red-500 rounded-full text-[10px] font-bold text-white"
+                                    style={{ borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--color-bg-secondary)' }}
+                                >
+                                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                                </span>
+                            )}
                         </button>
 
                         {/* Dropdown Menu */}
@@ -114,44 +263,75 @@ const TopNavbar = ({ onToggleSidebar }) => {
                             <div className="profile-dropdown-header" style={{ padding: '16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Notifications</h3>
-                                    <span style={{ fontSize: '10px', color: 'var(--color-cyan-500)', fontWeight: 'bold', background: 'var(--color-info-bg)', padding: '2px 6px', borderRadius: '4px' }}>2 NEW</span>
+                                    <span style={{ fontSize: '10px', color: 'var(--color-cyan-500)', fontWeight: 'bold', background: 'var(--color-info-bg)', padding: '2px 6px', borderRadius: '4px' }}>
+                                        {unreadNotificationCount > 0 ? `${unreadNotificationCount} NEW` : 'ALL READ'}
+                                    </span>
                                 </div>
                             </div>
 
                             <div style={{ overflowY: 'auto', flex: 1 }}>
-                                {/* Example Notification 1 */}
-                                <div className="profile-dropdown-item" style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-subtle)', alignItems: 'flex-start', cursor: 'pointer' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-cyan-400)', marginTop: '6px', flexShrink: 0 }}></div>
-                                    <div className="ml-3">
-                                        <p style={{ color: 'var(--color-text-primary)', fontSize: '14px', fontWeight: '500' }}>System Update</p>
-                                        <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', marginTop: '2px', lineHeight: '1.4' }}>Security patch deployed successfully for AI agent modules.</p>
-                                        <p style={{ color: 'var(--color-text-muted)', fontSize: '10px', marginTop: '4px' }}>Just now</p>
+                                {notifLoading ? (
+                                    <div className="px-4 py-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                        Loading notifications...
                                     </div>
-                                </div>
+                                ) : notifError ? (
+                                    <div className="px-4 py-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                        {notifError}
+                                    </div>
+                                ) : notifications.length === 0 ? (
+                                    <div className="px-4 py-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                        No recent admin activity.
+                                    </div>
+                                ) : notifications.map((notification) => {
+                                    const toneMap = {
+                                        cyan: 'var(--color-cyan-400)',
+                                        green: 'var(--color-green-400)',
+                                        amber: 'var(--color-amber-400)',
+                                        red: 'var(--color-red-500)',
+                                    };
 
-                                {/* Example Notification 2 */}
-                                <div className="profile-dropdown-item" style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-subtle)', alignItems: 'flex-start', cursor: 'pointer' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-red-500)', marginTop: '6px', flexShrink: 0 }}></div>
-                                    <div className="ml-3">
-                                        <p style={{ color: 'var(--color-text-primary)', fontSize: '14px', fontWeight: '500' }}>Server Alert</p>
-                                        <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', marginTop: '2px', lineHeight: '1.4' }}>High CPU usage detected on Node workers in cluster 2.</p>
-                                        <p style={{ color: 'var(--color-text-muted)', fontSize: '10px', marginTop: '4px' }}>42 mins ago</p>
-                                    </div>
-                                </div>
-
-                                {/* Read Notification */}
-                                <div className="profile-dropdown-item" style={{ padding: '12px 16px', alignItems: 'flex-start', cursor: 'pointer', opacity: 0.7 }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-border)', marginTop: '6px', flexShrink: 0 }}></div>
-                                    <div className="ml-3">
-                                        <p style={{ color: 'var(--color-text-primary)', fontSize: '14px', fontWeight: '500' }}>New User Signup</p>
-                                        <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', marginTop: '2px', lineHeight: '1.4' }}>CodeMaster99 just registered an account.</p>
-                                        <p style={{ color: 'var(--color-text-muted)', fontSize: '10px', marginTop: '4px' }}>2 hrs ago</p>
-                                    </div>
-                                </div>
+                                    return (
+                                        <button
+                                            key={notification.id}
+                                            type="button"
+                                            className="profile-dropdown-item w-full text-left"
+                                            style={{
+                                                padding: '12px 16px',
+                                                borderBottom: '1px solid var(--color-border-subtle)',
+                                                alignItems: 'flex-start',
+                                                cursor: 'pointer',
+                                                opacity: notification.unread ? 1 : 0.72,
+                                            }}
+                                            onClick={() => handleNotificationClick(notification)}
+                                        >
+                                            <div
+                                                style={{
+                                                    width: '8px',
+                                                    height: '8px',
+                                                    borderRadius: '50%',
+                                                    background: toneMap[notification.tone] || 'var(--color-cyan-400)',
+                                                    marginTop: '6px',
+                                                    flexShrink: 0,
+                                                }}
+                                            />
+                                            <div className="ml-3">
+                                                <p style={{ color: 'var(--color-text-primary)', fontSize: '14px', fontWeight: '500' }}>{notification.title}</p>
+                                                <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', marginTop: '2px', lineHeight: '1.4' }}>{notification.message}</p>
+                                                <p style={{ color: 'var(--color-text-muted)', fontSize: '10px', marginTop: '4px' }}>{notification.time}</p>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             <div style={{ padding: '12px', borderTop: '1px solid var(--color-border-subtle)', textAlign: 'center' }}>
-                                <button style={{ color: 'var(--color-cyan-500)', fontSize: '13px', fontWeight: '600', width: '100%' }} className="hover:text-cyan-400 transition-colors">
+                                <button
+                                    style={{ color: 'var(--color-cyan-500)', fontSize: '13px', fontWeight: '600', width: '100%' }}
+                                    className="hover:text-cyan-400 transition-colors disabled:opacity-50"
+                                    onClick={handleMarkAllAsRead}
+                                    disabled={notifications.length === 0 || unreadNotificationCount === 0}
+                                    type="button"
+                                >
                                     Mark all as read
                                 </button>
                             </div>
