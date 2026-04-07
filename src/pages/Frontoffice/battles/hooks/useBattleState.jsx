@@ -27,17 +27,20 @@ import { useAuth } from '../../auth/context/AuthContext';
 const BATTLE_RESULTS_PREFIX = 'battle-results:';
 const BATTLE_PLAN_PREFIX = 'battle-plan:';
 
-const loadStoredBattle = (battleId) => {
+const buildResultsKey = (battleId, userId) => `${BATTLE_RESULTS_PREFIX}${userId || 'anon'}:${battleId}`;
+const buildPlanKeyForBattle = (battleId, userId) => `${BATTLE_PLAN_PREFIX}${userId || 'anon'}:${battleId}`;
+
+const loadStoredBattle = (battleId, userId) => {
     if (!battleId) return null;
     try {
-        const raw = localStorage.getItem(`${BATTLE_RESULTS_PREFIX}${battleId}`);
+        const raw = localStorage.getItem(buildResultsKey(battleId, userId));
         return raw ? JSON.parse(raw) : null;
     } catch {
         return null;
     }
 };
 
-const persistBattleSnapshot = (battle) => {
+const persistBattleSnapshot = (battle, userId) => {
     if (!battle?.id) return;
     const snapshot = {
         id: battle.id,
@@ -56,7 +59,7 @@ const persistBattleSnapshot = (battle) => {
         })),
     };
     try {
-        localStorage.setItem(`${BATTLE_RESULTS_PREFIX}${battle.id}`, JSON.stringify(snapshot));
+        localStorage.setItem(buildResultsKey(battle.id, userId), JSON.stringify(snapshot));
     } catch {
         // ignore storage errors
     }
@@ -70,10 +73,10 @@ const buildPlanKey = (payload = {}) => {
     return `${userId}:${battleType}:${roundNumber}:${challengeId}`;
 };
 
-const loadBattlePlan = (battleId) => {
+const loadBattlePlan = (battleId, userId) => {
     if (!battleId) return null;
     try {
-        const raw = localStorage.getItem(`${BATTLE_PLAN_PREFIX}${battleId}`);
+        const raw = localStorage.getItem(buildPlanKeyForBattle(battleId, userId));
         return raw ? JSON.parse(raw) : null;
     } catch {
         return null;
@@ -90,11 +93,11 @@ const loadBattlePlanByKey = (payload) => {
     }
 };
 
-const storeBattlePlan = (battleId, challengeIds, payload) => {
+const storeBattlePlan = (battleId, challengeIds, payload, userId) => {
     if ((!battleId && !payload) || !Array.isArray(challengeIds) || !challengeIds.length) return;
     try {
         if (battleId) {
-            localStorage.setItem(`${BATTLE_PLAN_PREFIX}${battleId}`, JSON.stringify({
+            localStorage.setItem(buildPlanKeyForBattle(battleId, userId), JSON.stringify({
                 battleId,
                 challengeIds,
             }));
@@ -421,6 +424,7 @@ export function BattleProvider({ children }) {
     const [state, dispatch] = useReducer(battleReducer, initialState);
     const { currentUser } = useAuth();
     const timerRef = useRef(null);
+    const currentUserId = currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username || null;
 
     const challengesById = useMemo(() => {
         return state.challenges.reduce((acc, ch) => {
@@ -476,9 +480,11 @@ export function BattleProvider({ children }) {
         const mode = mapMode(battle?.battleType);
         const status = mapStatus(battle?.battleStatus);
         const totalRounds = Math.max(1, Number(battle?.roundNumber) || 1);
+        const botDifficulty = battle?.botDifficulty || battle?.difficulty || Difficulty.MEDIUM;
         const baseChallenge = mapChallenge(battle?.challengeId);
         const typePool = filterChallengesByType(battle?.selectChallengeType || '');
-        const storedPlan = loadBattlePlan(battle?._id || battle?.idBattle || battle?.id) || loadBattlePlanByKey({
+        const battleId = battle?._id || battle?.idBattle || battle?.id;
+        const storedPlan = loadBattlePlan(battleId, currentUserId) || loadBattlePlanByKey({
             userId: battle?.userId || currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username,
             battleType: battle?.battleType,
             roundNumber: totalRounds,
@@ -489,6 +495,7 @@ export function BattleProvider({ children }) {
             const planned = plannedIds[i] ? mapChallenge(plannedIds[i]) : null;
             const fallback = planned || baseChallenge || mapChallenge(typePool[i % Math.max(1, typePool.length)]?._id);
             const round = createRound(i, fallback || undefined);
+            round.difficulty = botDifficulty;
             if (status === BattleStatus.COMPLETED) {
                 round.status = RoundStatus.COMPLETED;
                 round.result = RoundResult.DRAW;
@@ -527,10 +534,10 @@ export function BattleProvider({ children }) {
             createdAt: battle?.createdAt ? new Date(battle.createdAt) : new Date(),
             completedAt: battle?.endedAt ? new Date(battle.endedAt) : null,
             timeLimit: 900,
-            difficulty: Difficulty.MEDIUM,
+            difficulty: botDifficulty,
         };
 
-        const stored = loadStoredBattle(mapped.id);
+        const stored = loadStoredBattle(mapped.id, currentUserId);
         if (stored?.rounds?.length) {
             const mergedRounds = mapped.rounds.map((round) => {
                 const storedRound = stored.rounds.find((r) => r.index === round.index);
@@ -584,10 +591,10 @@ export function BattleProvider({ children }) {
                 round.opponentResult
             );
             if (hasResults) {
-                persistBattleSnapshot(battle);
+                persistBattleSnapshot(battle, currentUserId);
             }
         });
-    }, [state.battles]);
+    }, [state.battles, currentUserId]);
 
     const refreshChallenges = useCallback(async () => {
         try {
@@ -603,7 +610,11 @@ export function BattleProvider({ children }) {
         dispatch({ type: ActionTypes.SET_LOADING, payload: true });
         dispatch({ type: ActionTypes.SET_ERROR, payload: '' });
         try {
-            const resp = await battlesService.getAll();
+            if (!currentUserId) {
+                dispatch({ type: ActionTypes.SET_BATTLES, payload: [] });
+                return;
+            }
+            const resp = await battlesService.getMine();
             const list = Array.isArray(resp?.battles) ? resp.battles : Array.isArray(resp) ? resp : [];
             const mapped = list.map(mapBattleFromApi);
             dispatch({ type: ActionTypes.SET_BATTLES, payload: mapped });
@@ -612,7 +623,7 @@ export function BattleProvider({ children }) {
         } finally {
             dispatch({ type: ActionTypes.SET_LOADING, payload: false });
         }
-    }, [currentUser, challengesById]);
+    }, [currentUserId, currentUser, challengesById]);
 
     useEffect(() => {
         refreshChallenges();
@@ -671,6 +682,7 @@ export function BattleProvider({ children }) {
             challengeId: primary?._id,
             selectChallengeType: challengeType || resolveChallengeType(primary) || difficulty,
             battleType: mode === BattleMode.ONE_VS_AI ? '1VSBOT' : '1VS1',
+            botDifficulty: difficulty,
         };
 
         try {
@@ -701,13 +713,13 @@ export function BattleProvider({ children }) {
                 }
             }
 
-            storeBattlePlan(battleId, assignedIds, payload);
+            storeBattlePlan(battleId, assignedIds, payload, currentUserId);
             dispatch({ type: ActionTypes.CLOSE_CREATE_MODAL });
             await refreshBattles();
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to create battle' });
         }
-    }, [state.createModal, currentUser, refreshBattles, filterChallengesByType, resolveChallengeType]);
+    }, [state.createModal, currentUser, currentUserId, refreshBattles, filterChallengesByType, resolveChallengeType]);
 
     const cancelBattle = useCallback(async (id) => {
         try {

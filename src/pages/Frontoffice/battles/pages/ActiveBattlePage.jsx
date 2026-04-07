@@ -39,25 +39,55 @@ const computeBattleScore = ({
     total,
     timeComplexity,
     spaceComplexity,
-    timeLimitSeconds,
+    executionTimeMs,
     solveTimeSeconds,
+    timeLimitSeconds,
+    codeQualityScore,
     maxPoints,
+    difficulty,
+    side,
 }) => {
-    const exactitude = total > 0 ? (passedCount / total) * 100 : 0;
-    const timeScore = mapComplexityScore(timeComplexity);
-    const spaceScore = mapComplexityScore(spaceComplexity);
-    const complexityScore = Math.round((timeScore + spaceScore) / 2);
-    const styleScore = 60;
-    const timeBonus = Math.max(0, Math.round(10 * (1 - Math.min(1, (solveTimeSeconds || 0) / (timeLimitSeconds || 900)))));
-    const composite = exactitude * 0.4 + complexityScore * 0.3 + styleScore * 0.2 + timeBonus;
-    const score = Math.max(0, Math.round((maxPoints || 500) * (composite / 100)));
+    const correctnessFactor = total > 0 ? Math.max(0, Math.min(1, passedCount / total)) : 0;
+    const timeComplexityScore = mapComplexityScore(timeComplexity);
+    const spaceComplexityScore = mapComplexityScore(spaceComplexity);
+    const complexityScore = Math.round((timeComplexityScore + spaceComplexityScore) / 2);
+
+    // Runtime score: normalize against a soft cap (10s)
+    const runtime = Math.max(0, Number(executionTimeMs || 0));
+    const runtimeCapMs = 10_000;
+    const runtimeScore = Math.round(100 * (1 - Math.min(1, runtime / runtimeCapMs)));
+
+    // Solve-time score (player): based on battle timer
+    const limit = Math.max(1, Number(timeLimitSeconds || 900));
+    const solveSecs = Math.max(0, Number.isFinite(Number(solveTimeSeconds)) ? Number(solveTimeSeconds) : 0);
+    const solveTimeScore = Math.round(100 * (1 - Math.min(1, solveSecs / limit)));
+
+    const quality = Number.isFinite(Number(codeQualityScore)) ? Number(codeQualityScore) : 60;
+    const qualityScore = Math.max(0, Math.min(100, Math.round(quality)));
+
+    // Priority: complexity -> time -> code quality, then gated by correctness
+    // Player time uses solveTimeSeconds (real gameplay). Opponent uses execution runtime.
+    const timeScore = side === 'player' ? solveTimeScore : runtimeScore;
+    const composite = complexityScore * 0.45 + timeScore * 0.35 + qualityScore * 0.2;
+    let score = Math.max(0, Math.round((maxPoints || 500) * (composite / 100) * correctnessFactor));
+
+    // Difficulty handicap for bot (makes EASY beatable)
+    const diff = String(difficulty || '').toUpperCase();
+    const difficultyMultiplier = diff === 'EASY' ? 0.9 : diff === 'HARD' ? 1.15 : 1.0;
+    const handicap = diff === 'EASY' ? 0.82 : diff === 'HARD' ? 1.02 : 1.0;
+
+    score = Math.max(0, Math.round(score * difficultyMultiplier));
+    if (side === 'opponent') {
+        score = Math.max(0, Math.round(score * handicap));
+    }
 
     return {
         score,
-        exactitude: Math.round(exactitude),
+        correctness: Math.round(correctnessFactor * 100),
         complexityScore,
-        styleScore,
-        timeBonus,
+        runtimeScore,
+        solveTimeScore,
+        qualityScore,
     };
 };
 
@@ -101,7 +131,7 @@ const parseExecutionMs = (value) => {
     return 0;
 };
 
-const buildResult = ({ response, challenge, timeLimitSeconds, solveTimeSeconds }) => {
+const buildResult = ({ response, challenge, difficulty, side }) => {
     const submission = response?.submissionDetails || response?.previousSubmission || null;
     const passedCount = Number(response?.passedCount || submission?.passedCount || 0);
     const total = Number(response?.total || submission?.total || 0);
@@ -110,16 +140,22 @@ const buildResult = ({ response, challenge, timeLimitSeconds, solveTimeSeconds }
     );
     const timeComplexity = submission?.timeComplexity || response?.timeComplexity || response?.analysis?.timeComplexity || 'Unknown';
     const spaceComplexity = submission?.spaceComplexity || response?.spaceComplexity || response?.analysis?.spaceComplexity || 'Unknown';
+    const codeQualityScore = submission?.codeQualityScore ?? response?.codeQualityScore ?? null;
     const maxPoints = Number(challenge?.maxPoints || 500);
+    const solveTimeSeconds = response?.solveTimeSeconds ?? submission?.solveTimeSeconds ?? null;
 
     const scoreDetail = computeBattleScore({
         passedCount,
         total,
         timeComplexity,
         spaceComplexity,
-        timeLimitSeconds,
+        executionTimeMs,
         solveTimeSeconds,
+        timeLimitSeconds: 900,
+        codeQualityScore,
         maxPoints,
+        difficulty,
+        side,
     });
 
     const score = scoreDetail.score;
@@ -132,9 +168,12 @@ const buildResult = ({ response, challenge, timeLimitSeconds, solveTimeSeconds }
         passedCount,
         total,
         criteria: [
-            `Exactitude: ${scoreDetail.exactitude}/100`,
+            `Correctness: ${scoreDetail.correctness}/100`,
             `Complexity: ${scoreDetail.complexityScore}/100`,
-            `Time bonus: ${scoreDetail.timeBonus}/10`,
+            side === 'player'
+                ? `Solve time: ${scoreDetail.solveTimeScore}/100`
+                : `Runtime: ${scoreDetail.runtimeScore}/100`,
+            `Code quality: ${scoreDetail.qualityScore}/100`,
             `Execution time: ${executionTimeMs}ms`,
             `Time complexity: ${timeComplexity}`,
             `Space complexity: ${spaceComplexity}`,
@@ -274,8 +313,8 @@ const ActiveBattlePage = () => {
             const result = buildResult({
                 response,
                 challenge,
-                timeLimitSeconds: battle.timeLimit || 900,
-                solveTimeSeconds,
+                difficulty: battle.difficulty,
+                side: 'player',
             });
             setRoundResult({
                 battleId: battle.id,
@@ -303,12 +342,11 @@ const ActiveBattlePage = () => {
             try {
                 const response = await battlesService.submitAiSolution(battle.id, { language });
                 if (cancelled) return;
-                const aiSolveSeconds = Math.round(Number(response?.executionTimeMs || 0) / 1000);
                 const result = buildResult({
                     response,
                     challenge,
-                    timeLimitSeconds: battle.timeLimit || 900,
-                    solveTimeSeconds: aiSolveSeconds,
+                    difficulty: response?.botDifficulty || battle.difficulty,
+                    side: 'opponent',
                 });
                 setRoundResult({
                     battleId: battle.id,

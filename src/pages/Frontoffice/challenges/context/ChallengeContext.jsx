@@ -67,6 +67,7 @@ const ActionTypes = {
     SET_EDITOR_SETTINGS: 'SET_EDITOR_SETTINGS',
     SET_EDITOR_FULLSCREEN: 'SET_EDITOR_FULLSCREEN',
     SET_CHALLENGE_SOLVED: 'SET_CHALLENGE_SOLVED',
+    SET_RANK_UPGRADE_EVENT: 'SET_RANK_UPGRADE_EVENT',
     RESET_FEATURE_STATE: 'RESET_FEATURE_STATE',
 };
 
@@ -113,6 +114,13 @@ const mapProgressStatus = (status) => {
     return ChallengeUserStatus.UNSOLVED;
 };
 
+const deriveUserStatus = (entry = {}) => {
+    if (entry.status === 'SOLVED') return 'completed';
+    if (entry.attemptStatus === 'abandoned') return 'abandoned';
+    if (entry.attemptStatus === 'in_progress') return 'in_progress';
+    return 'not_started';
+};
+
 const normalizeSubmission = (submission) => ({
     submittedAt: submission?.submittedAt || null,
     language: submission?.language || LANGUAGES[0].value,
@@ -133,6 +141,9 @@ const normalizeSubmission = (submission) => ({
     error: submission?.error || null,
     source: submission?.source || 'docker',
     solveTimeSeconds: Number.isFinite(submission?.solveTimeSeconds) ? Number(submission.solveTimeSeconds) : null,
+    totalElapsedTime: Number.isFinite(submission?.totalElapsedTime) ? Number(submission.totalElapsedTime) : null,
+    xpGained: Number(submission?.xpGained || 0),
+    wasReduced: Boolean(submission?.wasReduced),
 });
 
 const normalizeProgressEntry = (entry) => {
@@ -141,12 +152,19 @@ const normalizeProgressEntry = (entry) => {
     return {
         challengeId: entry.challengeId,
         status: mapProgressStatus(entry.status),
+        userStatus: deriveUserStatus(entry),
         bestRuntime: latestSuccessfulSubmission?.executionTimeMs ?? null,
         bestMemory: latestSuccessfulSubmission?.memoryAllocated || null,
         earnedXp: Number(entry.xpAwarded || 0),
         failedAttempts: Number(entry.failedAttempts || 0),
         attemptStatus: entry.attemptStatus || 'completed',
         incompleteAttemptCount: Number(entry.incompleteAttemptCount || 0),
+        mode: entry.mode || 'challenge',
+        lastActiveAt: entry.lastActiveAt || null,
+        lastAttemptAt: entry.lastAttemptAt || null,
+        savedCode: entry.savedCode || '',
+        totalElapsedTime: Number(entry.totalElapsedTime || 0),
+        wasReduced: Boolean(entry.wasReduced),
         gracePeriodExpiresAt: entry.gracePeriodExpiresAt || null,
         attemptStartedAt: entry.attemptStartedAt || null,
         solveTimeSeconds: entry.solveTimeSeconds ?? latestSuccessfulSubmission?.solveTimeSeconds ?? null,
@@ -190,6 +208,7 @@ const initialState = {
     challenges: [],
     userProgress: [],
     user: { rank: null, xp: 0, streak: 0 },
+    rankUpgradeEvent: null,
     streakDetails: {
         currentStreak: 0,
         longestStreak: 0,
@@ -237,14 +256,21 @@ function challengeReducer(state, action) {
                 user: {
                     ...state.user,
                     rank: action.payload.rank,
+                    rankDetails: action.payload.rankDetails || null,
+                    nextRank: action.payload.nextRank || null,
+                    totalXP: action.payload.totalXP ?? action.payload.xp,
+                    xpInCurrentRank: action.payload.xpInCurrentRank ?? 0,
+                    xpNeededForNextRank: action.payload.xpNeededForNextRank ?? 0,
                     xp: action.payload.xp,
                     streak: action.payload.streak,
                     nextRankXp: action.payload.nextRankXp,
-                    progressPercentage: action.payload.progressPercentage,
+                    progressPercentage: action.payload.progressPercentage ?? action.payload.progressPercent,
                     isMaxRank: action.payload.isMaxRank,
                 },
                 isLoadingStats: false,
             };
+        case ActionTypes.SET_RANK_UPGRADE_EVENT:
+            return { ...state, rankUpgradeEvent: action.payload };
         case ActionTypes.SET_STREAK:
             return {
                 ...state,
@@ -315,6 +341,14 @@ function challengeReducer(state, action) {
                 solveTimeSeconds: entry.solveTimeSeconds,
                 xpAwarded: entry.xpAwarded,
                 solvedAt: entry.solvedAt,
+                attemptStatus: entry.attemptStatus,
+                mode: entry.mode,
+                lastActiveAt: entry.lastActiveAt,
+                lastAttemptAt: entry.lastAttemptAt,
+                savedCode: entry.savedCode,
+                totalElapsedTime: entry.totalElapsedTime,
+                wasReduced: entry.wasReduced,
+                incompleteAttemptCount: entry.incompleteAttemptCount,
                 latestSubmission,
                 latestSuccessfulSubmission,
             });
@@ -492,7 +526,7 @@ export const ChallengeProvider = ({ children }) => {
 
                 dispatch({
                     type: ActionTypes.SET_USER_STATS,
-                    payload: stats || { rank: null, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
+                    payload: stats || { rank: null, rankDetails: null, nextRank: null, totalXP: 0, xpInCurrentRank: 0, xpNeededForNextRank: 0, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
                 });
                 dispatch({
                     type: ActionTypes.SET_STREAK,
@@ -515,7 +549,7 @@ export const ChallengeProvider = ({ children }) => {
                     dispatch({ type: ActionTypes.SET_CHALLENGES, payload: [] });
                     dispatch({
                         type: ActionTypes.SET_USER_STATS,
-                        payload: { rank: null, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
+                        payload: { rank: null, rankDetails: null, nextRank: null, totalXP: 0, xpInCurrentRank: 0, xpNeededForNextRank: 0, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
                     });
                     dispatch({
                         type: ActionTypes.SET_STREAK,
@@ -665,10 +699,33 @@ export const ChallengeProvider = ({ children }) => {
                 dispatch({ type: ActionTypes.SET_TIMER_RUNNING, payload: false });
 
                 try {
+                    const previousRank = state.user.rank;
+                    const previousRankDetails = state.user.rankDetails;
                     const [stats, streakRes] = await Promise.all([fetchRankStats(), fetchUserStreak()]);
                     if (stats) {
                         dispatch({ type: ActionTypes.SET_USER_STATS, payload: stats });
-                        updateCurrentUser?.({ rank: stats.rank, xp: stats.xp });
+                        updateCurrentUser?.({
+                            rank: stats.rank,
+                            xp: stats.xp,
+                            rankDetails: stats.rankDetails || null,
+                            nextRank: stats.nextRank || null,
+                            progressPercent: stats.progressPercent ?? stats.progressPercentage ?? 0,
+                        });
+                        if (stats.rank && previousRank && stats.rank !== previousRank) {
+                            const eventKey = `rank-up-shown:${stats.rank}:${stats.totalXP ?? stats.xp}`;
+                            if (!sessionStorage.getItem(eventKey)) {
+                                sessionStorage.setItem(eventKey, '1');
+                                dispatch({
+                                    type: ActionTypes.SET_RANK_UPGRADE_EVENT,
+                                    payload: {
+                                        previousRank: previousRankDetails || { name: previousRank, title: '' },
+                                        newRank: stats.rankDetails || { name: stats.rank, title: '' },
+                                        previousXp: state.user.xp,
+                                        newXp: stats.totalXP ?? stats.xp,
+                                    },
+                                });
+                            }
+                        }
                     }
                     if (streakRes) {
                         dispatch({ type: ActionTypes.SET_STREAK, payload: streakRes });
@@ -797,6 +854,7 @@ export const ChallengeProvider = ({ children }) => {
         setEditorSettings,
         setEditorFullscreen,
         syncChallengeDetail,
+        dismissRankUpgrade: () => dispatch({ type: ActionTypes.SET_RANK_UPGRADE_EVENT, payload: null }),
     }), [
         state,
         selectedChallenge,

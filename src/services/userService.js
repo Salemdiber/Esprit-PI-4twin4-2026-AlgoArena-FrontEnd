@@ -138,4 +138,20 @@ export const userService = {
             body: JSON.stringify({ status }),
         });
     },
+
+    // ------------------------------------
+    // Gamification
+    // ------------------------------------
+
+    /**
+     * Adds/subtracts XP for the authenticated user.
+     * Backend will automatically recalculate rank.
+     * @param {number} xpDelta
+     */
+    updateMyXp: async (xpDelta) => {
+        return apiClient('/user/me/xp', {
+            method: 'PATCH',
+            body: JSON.stringify({ xpDelta: Number(xpDelta) }),
+        });
+    },
 };

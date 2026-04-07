@@ -4,10 +4,12 @@
  * Victory/Defeat banner, scoreboard, round breakdown,
  * and performance analytics — all dynamically derived.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBattleState } from '../hooks/useBattleState';
 import { useChallengeContext } from '../../challenges/context/ChallengeContext';
+import { useAuth } from '../../auth/context/AuthContext';
+import { userService } from '../../../../services/userService';
 import {
     getTotalPlayerScore,
     getTotalOpponentScore,
@@ -16,6 +18,7 @@ import {
     getXPEarned,
     getRankProgress,
     BattleMode,
+    BattleStatus,
 } from '../types/battle.types';
 import ScoreBoard from '../components/ScoreBoard';
 import RoundCard from '../components/RoundCard';
@@ -27,6 +30,8 @@ const BattleSummaryPage = () => {
     const navigate = useNavigate();
     const { battles, selectBattle, deselectBattle } = useBattleState();
     const { refreshUserStats } = useChallengeContext();
+    const { currentUser } = useAuth();
+    const xpAwardInFlightRef = useRef(false);
 
     const battle = battles.find(b => b.id === id);
 
@@ -38,6 +43,37 @@ const BattleSummaryPage = () => {
     useEffect(() => {
         refreshUserStats?.();
     }, [refreshUserStats]);
+
+    useEffect(() => {
+        const awardXpIfNeeded = async () => {
+            if (!battle) return;
+            if (battle.status !== BattleStatus.COMPLETED) return;
+
+            const currentUserId = currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username || null;
+            if (!currentUserId) return;
+
+            const xpEarned = Number(getXPEarned(battle) ?? 0);
+            if (!Number.isFinite(xpEarned) || xpEarned <= 0) return;
+
+            const awardedKey = `battle-xp-awarded:${currentUserId}:${battle.id}`;
+            if (localStorage.getItem(awardedKey)) return;
+            if (xpAwardInFlightRef.current) return;
+
+            xpAwardInFlightRef.current = true;
+            try {
+                await userService.updateMyXp(xpEarned);
+                localStorage.setItem(awardedKey, JSON.stringify({ xpEarned, awardedAt: new Date().toISOString() }));
+                await refreshUserStats?.();
+            } catch (err) {
+                // If awarding fails, do not mark as awarded.
+                console.error('Failed to award battle XP:', err);
+            } finally {
+                xpAwardInFlightRef.current = false;
+            }
+        };
+
+        awardXpIfNeeded();
+    }, [battle, currentUser, refreshUserStats]);
 
     if (!battle) {
         return (

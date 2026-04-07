@@ -201,10 +201,21 @@ export function getRoundsWon(battle, side = 'player') {
 
 export function getWinner(battle) {
     if (battle.totalRounds <= 1) {
+        const round = battle.rounds?.[0];
+        if (round?.result === RoundResult.WON) return 'player';
+        if (round?.result === RoundResult.LOST) return 'opponent';
+
         const playerScore = getTotalPlayerScore(battle);
         const opponentScore = getTotalOpponentScore(battle);
         if (playerScore > opponentScore) return 'player';
         if (opponentScore > playerScore) return 'opponent';
+
+        const playerExec = Number(round?.playerResult?.executionTimeMs ?? Infinity);
+        const opponentExec = Number(round?.opponentResult?.executionTimeMs ?? Infinity);
+        if (Number.isFinite(playerExec) && Number.isFinite(opponentExec) && playerExec !== opponentExec) {
+            return playerExec < opponentExec ? 'player' : 'opponent';
+        }
+
         return 'draw';
     }
 
@@ -212,6 +223,12 @@ export function getWinner(battle) {
     const opponentWins = getRoundsWon(battle, 'opponent');
     if (playerWins > opponentWins) return 'player';
     if (opponentWins > playerWins) return 'opponent';
+
+    const playerScore = getTotalPlayerScore(battle);
+    const opponentScore = getTotalOpponentScore(battle);
+    if (playerScore > opponentScore) return 'player';
+    if (opponentScore > playerScore) return 'opponent';
+
     return 'draw';
 }
 

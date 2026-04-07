@@ -2,15 +2,9 @@ import React, { useMemo } from 'react';
 import {
     Badge,
     Box,
-    Card,
-    CardBody,
-    CardFooter,
-    CardHeader,
-    Divider,
     Flex,
     HStack,
     Icon,
-    Progress,
     SimpleGrid,
     Spinner,
     Text,
@@ -22,24 +16,44 @@ import {
     AlertTriangle,
     CalendarClock,
     CheckCircle2,
-    Container,
     Cpu,
     Fingerprint,
     Flame,
     HardDrive,
-    Hash,
-    Image as ImageIcon,
     PlayCircle,
+    RefreshCw,
     ServerCog,
     XCircle,
 } from 'lucide-react';
 
+/* ─── Keyframe animations ─── */
 const pulse = keyframes`
   0% { transform: scale(1); opacity: .85; }
-  50% { transform: scale(1.18); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 1; }
   100% { transform: scale(1); opacity: .85; }
 `;
 
+const fillBar = keyframes`
+  from { width: 0%; }
+  to { width: var(--fill-to); }
+`;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const fadeSlideIn = keyframes`
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const shimmerSlide = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+`;
+
+/* ─── Formatting helpers (pure display logic — unchanged) ─── */
 const formatDuration = (ms) => {
     if (ms == null || Number.isNaN(Number(ms))) return 'No executions yet';
     const value = Math.max(0, Number(ms));
@@ -73,16 +87,10 @@ const relativeTime = (value) => {
 };
 
 const statusConfig = (status) => {
-    if (status === 'executing') {
-        return { label: 'Executing...', color: '#f59e0b', pulse: true };
-    }
-    if (status === 'running') {
-        return { label: 'Running', color: '#22c55e', pulse: true };
-    }
-    if (status === 'starting') {
-        return { label: 'Starting...', color: '#f59e0b', pulse: true };
-    }
-    return { label: 'Idle', color: '#ef4444', pulse: false };
+    if (status === 'executing') return { label: 'EXECUTING', color: '#f59e0b', pulse: true };
+    if (status === 'running') return { label: 'RUNNING', color: '#22c55e', pulse: true };
+    if (status === 'starting') return { label: 'STARTING', color: '#f59e0b', pulse: true };
+    return { label: 'IDLE', color: '#ef4444', pulse: false };
 };
 
 const getCpuColor = (value) => {
@@ -110,29 +118,102 @@ const getSuccessColor = (value) => {
     return '#ef4444';
 };
 
-const MetricCard = ({ label, value, icon, tooltip, valueColor }) => (
-    <Tooltip label={tooltip} hasArrow placement="top" openDelay={250}>
-        <Box
-            p={3.5}
-            borderRadius="xl"
-            border="1px solid var(--color-border)"
-            bg="var(--color-bg-input)"
-            transition="all .2s ease"
-            _hover={{ transform: 'translateY(-1px)', borderColor: 'rgba(56,189,248,0.35)' }}
-        >
-            <HStack spacing={2} mb={2}>
-                <Icon as={icon} boxSize={4} color="var(--color-text-muted)" />
-                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="var(--color-text-muted)" fontWeight="600">
+/* ─── Metric icon color map ─── */
+const metricColors = {
+    'Container ID': { bg: 'rgba(56,189,248,0.12)', color: '#38bdf8' },
+    'Last Uptime': { bg: 'rgba(34,197,94,0.12)', color: '#22c55e' },
+    'Avg CPU': { bg: 'rgba(249,115,22,0.12)', color: '#f97316' },
+    'Peak CPU': { bg: 'rgba(239,68,68,0.12)', color: '#ef4444' },
+    'Avg Memory': { bg: 'rgba(168,85,247,0.12)', color: '#a855f7' },
+    'Peak Memory': { bg: 'rgba(234,179,8,0.12)', color: '#eab308' },
+    'Total Runs': { bg: 'rgba(34,211,238,0.12)', color: '#22d3ee' },
+    'Success Rate': { bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
+    'Failed Runs': { bg: 'rgba(239,68,68,0.12)', color: '#ef4444' },
+    'Last Run': { bg: 'rgba(99,102,241,0.12)', color: '#6366f1' },
+};
+
+/* ─── Glassmorphism Metric Card ─── */
+const MetricCard = ({ label, value, icon, tooltip, valueColor, index }) => {
+    const palette = metricColors[label] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)' };
+    return (
+        <Tooltip label={tooltip} hasArrow placement="top" openDelay={250}>
+            <Box
+                p={4}
+                borderRadius="14px"
+                border="1px solid rgba(255,255,255,0.06)"
+                bg="rgba(255,255,255,0.03)"
+                transition="all .2s ease"
+                _hover={{
+                    transform: 'scale(1.02)',
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    bg: 'rgba(255,255,255,0.05)',
+                }}
+                animation={`${fadeSlideIn} 0.4s ease ${index * 0.04}s both`}
+                cursor="default"
+                position="relative"
+                overflow="hidden"
+                role="group"
+            >
+                {/* Shimmer on hover */}
+                <Box
+                    position="absolute" inset={0}
+                    pointerEvents="none"
+                    opacity={0}
+                    _groupHover={{ opacity: 1 }}
+                    transition="opacity .3s"
+                >
+                    <Box
+                        position="absolute"
+                        top={0} left={0} w="50%" h="100%"
+                        bgGradient="linear(to-r, transparent, rgba(255,255,255,0.04), transparent)"
+                        animation={`${shimmerSlide} 2s ease infinite`}
+                    />
+                </Box>
+
+                {/* Icon circle */}
+                <Flex
+                    align="center"
+                    justify="center"
+                    boxSize={9}
+                    borderRadius="full"
+                    bg={palette.bg}
+                    mb={3}
+                    position="relative"
+                >
+                    <Icon as={icon} boxSize={4} color={palette.color} />
+                </Flex>
+
+                {/* Value */}
+                <Text
+                    fontWeight="700"
+                    fontSize={{ base: 'lg', md: 'xl' }}
+                    color={valueColor || 'var(--color-text-heading)'}
+                    noOfLines={1}
+                    fontFamily={label === 'Container ID' ? 'var(--font-mono)' : undefined}
+                    letterSpacing={label === 'Container ID' ? '0.02em' : undefined}
+                    position="relative"
+                >
+                    {value}
+                </Text>
+
+                {/* Label */}
+                <Text
+                    fontSize="xs"
+                    textTransform="uppercase"
+                    letterSpacing="0.08em"
+                    color="var(--color-text-muted)"
+                    fontWeight="600"
+                    mt={1}
+                    position="relative"
+                >
                     {label}
                 </Text>
-            </HStack>
-            <Text fontWeight="700" fontSize="md" color={valueColor || 'var(--color-text-heading)'} noOfLines={1}>
-                {value}
-            </Text>
-        </Box>
-    </Tooltip>
-);
+            </Box>
+        </Tooltip>
+    );
+};
 
+/* ─── Main Component ─── */
 const SandboxMonitorCard = ({ status, loading, error }) => {
     const tone = statusConfig(status?.status);
     const health = status?.health || 'no_data';
@@ -142,7 +223,14 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
         if (health === 'unhealthy') return 30;
         return 0;
     }, [health]);
-    const healthColor = health === 'healthy' ? 'green' : health === 'degraded' ? 'yellow' : health === 'unhealthy' ? 'red' : 'gray';
+
+    const healthGradient = healthValue > 80
+        ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+        : healthValue > 50
+            ? 'linear-gradient(90deg, #eab308, #facc15)'
+            : healthValue > 0
+                ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                : 'linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.08))';
 
     const metrics = [
         { label: 'Container ID', value: status?.containerId || 'Idle', icon: Fingerprint, tooltip: 'Most recent container short ID.' },
@@ -158,76 +246,104 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
     ];
 
     return (
-        <Card
-            bg="var(--color-bg-card)"
-            border="1px solid var(--color-border)"
-            borderRadius="2xl"
-            boxShadow="var(--shadow-card)"
-            animation="fadeIn .35s ease"
+        /* FIX 2: Use glass-panel + shadow-custom to match other dashboard cards */
+        <Box
+            className="glass-panel rounded-2xl shadow-custom spotlight-hover"
+            overflow="hidden"
+            animation={`${fadeSlideIn} 0.5s ease 0.25s both`}
+            transition="all .3s ease"
+            _hover={{ boxShadow: 'var(--shadow-custom-hover)' }}
         >
-            <CardHeader pb={3}>
+            {/* ─── Header with subtle gradient ─── */}
+            <Box
+                pb={3}
+                pt={5}
+                px={6}
+                bgGradient={`linear(to-r, ${tone.color}08, transparent 60%)`}
+            >
                 <Flex align="center" justify="space-between" gap={4} wrap="wrap">
-                    <HStack spacing={3}>
+                    <HStack spacing={4}>
+                        {/* Server icon with glow */}
                         <Flex
                             align="center"
                             justify="center"
                             boxSize={12}
                             borderRadius="xl"
-                            border="1px solid var(--color-border)"
-                            bg="var(--color-bg-input)"
+                            bg={`${tone.color}15`}
+                            border={`1px solid ${tone.color}30`}
+                            boxShadow={`0 0 20px ${tone.color}15`}
                         >
-                            <Icon as={ServerCog} boxSize={6} color="var(--color-text-heading)" />
+                            <Icon as={ServerCog} boxSize={6} color={tone.color} />
                         </Flex>
                         <Box>
-                            <Text fontSize="xl" fontWeight="800" color="var(--color-text-heading)">
+                            <Text
+                                fontFamily="heading"
+                                fontSize="lg"
+                                fontWeight="800"
+                                bgGradient={`linear(to-r, var(--color-text-heading), ${tone.color})`}
+                                bgClip="text"
+                                letterSpacing="0.04em"
+                                textTransform="uppercase"
+                            >
                                 AlgoArenaSandbox
                             </Text>
-                            <HStack spacing={2}>
-                                <Icon as={ImageIcon} boxSize={3.5} color="var(--color-text-muted)" />
-                                <Text fontSize="sm" color="var(--color-text-muted)">
-                                    {status?.image || 'No executions yet'}
-                                </Text>
-                            </HStack>
+                            <Text
+                                fontSize="xs"
+                                color="var(--color-text-muted)"
+                                fontFamily="var(--font-mono)"
+                                mt={0.5}
+                            >
+                                {status?.image || 'No executions yet'}
+                            </Text>
                         </Box>
                     </HStack>
+
+                    {/* Status pill */}
                     <Badge
-                        px={3}
+                        px={3.5}
                         py={1.5}
                         borderRadius="full"
                         fontSize="xs"
-                        textTransform="none"
-                        border={`1px solid ${tone.color}66`}
-                        bg={`${tone.color}22`}
+                        fontWeight="700"
+                        letterSpacing="0.06em"
+                        textTransform="uppercase"
+                        border={`1px solid ${tone.color}40`}
+                        bg={`${tone.color}15`}
                         color={tone.color}
+                        boxShadow={`0 0 12px ${tone.color}20`}
                     >
                         <HStack spacing={2}>
                             <Box
                                 boxSize={2}
                                 borderRadius="full"
                                 bg={tone.color}
-                                animation={tone.pulse ? `${pulse} 1.2s infinite ease-in-out` : 'none'}
+                                boxShadow={`0 0 6px ${tone.color}`}
+                                animation={tone.pulse ? `${pulse} 1.4s infinite ease-in-out` : 'none'}
                             />
                             <Text>{tone.label}</Text>
                         </HStack>
                     </Badge>
                 </Flex>
-            </CardHeader>
+            </Box>
 
-            <Divider borderColor="var(--color-border)" />
+            {/* ─── Subtle separator ─── */}
+            <Box h="1px" bg="rgba(255,255,255,0.06)" mx={6} />
 
-            <CardBody pt={4}>
+            {/* ─── Metrics Grid ─── */}
+            <Box pt={5} px={6} pb={5}>
                 {loading ? (
-                    <HStack spacing={3} color="var(--color-text-muted)">
+                    <Flex align="center" gap={3} color="var(--color-text-muted)" py={8} justify="center">
                         <Spinner size="sm" color="cyan.300" />
                         <Text fontSize="sm">Refreshing sandbox telemetry...</Text>
-                    </HStack>
+                    </Flex>
                 ) : error ? (
-                    <Text color="red.300" fontSize="sm">{error}</Text>
+                    <Text color="red.300" fontSize="sm" py={8} textAlign="center">{error}</Text>
                 ) : (
-                    <SimpleGrid columns={{ base: 2, md: 3, xl: 4 }} spacing={3}>
-                        {metrics.map((metric) => (
+                    <SimpleGrid columns={{ base: 2, md: 3, lg: 4, xl: 5 }} spacing={3}>
+                        {metrics.map((metric, i) => (
                             <MetricCard
                                 key={metric.label}
+                                index={i}
                                 label={metric.label}
                                 value={metric.value}
                                 icon={metric.icon}
@@ -237,51 +353,89 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                         ))}
                     </SimpleGrid>
                 )}
-            </CardBody>
+            </Box>
 
-            <Divider borderColor="var(--color-border)" />
+            {/* ─── Subtle separator ─── */}
+            <Box h="1px" bg="rgba(255,255,255,0.06)" mx={6} />
 
-            <CardFooter pt={4}>
+            {/* ─── Health Bar & Footer ─── */}
+            <Box pt={4} pb={4} px={6}>
                 <Box w="full">
-                    <Flex align="center" justify="space-between" mb={2}>
-                        <HStack spacing={2}>
-                            <Icon as={Container} boxSize={4} color="var(--color-text-muted)" />
-                            <Text fontSize="sm" color="var(--color-text-muted)">Container Health</Text>
-                        </HStack>
+                    {/* Health header */}
+                    <Flex align="center" justify="space-between" mb={2.5}>
                         <Text
-                            fontSize="sm"
+                            fontSize="xs"
+                            textTransform="uppercase"
+                            letterSpacing="0.08em"
+                            color="var(--color-text-muted)"
+                            fontWeight="600"
+                        >
+                            System Health
+                        </Text>
+                        <Text
+                            fontSize="xs"
                             fontWeight="700"
-                            color={healthColor === 'green' ? '#22c55e' : healthColor === 'yellow' ? '#f59e0b' : healthColor === 'red' ? '#ef4444' : 'var(--color-text-muted)'}
+                            color={
+                                healthValue > 80 ? '#22c55e'
+                                    : healthValue > 50 ? '#eab308'
+                                        : healthValue > 0 ? '#ef4444'
+                                            : 'var(--color-text-muted)'
+                            }
+                            textTransform="uppercase"
+                            letterSpacing="0.04em"
                         >
                             {status?.healthLabel || 'No Data'}
                         </Text>
                     </Flex>
-                    <Progress value={healthValue} size="sm" colorScheme={healthColor} borderRadius="full" bg="var(--color-bg-input)" />
+
+                    {/* Gradient health bar */}
+                    <Box
+                        w="full"
+                        h="6px"
+                        borderRadius="full"
+                        bg="rgba(255,255,255,0.06)"
+                        overflow="hidden"
+                    >
+                        <Box
+                            h="full"
+                            borderRadius="full"
+                            bgGradient={healthGradient}
+                            style={{ '--fill-to': `${healthValue}%` }}
+                            animation={`${fillBar} 1s ease-out forwards`}
+                        />
+                    </Box>
+
+                    {/* Footer meta */}
                     <Flex align="center" justify="space-between" mt={3}>
                         <HStack spacing={2}>
-                                <Text fontSize="xs" color="var(--color-text-muted)">
-                                Last updated: {relativeTime(status?.lastUpdatedAt || null)}
+                            <Text fontSize="xs" color="var(--color-text-muted)">
+                                Last synced: {relativeTime(status?.lastUpdatedAt || null)}
                             </Text>
-                            {loading && <Spinner size="xs" color="cyan.300" />}
+                            {loading && (
+                                <Icon
+                                    as={RefreshCw}
+                                    boxSize={3}
+                                    color="cyan.300"
+                                    animation={`${spin} 1s linear infinite`}
+                                />
+                            )}
                         </HStack>
-                        <Badge
+                        <Text
                             fontSize="10px"
                             px={2}
                             py={0.5}
                             borderRadius="md"
-                            bg="var(--color-bg-input)"
-                            border="1px solid var(--color-border)"
+                            bg="rgba(255,255,255,0.04)"
+                            border="1px solid rgba(255,255,255,0.06)"
                             color="var(--color-text-muted)"
+                            fontFamily="var(--font-mono)"
                         >
-                            <HStack spacing={1}>
-                                <Icon as={Hash} boxSize={3} />
-                                <Text>AlgoArenaSandbox</Text>
-                            </HStack>
-                        </Badge>
+                            AlgoArenaSandbox
+                        </Text>
                     </Flex>
                 </Box>
-            </CardFooter>
-        </Card>
+            </Box>
+        </Box>
     );
 };
 

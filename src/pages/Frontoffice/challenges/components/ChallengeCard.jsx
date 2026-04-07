@@ -20,6 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { FiClock, FiEdit3, FiPauseCircle } from 'react-icons/fi';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META, ChallengeUserStatus } from '../data/mockChallenges';
 
@@ -44,39 +45,30 @@ const CheckIcon = (props) => (
     </Icon>
 );
 
-const formatGrace = (seconds) => {
-    const mins = Math.floor((seconds || 0) / 60);
-    const secs = (seconds || 0) % 60;
-    return `${String(mins)}:${String(secs).padStart(2, '0')}`;
+const formatRelative = (isoValue) => {
+    if (!isoValue) return 'recently';
+    const ms = Date.now() - new Date(isoValue).getTime();
+    if (!Number.isFinite(ms) || ms < 0) return 'recently';
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
 };
 
-const ChallengeCard = ({ challenge, graceInfo = null }) => {
+const ChallengeCard = ({ challenge }) => {
     const navigate = useNavigate();
     const { getUserProgress, isRecommended, selectChallenge } = useChallengeContext();
-    const [graceRemainingSeconds, setGraceRemainingSeconds] = React.useState(null);
 
     const progress = getUserProgress(challenge.id);
     const status = progress?.status || ChallengeUserStatus.UNSOLVED;
+    const userStatus = progress?.userStatus || 'not_started';
     const isSolved = status === ChallengeUserStatus.SOLVED;
     const incompleteAttempts = Number(progress?.incompleteAttemptCount || 0);
-    const hasActiveGrace = graceRemainingSeconds != null && graceRemainingSeconds > 0;
     const recommended = isRecommended(challenge);
     const diffMeta = DIFFICULTY_META[challenge.difficulty];
-
-    React.useEffect(() => {
-        if (!graceInfo?.gracePeriodExpiresAt) {
-            setGraceRemainingSeconds(null);
-            return;
-        }
-
-        const tick = () => {
-            const remaining = Math.max(0, Math.floor((new Date(graceInfo.gracePeriodExpiresAt).getTime() - Date.now()) / 1000));
-            setGraceRemainingSeconds(remaining > 0 ? remaining : null);
-        };
-        tick();
-        const timer = setInterval(tick, 1000);
-        return () => clearInterval(timer);
-    }, [graceInfo]);
 
     const handleStart = () => {
         selectChallenge(challenge.id);
@@ -146,7 +138,7 @@ const ChallengeCard = ({ challenge, graceInfo = null }) => {
                             </Badge>
                         )}
 
-                        {!isSolved && incompleteAttempts > 0 && (
+                        {!isSolved && userStatus === 'in_progress' && (
                             <Badge
                                 bg="rgba(249,115,22,0.2)"
                                 color="orange.300"
@@ -155,22 +147,29 @@ const ChallengeCard = ({ challenge, graceInfo = null }) => {
                                 px={3}
                                 py={1}
                                 borderRadius="8px"
+                                display="inline-flex"
+                                alignItems="center"
+                                gap={1}
                             >
-                                Incomplete
+                                <Icon as={FiEdit3} boxSize={3} />
+                                In Progress
                             </Badge>
                         )}
-                        {hasActiveGrace && (
+                        {!isSolved && userStatus === 'abandoned' && (
                             <Badge
-                                bg="rgba(245,158,11,0.22)"
-                                color="orange.200"
+                                bg="rgba(148,163,184,0.22)"
+                                color="gray.300"
                                 fontSize="xs"
                                 fontWeight="bold"
                                 px={3}
                                 py={1}
                                 borderRadius="8px"
-                                animation="pulse 1.4s ease-in-out infinite"
+                                display="inline-flex"
+                                alignItems="center"
+                                gap={1}
                             >
-                                Return Now • {formatGrace(graceRemainingSeconds)}
+                                <Icon as={FiPauseCircle} boxSize={3} />
+                                Abandoned
                             </Badge>
                         )}
                     </HStack>
@@ -206,6 +205,7 @@ const ChallengeCard = ({ challenge, graceInfo = null }) => {
                         <HStack spacing={6} fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
                             <Text>Your time: <Text as="strong" color="green.400">{progress.bestRuntime}ms</Text></Text>
                             <Text>Score: <Text as="strong" color="green.400">{progress.earnedXp}/{challenge.xpReward}</Text></Text>
+                            <Text>Solved in: <Text as="strong" color="green.400">{Math.max(1, Math.round(Number(progress?.solveTimeSeconds || 0) / 60))} min</Text></Text>
                         </HStack>
                     ) : (
                         <HStack spacing={6} fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
@@ -220,9 +220,15 @@ const ChallengeCard = ({ challenge, graceInfo = null }) => {
                             <Text>
                                 Acceptance: <Text as="strong" color={useColorModeValue("gray.800", "gray.100")}>{challenge.acceptanceRate}%</Text>
                             </Text>
-                            {incompleteAttempts > 0 && (
+                            {userStatus === 'in_progress' && (
+                                <Text color="orange.300" display="inline-flex" alignItems="center" gap={1.5}>
+                                    <Icon as={FiClock} boxSize={3.5} />
+                                    Last worked on {formatRelative(progress?.lastActiveAt || progress?.lastAttemptAt)}
+                                </Text>
+                            )}
+                            {userStatus === 'abandoned' && (
                                 <Text color="orange.300">
-                                    {incompleteAttempts} incomplete attempt{incompleteAttempts !== 1 ? 's' : ''}
+                                    {incompleteAttempts || 1} incomplete attempt{(incompleteAttempts || 1) !== 1 ? 's' : ''}
                                 </Text>
                             )}
                         </HStack>
@@ -244,12 +250,10 @@ const ChallengeCard = ({ challenge, graceInfo = null }) => {
                         }}
                         whiteSpace="nowrap"
                     >
-                        {isSolved ? 'View Solution' : 'Start Challenge'}
+                        {isSolved ? 'View Solution' : userStatus === 'in_progress' ? 'Resume Challenge' : 'Start Challenge'}
                     </Button>
                     <Text fontSize="xs" color={isSolved ? 'green.400' : 'gray.500'}>
-                        {isSolved
-                            ? `Earned +${progress.earnedXp} XP`
-                            : `Solved by ${(challenge.solvedCount || 0).toLocaleString()} users`}
+                        {isSolved ? `XP earned: +${progress.earnedXp}` : `Solved by ${(challenge.solvedCount || 0).toLocaleString()} users`}
                     </Text>
                 </Flex>
             </Flex>

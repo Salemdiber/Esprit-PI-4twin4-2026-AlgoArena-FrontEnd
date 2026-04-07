@@ -35,11 +35,16 @@ import ThemeSwitcher from './ThemeSwitcher';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
-    BRONZE: { emoji: '', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
-    SILVER: { emoji: '', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
-    GOLD: { emoji: '', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
-    PLATINUM: { emoji: '', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
-    DIAMOND: { emoji: '', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
+    BRONZE: { title: 'Novice', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
+    SILVER: { title: 'Apprentice', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
+    GOLD: { title: 'Coder', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
+    PLATINUM: { title: 'Developer', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
+    DIAMOND: { title: 'Engineer', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
+    RUBY: { title: 'Architect', color: '#E0115F', bg: 'rgba(224,17,95,0.12)', border: 'rgba(224,17,95,0.3)' },
+    EMERALD: { title: 'Master', color: '#50C878', bg: 'rgba(80,200,120,0.12)', border: 'rgba(80,200,120,0.3)' },
+    SAPPHIRE: { title: 'Grandmaster', color: '#0F52BA', bg: 'rgba(15,82,186,0.12)', border: 'rgba(15,82,186,0.3)' },
+    OBSIDIAN: { title: 'Legend', color: '#3D3635', bg: 'rgba(61,54,53,0.18)', border: 'rgba(61,54,53,0.35)' },
+    'ALGOARENA CHAMPION': { title: 'Champion', color: '#D4AF37', bg: 'rgba(212,175,55,0.18)', border: 'rgba(212,175,55,0.35)' },
 };
 
 const fmtXp = (xp) => {
@@ -48,14 +53,18 @@ const fmtXp = (xp) => {
 };
 
 /** Compact rank + XP badge displayed in the navbar */
-const RankBadge = ({ rank, xp }) => {
-    const key = String(rank || '').toUpperCase();
+const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
+    const key = String(rank || "").toUpperCase();
     const meta = RANK_META[key];
     if (!meta) return null;
-    const xpStr = fmtXp(xp);
+
+    const title = rankDetails?.title || meta.title;
+    const nextXp = nextRank?.xpRequired ?? null;
+    const tooltipLabel = `Rank: ${key} - ${title} | XP: ${nextXp ? `${xp ?? 0} / ${nextXp}` : `${xp ?? 0}`} (${Number(progressPercent || 0)}%)${nextRank ? ` | Next rank: ${nextRank.name} - ${nextRank.title}` : " | Next rank: Max"}`;
+
     return (
         <Tooltip
-            label={`${key} · ${xp ?? 0} XP`}
+            label={tooltipLabel}
             placement="bottom"
             hasArrow
             bg="#1e293b"
@@ -77,9 +86,8 @@ const RankBadge = ({ rank, xp }) => {
                 transition="all 0.2s"
                 _hover={{ boxShadow: `0 0 12px ${meta.color}30` }}
                 flexShrink={0}
-                display={{ base: 'none', md: 'flex' }}
+                display={{ base: "none", sm: "flex" }}
             >
-                <Text fontSize="13px" lineHeight={1}>{meta.emoji}</Text>
                 <Text
                     fontSize="xs"
                     fontWeight="bold"
@@ -89,11 +97,14 @@ const RankBadge = ({ rank, xp }) => {
                 >
                     {key}
                 </Text>
-                {xpStr !== null && (
+                <Text fontSize="sm" fontWeight="medium" color={meta.color}>
+                    {title}
+                </Text>
+                {xp !== null && xp !== undefined && (
                     <>
-                        <Box w="1px" h="10px" bg={meta.border} />
-                        <Text fontSize="10px" fontFamily="mono" color={meta.color} opacity={0.85}>
-                            {xpStr} XP
+                        <Box w="1px" h="10px" bg={meta.border} display={{ base: "none", lg: "block" }} />
+                        <Text fontSize="10px" fontFamily="mono" color={meta.color} opacity={0.85} display={{ base: "none", lg: "block" }}>
+                            {nextXp ? `${fmtXp(xp)} / ${fmtXp(nextXp)} XP` : `${fmtXp(xp)} XP`}
                         </Text>
                     </>
                 )}
@@ -288,6 +299,9 @@ const Header = () => {
                                 <RankBadge
                                     rank={currentUser?.rank}
                                     xp={currentUser?.xp}
+                                    rankDetails={currentUser?.rankDetails}
+                                    nextRank={currentUser?.nextRank}
+                                    progressPercent={currentUser?.progressPercent}
                                 />
 
                                 <Text
@@ -342,11 +356,14 @@ const Header = () => {
                                                         fontFamily="mono"
                                                         color={RANK_META[currentUser.rank?.toUpperCase()]?.color || 'var(--color-text-muted)'}
                                                     >
-                                                        {RANK_META[currentUser.rank?.toUpperCase()]?.emoji} {currentUser.rank?.toUpperCase()}
+                                                        {currentUser.rank?.toUpperCase()}
+                                                    </Text>
+                                                    <Text fontSize="xs" color={RANK_META[currentUser.rank?.toUpperCase()]?.color || 'var(--color-text-muted)'}>
+                                                        {currentUser?.rankDetails?.title || RANK_META[currentUser.rank?.toUpperCase()]?.title}
                                                     </Text>
                                                     <Box w="1px" h="10px" bg="var(--color-border)" />
                                                     <Text fontSize="xs" fontFamily="mono" color="yellow.400">
-                                                        {fmtXp(currentUser?.xp) ?? '0'} XP
+                                                        {currentUser?.nextRank?.xpRequired ? `${fmtXp(currentUser?.xp) ?? '0'} / ${fmtXp(currentUser?.nextRank?.xpRequired)} XP` : `${fmtXp(currentUser?.xp) ?? '0'} XP`}
                                                     </Text>
                                                 </HStack>
                                             )}

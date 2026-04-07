@@ -110,9 +110,10 @@ const ChallengesAuthGuard = ({ children }) => {
   if (!isLoggedIn) {
     return (
       <Box
-        minH="100vh"
-        px={{ base: 4, md: 6 }}
-        py={{ base: 8, md: 10 }}
+        minH="calc(100vh - 4rem)"
+        px={{ base: 3, sm: 4, md: 6 }}
+        pt={{ base: 20, md: 24 }}
+        pb={{ base: 6, md: 10 }}
         bg="var(--color-bg-primary)"
         bgImage="radial-gradient(circle at 14% 18%, rgba(34, 211, 238, 0.16), transparent 24%), radial-gradient(circle at 88% 14%, rgba(59, 130, 246, 0.16), transparent 22%), radial-gradient(circle at 80% 82%, rgba(14, 165, 233, 0.16), transparent 26%), linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.12))"
         position="relative"
@@ -127,18 +128,19 @@ const ChallengesAuthGuard = ({ children }) => {
         <Box
           position="relative"
           maxW="7xl"
+          w="100%"
           mx="auto"
-          minH="calc(100vh - 4rem)"
+          minH={{ base: 'calc(100vh - 8rem)', md: 'calc(100vh - 10rem)' }}
           display="grid"
-          gridTemplateColumns={{ base: '1fr', lg: '0.98fr 1.02fr' }}
-          gap={{ base: 5, md: 6 }}
+          gridTemplateColumns={{ base: '1fr', xl: '0.98fr 1.02fr' }}
+          gap={{ base: 4, md: 6 }}
           alignItems="center"
         >
           <VStack
             align="stretch"
             spacing={6}
-            p={{ base: 6, md: 8 }}
-            borderRadius="28px"
+            p={{ base: 4, sm: 5, md: 8 }}
+            borderRadius={{ base: '20px', md: '28px' }}
             border="1px solid var(--color-border)"
             bg="rgba(15, 23, 42, 0.68)"
             backdropFilter="blur(18px)"
@@ -147,8 +149,8 @@ const ChallengesAuthGuard = ({ children }) => {
           >
             <Box display="flex" alignItems="center" gap="12px" flexWrap="wrap">
               <Box
-                w="58px"
-                h="58px"
+                w={{ base: '48px', md: '58px' }}
+                h={{ base: '48px', md: '58px' }}
                 borderRadius="18px"
                 display="flex"
                 alignItems="center"
@@ -170,10 +172,10 @@ const ChallengesAuthGuard = ({ children }) => {
             </Box>
 
             <Box>
-              <Text
-                fontFamily="heading"
-                fontSize={{ base: '3xl', md: '5xl' }}
-                lineHeight="1.02"
+                <Text
+                  fontFamily="heading"
+                  fontSize={{ base: '2xl', sm: '3xl', md: '5xl' }}
+                  lineHeight="1.02"
                 fontWeight="800"
                 color="var(--color-text-heading)"
                 maxW="12ch"
@@ -187,7 +189,7 @@ const ChallengesAuthGuard = ({ children }) => {
 
             <Box
               display="grid"
-              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }}
               gap={3}
             >
               {[
@@ -214,7 +216,7 @@ const ChallengesAuthGuard = ({ children }) => {
 
             <Box
               display="grid"
-              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }}
               gap={3}
             >
               {[
@@ -263,8 +265,8 @@ const ChallengesAuthGuard = ({ children }) => {
           </VStack>
 
           <Box
-            p={{ base: 5, md: 6 }}
-            borderRadius="28px"
+            p={{ base: 4, sm: 5, md: 6 }}
+            borderRadius={{ base: '20px', md: '28px' }}
             border="1px solid rgba(148, 163, 184, 0.18)"
             bg="rgba(2, 6, 23, 0.45)"
             boxShadow="0 24px 60px rgba(2, 6, 23, 0.3)"
@@ -335,9 +337,10 @@ const BattlesAuthGuard = ({ children }) => {
   if (!isLoggedIn) {
     return (
       <Box
-        minH="100vh"
-        px={{ base: 4, md: 6 }}
-        py={{ base: 8, md: 10 }}
+        minH="calc(100vh - 4rem)"
+        px={{ base: 3, sm: 4, md: 6 }}
+        pt={{ base: 20, md: 24 }}
+        pb={{ base: 6, md: 10 }}
         bg="var(--color-bg-primary)"
         bgImage="radial-gradient(circle at 12% 18%, rgba(34, 211, 238, 0.18), transparent 24%), radial-gradient(circle at 88% 12%, rgba(59, 130, 246, 0.16), transparent 22%), radial-gradient(circle at 78% 82%, rgba(14, 165, 233, 0.18), transparent 26%), linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.12))"
         position="relative"
@@ -352,18 +355,19 @@ const BattlesAuthGuard = ({ children }) => {
         <Box
           position="relative"
           maxW="7xl"
+          w="100%"
           mx="auto"
-          minH="calc(100vh - 4rem)"
+          minH={{ base: 'calc(100vh - 8rem)', md: 'calc(100vh - 10rem)' }}
           display="grid"
-          gridTemplateColumns={{ base: '1fr', lg: '1.05fr 0.95fr' }}
-          gap={{ base: 5, md: 6 }}
+          gridTemplateColumns={{ base: '1fr', xl: '1.05fr 0.95fr' }}
+          gap={{ base: 4, md: 6 }}
           alignItems="center"
         >
           <VStack
             align="stretch"
             spacing={6}
-            p={{ base: 6, md: 8 }}
-            borderRadius="28px"
+            p={{ base: 4, sm: 5, md: 8 }}
+            borderRadius={{ base: '20px', md: '28px' }}
             border="1px solid var(--color-border)"
             bg="rgba(15, 23, 42, 0.68)"
             backdropFilter="blur(18px)"
@@ -372,8 +376,8 @@ const BattlesAuthGuard = ({ children }) => {
           >
             <Box display="flex" alignItems="center" gap="12px" flexWrap="wrap">
               <Box
-                w="58px"
-                h="58px"
+                w={{ base: '48px', md: '58px' }}
+                h={{ base: '48px', md: '58px' }}
                 borderRadius="18px"
                 display="flex"
                 alignItems="center"
@@ -395,10 +399,10 @@ const BattlesAuthGuard = ({ children }) => {
             </Box>
 
             <Box>
-              <Text
-                fontFamily="heading"
-                fontSize={{ base: '3xl', md: '5xl' }}
-                lineHeight="1.02"
+                <Text
+                  fontFamily="heading"
+                  fontSize={{ base: '2xl', sm: '3xl', md: '5xl' }}
+                  lineHeight="1.02"
                 fontWeight="800"
                 color="var(--color-text-heading)"
                 maxW="12ch"
@@ -412,7 +416,7 @@ const BattlesAuthGuard = ({ children }) => {
 
             <Box
               display="grid"
-              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }}
               gap={3}
             >
               {[
@@ -439,7 +443,7 @@ const BattlesAuthGuard = ({ children }) => {
 
             <Box
               display="grid"
-              gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+              gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }}
               gap={3}
             >
               {[
@@ -488,8 +492,8 @@ const BattlesAuthGuard = ({ children }) => {
           </VStack>
 
           <Box
-            p={{ base: 5, md: 6 }}
-            borderRadius="28px"
+            p={{ base: 4, sm: 5, md: 6 }}
+            borderRadius={{ base: '20px', md: '28px' }}
             border="1px solid rgba(148, 163, 184, 0.18)"
             bg="rgba(2, 6, 23, 0.45)"
             boxShadow="0 24px 60px rgba(2, 6, 23, 0.3)"

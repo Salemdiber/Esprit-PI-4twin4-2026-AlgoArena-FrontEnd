@@ -1,6 +1,10 @@
 import { apiClient } from './apiClient';
 
 export const battlesService = {
+  getMine: async () => {
+    return apiClient('/battles/me', { method: 'GET' });
+  },
+
   getAll: async (params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {

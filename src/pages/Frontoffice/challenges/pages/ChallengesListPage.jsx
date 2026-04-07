@@ -15,30 +15,28 @@ import {
     Text,
     Select,
     VStack,
-    useToast,
     HStack,
     Button,
+    Badge,
     Icon,
+    useToast,
 } from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FiClock } from 'react-icons/fi';
+import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
 import UserRankStatsBar from '../components/UserRankStatsBar';
 import ChallengesFilters from '../components/ChallengesFilters';
 import ChallengeCard from '../components/ChallengeCard';
 import useChallenges from '../hooks/useChallenges';
 import ChallengesListSkeleton from '../../../../shared/skeletons/ChallengesListSkeleton';
 import { useChallengeContext } from '../context/ChallengeContext';
-import { fetchUserAttempts } from '../../../../services/userStatsService';
-import { judgeService } from '../../../../services/judgeService';
 
 const MotionBox = motion.create(Box);
-const GRACE_PREFIX = 'challenge-grace:';
 
 const ChallengesListPage = () => {
     const navigate = useNavigate();
     const toast = useToast();
-    const { streakDetails } = useChallengeContext();
+    const { streakDetails, userProgress, challenges } = useChallengeContext();
     const {
         filteredChallenges,
         filteredCount,
@@ -59,9 +57,6 @@ const ChallengesListPage = () => {
         difficultyCounts,
         tagCounts,
     } = useChallenges();
-    const [graceMap, setGraceMap] = React.useState({});
-    const [activeGrace, setActiveGrace] = React.useState(null);
-    const [expiredMessage, setExpiredMessage] = React.useState('');
 
     React.useEffect(() => {
         const currentStreak = Number(streakDetails?.currentStreak || 0);
@@ -81,124 +76,40 @@ const ChallengesListPage = () => {
         sessionStorage.setItem(sessionKey, '1');
     }, [streakDetails, toast]);
 
-    React.useEffect(() => {
-        let cancelled = false;
-
-        const syncGrace = async () => {
-            const attempts = await fetchUserAttempts();
-            if (cancelled) return;
-            const next = {};
-            const nowMs = Date.now();
-
-            attempts.forEach((entry) => {
-                const challengeId = entry?.challengeId;
-                if (!challengeId) return;
-                if (entry?.attemptStatus === 'grace_period' && entry?.gracePeriodExpiresAt) {
-                    const expiresMs = new Date(entry.gracePeriodExpiresAt).getTime();
-                    if (Number.isFinite(expiresMs) && expiresMs > nowMs) {
-                        next[challengeId] = {
-                            attemptId: entry.attemptId || null,
-                            gracePeriodExpiresAt: entry.gracePeriodExpiresAt,
-                        };
-                        localStorage.setItem(`${GRACE_PREFIX}${challengeId}`, JSON.stringify({
-                            challengeId,
-                            attemptId: entry.attemptId || null,
-                            gracePeriodExpiresAt: entry.gracePeriodExpiresAt,
-                            leftAt: entry.leftAt || null,
-                        }));
-                    }
-                }
-            });
-
-            Object.keys(localStorage).forEach((key) => {
-                if (!key.startsWith(GRACE_PREFIX)) return;
-                try {
-                    const payload = JSON.parse(localStorage.getItem(key) || '{}');
-                    if (!payload?.challengeId || !payload?.gracePeriodExpiresAt) {
-                        localStorage.removeItem(key);
-                        return;
-                    }
-                    const expiresMs = new Date(payload.gracePeriodExpiresAt).getTime();
-                    if (!Number.isFinite(expiresMs) || expiresMs <= nowMs) {
-                        localStorage.removeItem(key);
-                        return;
-                    }
-                    if (!next[payload.challengeId]) {
-                        next[payload.challengeId] = {
-                            attemptId: payload.attemptId || null,
-                            gracePeriodExpiresAt: payload.gracePeriodExpiresAt,
-                        };
-                    }
-                } catch {
-                    localStorage.removeItem(key);
-                }
-            });
-
-            setGraceMap(next);
-        };
-
-        syncGrace();
-        const poller = setInterval(syncGrace, 15000);
-        return () => {
-            cancelled = true;
-            clearInterval(poller);
-        };
-    }, []);
-
-    React.useEffect(() => {
-        const tick = async () => {
-            const now = Date.now();
-            let nextActive = null;
-            let minRemaining = Number.POSITIVE_INFINITY;
-            const updates = { ...graceMap };
-
-            for (const [challengeId, data] of Object.entries(graceMap)) {
-                const expiresMs = new Date(data.gracePeriodExpiresAt).getTime();
-                const remaining = Math.max(0, Math.floor((expiresMs - now) / 1000));
-
-                if (remaining <= 0) {
-                    delete updates[challengeId];
-                    localStorage.removeItem(`${GRACE_PREFIX}${challengeId}`);
-                    await judgeService.abandonAttempt(challengeId, 'timeout').catch(() => null);
-                    setExpiredMessage('Grace period expired. Your attempt has been marked as abandoned.');
-                    continue;
-                }
-
-                if (remaining < minRemaining) {
-                    minRemaining = remaining;
-                    nextActive = {
-                        challengeId,
-                        remainingSeconds: remaining,
-                    };
-                }
-            }
-
-            if (Object.keys(updates).length !== Object.keys(graceMap).length) {
-                setGraceMap(updates);
-            }
-            setActiveGrace(nextActive);
-        };
-
-        tick();
-        const timer = setInterval(tick, 1000);
-        return () => clearInterval(timer);
-    }, [graceMap]);
-
-    const formatGrace = React.useCallback((seconds) => {
-        const mins = Math.floor((seconds || 0) / 60);
-        const secs = (seconds || 0) % 60;
-        return `${String(mins)}:${String(secs).padStart(2, '0')}`;
-    }, []);
-
-    const activeGraceChallenge = React.useMemo(
-        () => filteredChallenges.find((challenge) => challenge.id === activeGrace?.challengeId) || null,
-        [filteredChallenges, activeGrace],
-    );
-
     // Show skeleton during loading
     if (isLoadingChallenges) {
         return <ChallengesListSkeleton />;
     }
+
+    const inProgressItems = (Array.isArray(userProgress) ? userProgress : [])
+        .filter((item) => item?.userStatus === 'in_progress')
+        .map((item) => ({
+            ...item,
+            challenge: (Array.isArray(challenges) ? challenges : []).find((challenge) => challenge.id === item.challengeId),
+        }))
+        .filter((item) => Boolean(item.challenge));
+
+    const mostRecentInProgress = inProgressItems
+        .slice()
+        .sort((a, b) => new Date(b.lastActiveAt || b.lastAttemptAt || 0).getTime() - new Date(a.lastActiveAt || a.lastAttemptAt || 0).getTime())[0] || null;
+
+    const getRelative = (iso) => {
+        if (!iso) return 'recently';
+        const diff = Date.now() - new Date(iso).getTime();
+        const minutes = Math.max(1, Math.floor(diff / 60000));
+        if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        const days = Math.floor(hours / 24);
+        return `${days} day${days === 1 ? '' : 's'} ago`;
+    };
+
+    const fullXpRemainingPercent = (elapsedSeconds) => {
+        const threshold = 3600;
+        if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) return 100;
+        const remaining = Math.max(0, threshold - Number(elapsedSeconds));
+        return Math.round((remaining / threshold) * 100);
+    };
 
     return (
         <MotionBox
@@ -232,48 +143,70 @@ const ChallengesListPage = () => {
 
                     <UserRankStatsBar />
                 </Box>
-                {activeGrace && (
+
+                {inProgressItems.length > 0 && (
                     <Box
                         mb={6}
-                        p={4}
-                        borderRadius="12px"
-                        bg="rgba(245,158,11,0.13)"
-                        border="1px solid rgba(245,158,11,0.35)"
+                        p={{ base: 4, md: 6 }}
+                        borderRadius="16px"
+                        borderLeft="4px solid #f59e0b"
+                        border="1px solid rgba(245,158,11,0.22)"
+                        bg="var(--color-bg-secondary)"
+                        boxShadow="0 12px 30px rgba(15,23,42,0.24)"
                     >
-                        <Flex align="center" justify="space-between" gap={4} wrap="wrap">
-                            <HStack spacing={2.5}>
-                                <Icon as={FiClock} color="orange.300" />
+                        <Flex direction={{ base: 'column', md: 'row' }} align={{ base: 'stretch', md: 'center' }} justify="space-between" gap={4}>
+                            <HStack align="flex-start" spacing={4}>
+                                <Icon as={FiZap} boxSize={6} color="orange.300" mt={0.5} />
                                 <Box>
-                                    <Text fontWeight="semibold" color="orange.100">
-                                        You have an incomplete challenge: {activeGraceChallenge?.title || activeGrace.challengeId}
+                                    <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="bold" color="orange.300">
+                                        {inProgressItems.length === 1 ? 'You have a challenge in progress!' : `You have ${inProgressItems.length} challenges in progress!`}
                                     </Text>
-                                    <Text color="orange.200" fontSize="sm">
-                                        Time remaining to return: {formatGrace(activeGrace.remainingSeconds)}
-                                    </Text>
+                                    {inProgressItems.length === 1 && mostRecentInProgress && (
+                                        <>
+                                            <HStack mt={1.5} spacing={2} flexWrap="wrap">
+                                                <Text color="var(--color-text-primary)" fontSize="md" fontWeight="medium">
+                                                    {mostRecentInProgress.challenge?.title}
+                                                </Text>
+                                                <Badge colorScheme="orange" variant="subtle">
+                                                    {mostRecentInProgress.challenge?.difficulty}
+                                                </Badge>
+                                            </HStack>
+                                            <HStack mt={1.5} spacing={2} color="var(--color-text-muted)">
+                                                <Icon as={FiClock} boxSize={3.5} />
+                                                <Text fontSize="sm">
+                                                    Started {getRelative(mostRecentInProgress.lastActiveAt || mostRecentInProgress.lastAttemptAt)} • {fullXpRemainingPercent(mostRecentInProgress.totalElapsedTime)}% of time remaining for full XP
+                                                </Text>
+                                            </HStack>
+                                        </>
+                                    )}
+                                    {inProgressItems.length > 1 && (
+                                        <VStack mt={2.5} align="stretch" spacing={1.5}>
+                                            {inProgressItems.slice(0, 3).map((item) => (
+                                                <HStack key={item.challengeId} spacing={2}>
+                                                    <Text fontSize="sm" color="var(--color-text-primary)">{item.challenge?.title}</Text>
+                                                    <Button variant="link" size="sm" colorScheme="orange" onClick={() => navigate(`/challenges/${item.challengeId}`)}>
+                                                        Continue
+                                                    </Button>
+                                                </HStack>
+                                            ))}
+                                        </VStack>
+                                    )}
                                 </Box>
                             </HStack>
                             <Button
-                                size="sm"
-                                colorScheme="orange"
-                                onClick={() => navigate(`/challenges/${activeGrace.challengeId}`)}
+                                leftIcon={<Icon as={FiArrowRight} />}
+                                bg="orange.400"
+                                color="white"
+                                _hover={{ bg: 'orange.300' }}
+                                borderRadius="12px"
+                                onClick={() => navigate(`/challenges/${(mostRecentInProgress || inProgressItems[0]).challengeId}`)}
+                                w={{ base: 'full', md: 'auto' }}
                             >
-                                Return to Challenge
+                                Continue Solving
                             </Button>
                         </Flex>
                     </Box>
                 )}
-                {!activeGrace && expiredMessage && (
-                    <Box
-                        mb={6}
-                        p={4}
-                        borderRadius="12px"
-                        bg="rgba(239,68,68,0.12)"
-                        border="1px solid rgba(239,68,68,0.35)"
-                    >
-                        <Text color="red.200" fontWeight="semibold">{expiredMessage}</Text>
-                    </Box>
-                )}
-
                 {/* Main layout */}
                 <Flex direction={{ base: 'column', lg: 'row' }} gap={6}>
                     {/* Sidebar */}
@@ -342,7 +275,6 @@ const ChallengesListPage = () => {
                                     <ChallengeCard
                                         key={challenge.id}
                                         challenge={challenge}
-                                        graceInfo={graceMap[challenge.id] || null}
                                     />
                                 ))
                             )}
