@@ -10,14 +10,20 @@
 import React from 'react';
 import { Box, Flex, Text } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const MotionBox = motion.create(Box);
 
 const LeaderboardHeader = ({
-    eyebrow = 'Elite Championship',
-    title = 'Global Arena',
-    subtitle = 'Where legends compete for supremacy',
+    eyebrow: eyebrowProp,
+    title: titleProp,
+    subtitle: subtitleProp,
 }) => {
+    const { t } = useTranslation();
+    const eyebrow = eyebrowProp ?? t('leaderboardPage.defaultEyebrow');
+    const title = titleProp ?? t('leaderboardPage.defaultTitle');
+    const subtitle = subtitleProp ?? t('leaderboardPage.defaultSubtitle');
+
     return (
         <MotionBox
             textAlign="center"

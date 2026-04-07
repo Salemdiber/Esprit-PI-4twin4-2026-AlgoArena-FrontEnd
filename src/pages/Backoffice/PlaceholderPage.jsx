@@ -1,6 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const PlaceholderPage = ({ title }) => {
+    const { t } = useTranslation();
+
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4 animate-fade-in-up">
             <div className="p-6 bg-cyan-500/10 rounded-full border border-cyan-500/20 shadow-glow-cyan">
@@ -10,8 +13,8 @@ const PlaceholderPage = ({ title }) => {
             </div>
             <h1 style={{ color: 'var(--color-text-heading)' }} className="text-3xl font-heading font-bold ">{title}</h1>
             <p style={{ color: 'var(--color-text-muted)' }} className=" max-w-md text-lg">
-                This module is currently under construction. <br />
-                <span className="text-sm text-gray-500">Stay tuned for the next update.</span>
+                {t('admin.placeholder.underConstruction')} <br />
+                <span className="text-sm text-gray-500">{t('admin.placeholder.stayTuned')}</span>
             </p>
         </div>
     );

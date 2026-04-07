@@ -1,5 +1,9 @@
+import { getAcceptLanguageHeader } from '../i18n';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 const ENDPOINT = `${API_BASE}/challenges`;
+
+const langHeaders = () => ({ 'Accept-Language': getAcceptLanguageHeader() });
 
 async function handleResp(res) {
   if (!res.ok) {
@@ -12,19 +16,19 @@ async function handleResp(res) {
 }
 
 export async function getChallenges() {
-  const res = await fetch(ENDPOINT, { credentials: 'same-origin' });
+  const res = await fetch(ENDPOINT, { credentials: 'same-origin', headers: { ...langHeaders() } });
   return handleResp(res);
 }
 
 export async function getChallenge(id) {
-  const res = await fetch(`${ENDPOINT}/${id}`, { credentials: 'same-origin' });
+  const res = await fetch(`${ENDPOINT}/${id}`, { credentials: 'same-origin', headers: { ...langHeaders() } });
   return handleResp(res);
 }
 
 export async function createChallenge(payload) {
   const res = await fetch(ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...langHeaders() },
     body: JSON.stringify(payload),
     credentials: 'same-origin',
   });
@@ -34,7 +38,7 @@ export async function createChallenge(payload) {
 export async function updateChallenge(id, payload) {
   const res = await fetch(`${ENDPOINT}/${id}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...langHeaders() },
     body: JSON.stringify(payload),
     credentials: 'same-origin',
   });
@@ -45,6 +49,7 @@ export async function deleteChallenge(id) {
   const res = await fetch(`${ENDPOINT}/${id}`, {
     method: 'DELETE',
     credentials: 'same-origin',
+    headers: { ...langHeaders() },
   });
   return handleResp(res);
 }

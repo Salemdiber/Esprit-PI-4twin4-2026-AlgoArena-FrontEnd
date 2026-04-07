@@ -24,6 +24,7 @@ import {
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import TwoFactorMethodSelector from '../components/TwoFactorMethodSelector';
 import { useProfile } from '../context/ProfileContext';
 
@@ -92,6 +93,7 @@ const stepVariants = {
 };
 
 const TwoFactorSetupPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const toast = useToast();
     const prefersReducedMotion = useReducedMotion();
@@ -116,8 +118,8 @@ const TwoFactorSetupPage = () => {
             setStep(3);
         } else {
             toast({
-                title: 'Invalid code',
-                description: 'Please enter a valid 6-digit code.',
+                title: t('profilePage.invalidCode'),
+                description: t('profilePage.invalidCodeDesc'),
                 status: 'error',
                 duration: 3000,
                 isClosable: true,
@@ -176,7 +178,7 @@ const TwoFactorSetupPage = () => {
                             else setStep((s) => s - 1);
                         }}
                     >
-                        {step === 1 ? 'Back to Profile' : 'Back'}
+                        {step === 1 ? t('profilePage.backToProfile') : t('profilePage.back')}
                     </Button>
                 )}
 
@@ -216,10 +218,10 @@ const TwoFactorSetupPage = () => {
                                 borderTop="3px solid #22d3ee"
                             >
                                 <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color={textHeadingColor} mb={2}>
-                                    Choose Verification Method
+                                    {t('profilePage.chooseMethod')}
                                 </Text>
                                 <Text color={textSubColor} fontSize="sm" mb={6}>
-                                    Select how you'd like to verify your identity when signing in.
+                                    {t('profilePage.chooseMethodDesc')}
                                 </Text>
 
                                 <TwoFactorMethodSelector selectedMethod={method} onSelect={setMethod} />
@@ -236,7 +238,7 @@ const TwoFactorSetupPage = () => {
                                     isDisabled={!method}
                                     onClick={() => setStep(2)}
                                 >
-                                    Continue
+                                    {t('profilePage.continue')}
                                 </Button>
                             </Box>
                         </MotionBox>
@@ -266,10 +268,10 @@ const TwoFactorSetupPage = () => {
                                     <VStack spacing={6} align="stretch">
                                         <Box>
                                             <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color={textHeadingColor} mb={2}>
-                                                Scan QR Code
+                                                {t('profilePage.scanQrCode')}
                                             </Text>
                                             <Text color={textSubColor} fontSize="sm">
-                                                Open your authenticator app and scan the QR code, or enter the secret key manually.
+                                                {t('profilePage.scanQrDesc')}
                                             </Text>
                                         </Box>
 
@@ -278,7 +280,7 @@ const TwoFactorSetupPage = () => {
                                         {/* Secret key */}
                                         <Box textAlign="center">
                                             <Text fontSize="xs" color={textSubColor} mb={1}>
-                                                Secret Key
+                                                {t('profilePage.secretKey')}
                                             </Text>
                                             <Box
                                                 bg={boxSecondaryBg}
@@ -301,7 +303,7 @@ const TwoFactorSetupPage = () => {
                                         {/* Code input */}
                                         <Box>
                                             <Text fontSize="sm" fontWeight="500" color={textDescColor} mb={3} textAlign="center">
-                                                Enter the 6-digit code from your app
+                                                {t('profilePage.enterCodeApp')}
                                             </Text>
                                             <Flex justify="center">
                                                 <HStack>
@@ -342,7 +344,7 @@ const TwoFactorSetupPage = () => {
                                             isLoading={isVerifying}
                                             onClick={handleVerify}
                                         >
-                                            Verify & Enable
+                                            {t('profilePage.verifyAndEnable')}
                                         </Button>
                                     </VStack>
                                 ) : (
@@ -350,10 +352,10 @@ const TwoFactorSetupPage = () => {
                                     <VStack spacing={6} align="stretch">
                                         <Box>
                                             <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color={textHeadingColor} mb={2}>
-                                                Email Verification
+                                                {t('profilePage.emailVerification')}
                                             </Text>
                                             <Text color={textSubColor} fontSize="sm">
-                                                We'll send a verification code to your registered email address.
+                                                {t('profilePage.emailVerificationDesc')}
                                             </Text>
                                         </Box>
 
@@ -382,8 +384,8 @@ const TwoFactorSetupPage = () => {
                                             fontWeight="500"
                                             onClick={() => {
                                                 toast({
-                                                    title: 'Code sent!',
-                                                    description: `A verification code has been sent to ${maskedEmail}`,
+                                                    title: t('profilePage.codeSent'),
+                                                    description: t('profilePage.codeSentDesc', { email: maskedEmail }),
                                                     status: 'info',
                                                     duration: 3000,
                                                     isClosable: true,
@@ -391,13 +393,13 @@ const TwoFactorSetupPage = () => {
                                                 });
                                             }}
                                         >
-                                            Send Verification Code
+                                            {t('profilePage.sendVerificationCode')}
                                         </Button>
 
                                         {/* Code input */}
                                         <Box>
                                             <Text fontSize="sm" fontWeight="500" color={textDescColor} mb={3} textAlign="center">
-                                                Enter the 6-digit code from your email
+                                                {t('profilePage.enterCodeEmail')}
                                             </Text>
                                             <Flex justify="center">
                                                 <HStack>
@@ -438,7 +440,7 @@ const TwoFactorSetupPage = () => {
                                             isLoading={isVerifying}
                                             onClick={handleVerify}
                                         >
-                                            Confirm & Enable
+                                            {t('profilePage.confirmAndEnable')}
                                         </Button>
                                     </VStack>
                                 )}
@@ -481,12 +483,12 @@ const TwoFactorSetupPage = () => {
                                 </Box>
 
                                 <Text fontFamily="heading" fontSize="2xl" fontWeight="bold" color={textHeadingColor} mb={3}>
-                                    Two-Factor Enabled!
+                                    {t('profilePage.twoFactorEnabled')}
                                 </Text>
                                 <Text color={textSubColor} fontSize="sm" maxW="sm" mx="auto" mb={8} lineHeight="1.7">
-                                    Your account is now protected with two-factor authentication using{' '}
+                                    {t('profilePage.twoFactorEnabledDesc')}{' '}
                                     <Text as="span" color="#22d3ee" fontWeight="600">
-                                        {method === 'authenticator' ? 'Mobile Authenticator' : 'Email Verification'}
+                                        {method === 'authenticator' ? t('profilePage.mobileAuthenticator') : t('profilePage.emailVerificationMethod')}
                                     </Text>
                                     .
                                 </Text>
@@ -501,7 +503,7 @@ const TwoFactorSetupPage = () => {
                                     _hover={{ bg: '#67e8f9', boxShadow: '0 8px 24px rgba(34, 211, 238, 0.4)' }}
                                     onClick={() => navigate('/profile')}
                                 >
-                                    Back to Profile
+                                    {t('profilePage.backToProfile')}
                                 </Button>
                             </Box>
                         </MotionBox>

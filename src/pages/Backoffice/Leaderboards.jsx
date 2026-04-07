@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@chakra-ui/react';
 import { StarIcon } from '@chakra-ui/icons';
 import { userService } from '../../services/userService';
@@ -179,6 +180,7 @@ const getPodiumClasses = (position) => {
 };
 
 const PodiumCard = ({ entry, position }) => {
+    const { t } = useTranslation();
     const classes = getPodiumClasses(position);
     const avatarSizeClass = position === 1 ? 'w-20 h-20' : 'w-16 h-16';
     const xpWrapClass = position === 1
@@ -203,8 +205,8 @@ const PodiumCard = ({ entry, position }) => {
                             <span style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold drop-shadow-md">{position}</span>
                         </div>
                     </div>
-                    <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold mb-1">No data</h3>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm">Waiting for live users</p>
+                    <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold mb-1">{t('admin.leaderboards.noData')}</h3>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm">{t('admin.leaderboards.waitingUsers')}</p>
                 </div>
             </div>
         );
@@ -223,7 +225,7 @@ const PodiumCard = ({ entry, position }) => {
                     <div className="relative inline-block mb-3">
                         <img src={entry.avatar} alt={entry.displayName} className={`${avatarSizeClass} rounded-full border-4 ${classes.ring} mx-auto`} />
                         <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${badgeToneClass} text-xs font-bold px-2 py-0.5 rounded-full`}>
-                            {classes.label}
+                            {position === 1 ? t('admin.leaderboards.podiumChampion') : position === 2 ? t('admin.leaderboards.podiumRunnerUp') : t('admin.leaderboards.podiumThird')}
                         </div>
                     </div>
                     <h3 style={{ color: 'var(--color-text-heading)' }} className={`font-heading ${position === 1 ? 'text-2xl' : 'text-xl'} font-bold mb-1`}>{entry.username}</h3>
@@ -234,7 +236,7 @@ const PodiumCard = ({ entry, position }) => {
                         </svg>
                         <span className={`font-heading ${position === 1 ? 'text-xl' : 'text-lg'} font-bold ${xpToneClass}`}>{formatNumber(entry.xp)}</span>
                     </div>
-                    <p className={`text-xs ${classes.accent} font-medium mt-2 inline-flex items-center gap-1`}><StreakIcon boxSize={3} /> {entry.streak} day streak</p>
+                    <p className={`text-xs ${classes.accent} font-medium mt-2 inline-flex items-center gap-1`}><StreakIcon boxSize={3} /> {t('admin.leaderboards.dayStreak', { count: entry.streak })}</p>
                 </div>
             </div>
         </div>
@@ -242,6 +244,7 @@ const PodiumCard = ({ entry, position }) => {
 };
 
 const LeaderboardRow = ({ entry, rank }) => {
+    const { t } = useTranslation();
     const leagueStyles = LEAGUE_STYLES[entry.league] || LEAGUE_STYLES.BRONZE;
 
     return (
@@ -256,7 +259,7 @@ const LeaderboardRow = ({ entry, rank }) => {
                         <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm font-medium flex items-center gap-2">
                             {entry.username}
                             {entry.isCurrentUser ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">YOU</span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">{t('admin.leaderboards.you')}</span>
                             ) : null}
                         </p>
                         <p style={{ color: 'var(--color-text-muted)' }} className="text-xs">{entry.displayName}</p>
@@ -268,7 +271,7 @@ const LeaderboardRow = ({ entry, rank }) => {
             <td style={{ color: 'var(--color-text-secondary)' }} className="px-6 py-4 whitespace-nowrap text-sm">
                 <span className="inline-flex items-center gap-1">
                     <StreakIcon boxSize={3.5} color="var(--color-text-secondary)" />
-                    {entry.streak} days
+                    {t('admin.leaderboards.streakDays', { count: entry.streak })}
                 </span>
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
@@ -277,7 +280,7 @@ const LeaderboardRow = ({ entry, rank }) => {
                 </span>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <button title="View Profile" className="action-btn action-btn-view" onClick={() => entry.onViewDetails?.(entry)}>
+                <button title={t('admin.leaderboards.viewProfile')} className="action-btn action-btn-view" onClick={() => entry.onViewDetails?.(entry)}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                     </svg>
@@ -288,6 +291,7 @@ const LeaderboardRow = ({ entry, rank }) => {
 };
 
 const UserDetailsModal = ({ user, onClose }) => {
+    const { t } = useTranslation();
     if (!user) return null;
 
     return (
@@ -301,25 +305,25 @@ const UserDetailsModal = ({ user, onClose }) => {
                             <p style={{ color: 'var(--color-text-muted)' }} className="text-sm truncate">{user.displayName}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="btn-secondary px-3 py-2 text-sm">Close</button>
+                    <button onClick={onClose} className="btn-secondary px-3 py-2 text-sm">{t('admin.leaderboards.close')}</button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="glass-panel rounded-xl p-4">
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">XP</p>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">{t('admin.leaderboards.labelXp')}</p>
                         <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold">{formatNumber(user.xp)}</p>
                     </div>
                     <div className="glass-panel rounded-xl p-4">
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">Rank</p>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">{t('admin.leaderboards.labelRank')}</p>
                         <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold">{user.league}</p>
                     </div>
                     <div className="glass-panel rounded-xl p-4">
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">Challenges</p>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">{t('admin.leaderboards.labelChallenges')}</p>
                         <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold">{formatNumber(user.challenges)}</p>
                     </div>
                     <div className="glass-panel rounded-xl p-4">
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">Streak</p>
-                        <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold">{user.streak} days</p>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-1">{t('admin.leaderboards.labelStreak')}</p>
+                        <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold">{t('admin.leaderboards.streakDaysLabel', { count: user.streak })}</p>
                     </div>
                 </div>
             </div>
@@ -336,6 +340,7 @@ const extractUsers = (payload) => {
 };
 
 const Leaderboards = () => {
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [loadError, setLoadError] = useState('');
@@ -359,7 +364,7 @@ const Leaderboards = () => {
                 if (cancelled) return;
 
                 setUsers([]);
-                setLoadError(error?.message || 'Impossible de charger les données du leaderboard.');
+                setLoadError(error?.message || t('admin.leaderboards.loadFailed'));
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -370,7 +375,7 @@ const Leaderboards = () => {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [t]);
 
     const leaderboardRows = useMemo(() => {
         return users
@@ -402,33 +407,33 @@ const Leaderboards = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold mb-2">Leaderboard Management</h1>
-                <p style={{ color: 'var(--color-text-muted)' }}>Manage rankings and competitive standings</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold mb-2">{t('admin.leaderboards.pageTitle')}</h1>
+                <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.leaderboards.pageSubtitle')}</p>
             </div>
 
             <div className="glass-panel rounded-2xl p-4 mb-6 shadow-custom">
                 <div className="flex flex-col md:flex-row gap-4">
                     <select value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value)} className="form-select bg-(--color-bg-input) md:w-48">
-                        <option value="ALL">All Ranks</option>
+                        <option value="ALL">{t('admin.leaderboards.allRanks')}</option>
                         {RANK_ORDER.map((rank) => (
                             <option key={rank} value={rank}>{rank.charAt(0) + rank.slice(1).toLowerCase()}</option>
                         ))}
                     </select>
                     <div className="flex-1"></div>
-                    <button className="btn-primary w-full md:w-auto" onClick={() => window.print()}>Export Rankings</button>
+                    <button className="btn-primary w-full md:w-auto" onClick={() => window.print()}>{t('admin.leaderboards.exportRankings')}</button>
                 </div>
             </div>
 
             {loadError ? (
                 <div className="glass-panel rounded-2xl p-4 shadow-custom border border-orange-500/20 bg-orange-500/5">
-                    <p style={{ color: 'var(--color-text-heading)' }} className="font-semibold">Live data unavailable</p>
+                    <p style={{ color: 'var(--color-text-heading)' }} className="font-semibold">{t('admin.leaderboards.liveDataUnavailable')}</p>
                     <p style={{ color: 'var(--color-text-muted)' }} className="text-sm mt-1">{loadError}</p>
                 </div>
             ) : null}
 
             {isLoading ? (
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
-                    <p style={{ color: 'var(--color-text-muted)' }}>Loading real leaderboard data...</p>
+                    <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.leaderboards.loadingLeaderboard')}</p>
                 </div>
             ) : null}
 
@@ -440,15 +445,15 @@ const Leaderboards = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="glass-panel rounded-2xl p-4 shadow-custom">
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-2">Competitors</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-2">{t('admin.leaderboards.competitors')}</p>
                     <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold">{totalCompetitors.toLocaleString()}</p>
                 </div>
                 <div className="glass-panel rounded-2xl p-4 shadow-custom">
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-2">Top XP</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-2">{t('admin.leaderboards.topXp')}</p>
                     <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold">{formatNumber(topXp)}</p>
                 </div>
                 <div className="glass-panel rounded-2xl p-4 shadow-custom">
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-2">Average XP</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs uppercase tracking-[0.18em] mb-2">{t('admin.leaderboards.averageXp')}</p>
                     <p style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold">{formatNumber(averageXp)}</p>
                 </div>
             </div>
@@ -458,21 +463,21 @@ const Leaderboards = () => {
                     <table className="w-full">
                         <thead className="bg-(--color-bg-sidebar)/50 border-b">
                             <tr>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Rank</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">User</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">XP</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Challenges</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Streak</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Rank</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thRank')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thUser')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thXp')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thChallenges')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thStreak')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thLeague')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thActions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800/50">
                             {!isLoading && contenders.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-10 text-center">
-                                        <p style={{ color: 'var(--color-text-heading)' }} className="font-semibold">No users match the selected filters</p>
-                                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm mt-1">Try a broader rank or season scope.</p>
+                                        <p style={{ color: 'var(--color-text-heading)' }} className="font-semibold">{t('admin.leaderboards.noUsersFilter')}</p>
+                                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm mt-1">{t('admin.leaderboards.tryBroaderFilter')}</p>
                                     </td>
                                 </tr>
                             ) : null}

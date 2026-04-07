@@ -7,6 +7,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
 import { BattleStatus } from '../types/battle.types';
 import BattleCard from '../components/BattleCard';
@@ -19,6 +20,7 @@ import { useChallengeContext } from '../../challenges/context/ChallengeContext';
 import '../battles.css';
 
 const BattleListPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const {
         battles,
@@ -47,13 +49,10 @@ const BattleListPage = () => {
     // Filter battles
     const filteredBattles = useMemo(() => {
         return battles.filter(b => {
-            // Exclude cancelled from default view
             if (b.status === BattleStatus.CANCELLED) return false;
 
-            // Mode filter
             if (filters.modes.length > 0 && !filters.modes.includes(b.mode)) return false;
 
-            // Status filter (map LIVE to show under ACTIVE too)
             if (filters.statuses.length > 0) {
                 const mappedStatuses = filters.statuses.flatMap(s =>
                     s === BattleStatus.ACTIVE ? [BattleStatus.ACTIVE, BattleStatus.LIVE] : [s]
@@ -61,7 +60,6 @@ const BattleListPage = () => {
                 if (!mappedStatuses.includes(b.status)) return false;
             }
 
-            // Search
             if (filters.search) {
                 const q = filters.search.toLowerCase();
                 const opponentName = b.opponent?.name?.toLowerCase() || '';
@@ -86,7 +84,6 @@ const BattleListPage = () => {
         cancelBattle(id);
     };
 
-    // Show skeleton during loading
     if (isLoading) {
         return <BattlesListSkeleton />;
     }
@@ -97,10 +94,10 @@ const BattleListPage = () => {
                 {/* Header */}
                 <div className="battle-mb-xl">
                     <h1 style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--color-text-heading)' }}>
-                        Battle Arena
+                        {t('battles.arenaTitle')}
                     </h1>
                     <p style={{ fontSize: '1.25rem', color: 'var(--color-text-secondary)' }}>
-                        Compete. Strategize. Dominate.
+                        {t('battles.arenaSubtitle')}
                     </p>
                     <div style={{ marginTop: '1.5rem' }}>
                         <UserRankStatsBar />
@@ -116,10 +113,10 @@ const BattleListPage = () => {
                         {/* Toolbar */}
                         <div className="battle-flex-between battle-mb-lg">
                             <p className="battle-text-muted">
-                                Showing <span className="battle-text-cyan battle-font-semibold">{filteredBattles.length}</span> battles
+                                {t('battles.showing')} <span className="battle-text-cyan battle-font-semibold">{filteredBattles.length}</span> {t('battles.battlesLabel')}
                             </p>
                             <button className="battle-btn battle-btn--primary" onClick={openCreateModal}>
-                                + Create Battle
+                                {t('battles.createBattle')}
                             </button>
                         </div>
 
@@ -133,13 +130,13 @@ const BattleListPage = () => {
                         {filteredBattles.length === 0 ? (
                             <div className="battle-card" style={{ textAlign: 'center', padding: '3rem' }}>
                                 <p style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>⚔️</p>
-                                <p className="battle-text-muted">No battles found matching your filters.</p>
+                                <p className="battle-text-muted">{t('battles.noBattlesFound')}</p>
                                 <button
                                     className="battle-btn battle-btn--primary"
                                     style={{ marginTop: '1rem' }}
                                     onClick={openCreateModal}
                                 >
-                                    Create Your First Battle
+                                    {t('battles.createFirstBattle')}
                                 </button>
                             </div>
                         ) : (

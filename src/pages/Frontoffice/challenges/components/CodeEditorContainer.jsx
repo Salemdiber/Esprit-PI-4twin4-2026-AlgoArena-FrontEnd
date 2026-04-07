@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { Box, Text } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { CodeEditor } from '../../../../editor';
 
 const CodeEditorContainer = ({
@@ -16,6 +17,7 @@ const CodeEditorContainer = ({
     onLockedInteraction,
     onPasteBlocked,
 }) => {
+    const { t } = useTranslation();
     const handleLockedInteraction = () => {
         if (readOnly && onLockedInteraction) onLockedInteraction();
     };
@@ -78,7 +80,7 @@ const CodeEditorContainer = ({
                     border="1px solid"
                     borderColor="orange.500"
                 >
-                    ⚠️ Paste disabled — type your solution manually
+                    ⚠️ {t('challengePage.pasteDisabledBanner')}
                 </Text>
             )}
         </Box>

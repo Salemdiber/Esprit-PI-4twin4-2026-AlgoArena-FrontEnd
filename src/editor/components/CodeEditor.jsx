@@ -20,6 +20,7 @@
  */
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'framer-motion';
 import Editor from '@monaco-editor/react';
 import {
@@ -31,22 +32,25 @@ import {
 /**
  * Loader skeleton shown while Monaco is downloading.
  */
-const EditorLoader = () => (
-    <Flex
-        h="100%"
-        w="100%"
-        align="center"
-        justify="center"
-        bg="var(--color-bg-primary)"
-        direction="column"
-        gap={3}
-    >
-        <Spinner size="lg" color="#22d3ee" thickness="3px" speed="0.8s" />
-        <Text color="var(--color-text-muted)" fontSize="sm" fontFamily="mono">
-            Loading editor…
-        </Text>
-    </Flex>
-);
+const EditorLoader = () => {
+    const { t } = useTranslation();
+    return (
+        <Flex
+            h="100%"
+            w="100%"
+            align="center"
+            justify="center"
+            bg="var(--color-bg-primary)"
+            direction="column"
+            gap={3}
+        >
+            <Spinner size="lg" color="#22d3ee" thickness="3px" speed="0.8s" />
+            <Text color="var(--color-text-muted)" fontSize="sm" fontFamily="mono">
+                {t('editor.loadingEditor')}
+            </Text>
+        </Flex>
+    );
+};
 
 const CodeEditor = ({
     code,

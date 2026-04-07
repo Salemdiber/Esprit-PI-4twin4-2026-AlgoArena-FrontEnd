@@ -5,6 +5,7 @@
  * Matches the "Reset Your Password" card from forget_pwd_process.html.
  */
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -48,6 +49,7 @@ const ArrowLeftIcon = (props) => (
 );
 
 const ForgotPasswordPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
@@ -61,7 +63,7 @@ const ForgotPasswordPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateEmail(email)) {
-            setError('Please enter a valid email address');
+            setError(t('auth.forgot.invalidEmail'));
             return;
         }
         setError('');
@@ -71,7 +73,7 @@ const ForgotPasswordPage = () => {
             await authService.forgotPassword(email);
             navigate('/email-sent', { state: { email } });
         } catch (err) {
-            setError(err.message || 'Failed to send reset link');
+            setError(err.message || t('auth.forgot.sendFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -81,19 +83,19 @@ const ForgotPasswordPage = () => {
         <AuthCard>
             <AuthHeader
                 icon={<ShieldIcon w={5} h={5} color="#22d3ee" />}
-                title="Reset Your Password"
-                subtitle="Enter your email and we'll send you a reset link."
+                title={t('auth.forgot.title')}
+                subtitle={t('auth.forgot.subtitle')}
             />
 
             <form onSubmit={handleSubmit}>
                 {/* Email input */}
                 <FormControl isInvalid={!!error} mb={6}>
                     <FormLabel fontSize="sm" fontWeight="medium" color={useColorModeValue("gray.600", "gray.300")}>
-                        Email Address
+                        {t('auth.forgot.emailLabel')}
                     </FormLabel>
                     <Input
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder={t('auth.forgot.emailPlaceholder')}
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setError(''); }}
                         bg="var(--color-bg-primary)"
@@ -128,7 +130,7 @@ const ForgotPasswordPage = () => {
                     borderRadius="8px"
                     boxShadow="0 4px 16px rgba(34, 211, 238, 0.2)"
                     isLoading={isLoading}
-                    loadingText="Sending..."
+                    loadingText={t('auth.forgot.sending')}
                     _hover={{
                         bg: '#06b6d4',
                         transform: 'translateY(-1px)',
@@ -138,7 +140,7 @@ const ForgotPasswordPage = () => {
                     transition="all 0.2s"
                     mb={6}
                 >
-                    Send Reset Link
+                    {t('auth.forgot.sendResetLink')}
                 </Button>
             </form>
 
@@ -158,7 +160,7 @@ const ForgotPasswordPage = () => {
                     gap={1}
                 >
                     <ArrowLeftIcon w={4} h={4} />
-                    Back to Login
+                    {t('auth.forgot.backToLogin')}
                 </Link>
             </Box>
         </AuthCard>

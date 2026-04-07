@@ -17,6 +17,7 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '../context/ProfileContext';
 
 const MotionBox = motion.create(Box);
@@ -38,6 +39,7 @@ const UploadIcon = (props) => (
 );
 
 const AvatarSection = () => {
+    const { t } = useTranslation();
     const { user, updateAvatar, removeAvatar, isUpdating } = useProfile();
     const fileInputRef = useRef(null);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -135,7 +137,7 @@ const AvatarSection = () => {
                     </Box>
 
                     <IconButton
-                        aria-label="Edit Avatar"
+                        aria-label={t('profilePage.editAvatar')}
                         icon={<CameraIcon w={4} h={4} />}
                         position="absolute"
                         bottom={0}
@@ -165,10 +167,10 @@ const AvatarSection = () => {
                 >
                     <Box>
                         <Text fontFamily="heading" fontSize="lg" fontWeight="600" color={useColorModeValue("gray.800","gray.100")}>
-                            Profile Avatar
+                            {t('profilePage.profileAvatar')}
                         </Text>
                         <Text color={useColorModeValue("gray.500","gray.400")} fontSize="sm" mt={1}>
-                            Update your profile picture. Max size 5MB.
+                            {t('profilePage.avatarHint')}
                         </Text>
                     </Box>
 
@@ -185,7 +187,7 @@ const AvatarSection = () => {
                             onClick={() => fileInputRef.current?.click()}
                             isLoading={isUpdating}
                         >
-                            Upload New Avatar
+                            {t('profilePage.uploadNewAvatar')}
                         </Button>
 
                         <Button
@@ -199,7 +201,7 @@ const AvatarSection = () => {
                             onClick={removeAvatar}
                             isDisabled={!user.avatar}
                         >
-                            Remove
+                            {t('profilePage.remove')}
                         </Button>
                     </Flex>
 
@@ -223,7 +225,7 @@ const AvatarSection = () => {
                         onClick={() => fileInputRef.current?.click()}
                     >
                         <Text fontSize="xs" color="gray.500">
-                            Or drag and drop an image here
+                            {t('profilePage.dragDropHint')}
                         </Text>
                     </Box>
                 </Flex>

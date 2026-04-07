@@ -14,6 +14,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAuth } from '../../auth/context/AuthContext';
 import { userService } from '../../../../services/userService';
 import { useToast } from '@chakra-ui/react';
+import i18n from 'i18next';
 
 const ProfileContext = createContext(null);
 
@@ -56,9 +57,9 @@ export const ProfileProvider = ({ children }) => {
             await userService.updateProfile(patch);
             setUser((prev) => ({ ...prev, ...patch }));
             if (isLoggedIn) updateCurrentUser(patch);
-            toast({ title: 'Profile updated', status: 'success', duration: 3000, isClosable: true });
+            toast({ title: i18n.t('profilePage.profileUpdated'), status: 'success', duration: 3000, isClosable: true });
         } catch (error) {
-            toast({ title: 'Failed to update profile', description: error.message, status: 'error', duration: 3000, isClosable: true });
+            toast({ title: i18n.t('profilePage.profileUpdateFailed'), description: error.message, status: 'error', duration: 3000, isClosable: true });
             throw error;
         } finally {
             setIsUpdating(false);
@@ -79,9 +80,9 @@ export const ProfileProvider = ({ children }) => {
             setUser((prev) => ({ ...prev, avatar: newAvatarUrl }));
             if (isLoggedIn) updateCurrentUser({ avatar: newAvatarUrl });
 
-            toast({ title: 'Avatar updated', status: 'success', duration: 3000, isClosable: true });
+            toast({ title: i18n.t('profilePage.avatarUpdated'), status: 'success', duration: 3000, isClosable: true });
         } catch (error) {
-            toast({ title: 'Failed to update avatar', description: error.message, status: 'error', duration: 3000, isClosable: true });
+            toast({ title: i18n.t('profilePage.avatarUpdateFailed'), description: error.message, status: 'error', duration: 3000, isClosable: true });
         } finally {
             setIsUpdating(false);
         }

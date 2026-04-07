@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Flex, Text, VStack, Button, HStack, Icon } from '@chakra-ui/react';
 import { MdMilitaryTech, MdDiamond, MdSmartToy } from 'react-icons/md';
 import { motion } from 'framer-motion';
@@ -73,6 +74,7 @@ const diffColor = (d) =>
 
 /** AI analysis section */
 const AIAnalysisSection = ({ aiAnalysis }) => {
+    const { t } = useTranslation();
     // aiAnalysis: false = loading, null = failed/unavailable, object = done
     if (aiAnalysis === null) return null;
 
@@ -83,11 +85,11 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                     <Box w="8px" h="8px" borderRadius="full" bg="cyan.400"
                         className="animate-pulse-glow" />
                     <Text fontSize="xs" fontFamily="mono" color="cyan.400" letterSpacing="0.1em" textTransform="uppercase">
-                        AI Analysis — analysing your code…
+                        {t('speedChallenge.aiAnalyzing')}
                     </Text>
                 </HStack>
                 <VStack spacing={2}>
-                    {['Exactitude', 'Complexity', 'Style'].map((label) => (
+                    {[t('speedChallenge.exactitude'), t('speedChallenge.complexity'), t('speedChallenge.style')].map((label) => (
                         <Box key={label} w="100%">
                             <Flex justify="space-between" mb={1}>
                                 <Text fontSize="xs" fontFamily="mono" color="gray.600" textTransform="uppercase">{label}</Text>
@@ -119,11 +121,11 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                 <Icon as={MdSmartToy} w={4} h={4} color="gray.500" />
                 <Text fontSize="xs" fontFamily="mono" color="gray.500"
                     textTransform="uppercase" letterSpacing="0.1em">
-                    AI Analysis
+                    {t('speedChallenge.aiAnalysis')}
                 </Text>
                 <Box flex={1} h="1px" bg="rgba(255,255,255,0.06)" />
                 <Text fontSize="xs" fontFamily="mono" color="gray.500">
-                    Score{' '}
+                    {t('speedChallenge.score')}{' '}
                     <Text as="span" fontWeight="bold" color="white">{totalScore}</Text>
                     /100
                 </Text>
@@ -132,9 +134,9 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
             {/* Aggregate score bars */}
             <Box p={4} borderRadius="12px" bg="rgba(255,255,255,0.03)" border="1px solid rgba(255,255,255,0.07)" mb={3}>
                 <VStack spacing={3} align="stretch">
-                    <ScoreBar label="Exactitude" value={aiScores.exactitude} color="#22c55e" />
-                    <ScoreBar label="Complexity" value={aiScores.complexity} color="#22d3ee" />
-                    <ScoreBar label="Style" value={aiScores.style} color="#a855f7" />
+                    <ScoreBar label={t('speedChallenge.exactitude')} value={aiScores.exactitude} color="#22c55e" />
+                    <ScoreBar label={t('speedChallenge.complexity')} value={aiScores.complexity} color="#22d3ee" />
+                    <ScoreBar label={t('speedChallenge.style')} value={aiScores.style} color="#a855f7" />
                 </VStack>
             </Box>
 
@@ -173,7 +175,7 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                                         {b.composite}<Text as="span" color="gray.600">/100</Text>
                                     </Text>
                                 ) : (
-                                    <Text fontSize="xs" fontFamily="mono" color="gray.600">skipped</Text>
+                                    <Text fontSize="xs" fontFamily="mono" color="gray.600">{t('speedChallenge.skipped')}</Text>
                                 )}
                             </Flex>
 
@@ -182,10 +184,10 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                                     <Flex gap={2} mb={2}>
                                         {(() => {
                                             const items = [
-                                                { label: 'Exact.', val: b.exactitude, color: '#22c55e' },
-                                                { label: 'Cmplx.', val: b.complexity, color: '#22d3ee' },
+                                                { label: t('speedChallenge.exactShort'), val: b.exactitude, color: '#22c55e' },
+                                                { label: t('speedChallenge.cmplxShort'), val: b.complexity, color: '#22d3ee' },
                                                 { label: 'O', val: b.complexite || b.timeComplexity || 'O(?)', color: '#60a5fa' },
-                                                { label: 'Style', val: b.style, color: '#a855f7' },
+                                                { label: t('speedChallenge.style'), val: b.style, color: '#a855f7' },
                                             ];
                                             return items.map(({ label, val, color }) => (
                                                 <Box key={label} flex={1} textAlign="center"
@@ -216,6 +218,7 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
 };
 
 const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnalysis, onDone }) => {
+    const { t } = useTranslation();
     const visual = RANK_VISUALS[placement.rank] || RANK_VISUALS.BRONZE;
     const minutesUsed = Math.floor(totalSeconds / 60);
     const secsUsed = totalSeconds % 60;
@@ -284,7 +287,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                 textTransform="uppercase"
                                 mb={1}
                             >
-                                Placement Result
+                                {t('speedChallenge.placementResult')}
                             </Text>
                             <Text
                                 fontSize="3xl"
@@ -293,7 +296,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                 fontFamily="heading"
                                 lineHeight={1.2}
                             >
-                                Your Level
+                                {t('speedChallenge.yourLevel')}
                             </Text>
                         </Box>
 
@@ -338,7 +341,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                             <VStack spacing={1} align="center">
                                 <ScoreRing solved={solvedIds.length} color={placement.color} />
                                 <Text fontSize="xs" color="gray.500" fontFamily="mono" mt={1}>
-                                    Problems Solved
+                                    {t('speedChallenge.problemsSolved')}
                                 </Text>
                             </VStack>
 
@@ -353,7 +356,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                     bg="rgba(255,255,255,0.04)"
                                     border="1px solid rgba(255,255,255,0.06)"
                                 >
-                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">Time used</Text>
+                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">{t('speedChallenge.timeUsed')}</Text>
                                     <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color="white">
                                         {timeStr}
                                     </Text>
@@ -367,7 +370,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                     bg="rgba(255,255,255,0.04)"
                                     border="1px solid rgba(255,255,255,0.06)"
                                 >
-                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">XP earned</Text>
+                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">{t('speedChallenge.xpEarned')}</Text>
                                     <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color="yellow.400">
                                         +{placement.xp} XP
                                     </Text>
@@ -381,7 +384,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                     bg="rgba(255,255,255,0.04)"
                                     border="1px solid rgba(255,255,255,0.06)"
                                 >
-                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">Rank assigned</Text>
+                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">{t('speedChallenge.rankAssigned')}</Text>
                                     <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color={placement.color}>
                                         {placement.rank}
                                     </Text>
@@ -410,7 +413,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                         {solvedIds.length > 0 && (
                             <Box w="100%">
                                 <Text fontSize="xs" color="gray.500" fontFamily="mono" textTransform="uppercase" letterSpacing="0.1em" mb={2}>
-                                    Solved
+                                    {t('speedChallenge.solvedLabel')}
                                 </Text>
                                 <VStack spacing={2} align="stretch">
                                     {problems
@@ -458,7 +461,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                             _active={{ transform: 'translateY(0)' }}
                             transition="all 0.3s ease"
                         >
-                            Enter the Arena as {placement.rank} 🚀
+                            {t('speedChallenge.enterArenaAs', { rank: placement.rank })} 🚀
                         </Button>
                     </VStack>
                 </Box>

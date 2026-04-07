@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Text, VStack, HStack, Badge } from '@chakra-ui/react';
 
 /** Renders markdown-ish description (bold backtick words, newlines) */
@@ -45,6 +46,7 @@ const RenderDescription = ({ text }) => {
 };
 
 const SpeedProblemPanel = ({ problem }) => {
+    const { t } = useTranslation();
     if (!problem) return null;
 
     return (
@@ -79,7 +81,7 @@ const SpeedProblemPanel = ({ problem }) => {
                         {problem.difficulty}
                     </Box>
                     <Text fontSize="xs" color="gray.500" fontFamily="mono">
-                        Problem {problem.index} / 3
+                        {t('speedChallenge.problemIndex', { index: problem.index })}
                     </Text>
                     <Box ml="auto">
                         <HStack spacing={1}>
@@ -111,7 +113,7 @@ const SpeedProblemPanel = ({ problem }) => {
             {/* Examples */}
             <Box>
                 <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="0.1em" mb={3}>
-                    Examples
+                    {t('speedChallenge.examples')}
                 </Text>
                 <VStack align="stretch" spacing={3}>
                     {problem.examples.map((ex, i) => (
@@ -123,16 +125,16 @@ const SpeedProblemPanel = ({ problem }) => {
                             overflow="hidden"
                         >
                             <Box px={4} py={3} borderBottom="1px solid rgba(255,255,255,0.04)">
-                                <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">Input:</Text>
+                                <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">{t('speedChallenge.input')}</Text>
                                 <Text fontSize="sm" fontFamily="mono" color="cyan.300">{ex.input}</Text>
                             </Box>
                             <Box px={4} py={3} borderBottom={ex.explanation ? "1px solid rgba(255,255,255,0.04)" : "none"}>
-                                <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">Output:</Text>
+                                <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">{t('speedChallenge.output')}</Text>
                                 <Text fontSize="sm" fontFamily="mono" color="green.300">{ex.output}</Text>
                             </Box>
                             {ex.explanation && (
                                 <Box px={4} py={3}>
-                                    <Text fontSize="xs" color="gray.500" mb={1}>Explanation:</Text>
+                                    <Text fontSize="xs" color="gray.500" mb={1}>{t('speedChallenge.explanation')}</Text>
                                     <Text fontSize="xs" color="gray.400" lineHeight="1.6">{ex.explanation}</Text>
                                 </Box>
                             )}
@@ -144,7 +146,7 @@ const SpeedProblemPanel = ({ problem }) => {
             {/* Constraints */}
             <Box>
                 <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="0.1em" mb={3}>
-                    Constraints
+                    {t('speedChallenge.constraints')}
                 </Text>
                 <VStack align="stretch" spacing={1.5}>
                     {problem.constraints.map((c, i) => (
@@ -169,7 +171,7 @@ const SpeedProblemPanel = ({ problem }) => {
             {/* Test cases preview */}
             <Box>
                 <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="0.1em" mb={3}>
-                    Test Cases
+                    {t('speedChallenge.testCases')}
                 </Text>
                 <VStack align="stretch" spacing={2}>
                     {problem.testCases.map((tc, i) => (

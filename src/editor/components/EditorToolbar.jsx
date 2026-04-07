@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { Flex, IconButton, Icon, Tooltip, useColorModeValue } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
 import RunButton from './RunButton';
 
@@ -26,7 +27,9 @@ const EditorToolbar = ({
     onRun,
     onReset,
     languages,
-}) => (
+}) => {
+    const { t } = useTranslation();
+    return (
     <Flex
         bg="var(--color-bg-secondary)"
         borderBottom="1px solid"
@@ -46,14 +49,14 @@ const EditorToolbar = ({
         />
 
         <Flex gap={2} align="center">
-            <Tooltip label="Reset code" placement="bottom" bg="var(--color-bg-secondary)" color="var(--color-text-primary)" fontSize="xs">
+            <Tooltip label={t('editor.resetCode')} placement="bottom" bg="var(--color-bg-secondary)" color="var(--color-text-primary)" fontSize="xs">
                 <IconButton
                     icon={<ResetIcon w={4} h={4} />}
                     variant="ghost"
                     color="var(--color-text-muted)"
                     _hover={{ color: 'var(--color-text-heading)', bg: 'var(--color-hover-bg)' }}
                     size="sm"
-                    aria-label="Reset code"
+                    aria-label={t('editor.resetCode')}
                     onClick={onReset}
                     borderRadius="8px"
                 />
@@ -62,6 +65,7 @@ const EditorToolbar = ({
             <RunButton isRunning={isRunning} onClick={onRun} />
         </Flex>
     </Flex>
-);
+    );
+};
 
 export default EditorToolbar;

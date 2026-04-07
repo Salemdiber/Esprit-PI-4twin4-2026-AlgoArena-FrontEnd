@@ -5,6 +5,7 @@
  * Prompts user to request a new link.
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Text, Icon, Divider, VStack } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
@@ -34,6 +35,7 @@ const ArrowLeftIcon = (props) => (
 );
 
 const ResetExpiredPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
 
     return (
@@ -53,12 +55,12 @@ const ResetExpiredPage = () => {
             </Box>
 
             <AuthHeader
-                title="Reset Link Expired"
-                subtitle="This reset link is invalid or has expired."
+                title={t('auth.resetExpired.title')}
+                subtitle={t('auth.resetExpired.subtitle')}
             />
 
             <Text textAlign="center" color="gray.400" fontSize="sm" mb={6} mt={-4}>
-                Password reset links are valid for 1 hour. Please request a new one.
+                {t('auth.resetExpired.validityNotice')}
             </Text>
 
             {/* Request New Link Button */}
@@ -80,7 +82,7 @@ const ResetExpiredPage = () => {
                 onClick={() => navigate('/forgot-password')}
                 mb={6}
             >
-                Request New Reset Link
+                {t('auth.resetExpired.requestNew')}
             </Button>
 
             <Divider borderColor="var(--color-border)" my={6} />
@@ -96,7 +98,7 @@ const ResetExpiredPage = () => {
                 _hover={{ bg: 'transparent', textDecoration: 'underline' }}
                 onClick={() => navigate('/signin')}
             >
-                Back to Login
+                {t('auth.resetExpired.backToLogin')}
             </Button>
         </AuthCard>
     );

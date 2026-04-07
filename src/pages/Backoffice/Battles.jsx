@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { battlesService } from '../../services/battlesService';
 import { challengeService } from '../../services/challengeService';
 import { getDiceBearUrl } from '../../services/dicebear';
@@ -25,6 +26,19 @@ const statusLabels = {
     CANCELLED: 'Cancelled',
 };
 
+const STATUS_I18N = {
+    Pending: 'admin.battles.statusPending',
+    Active: 'admin.battles.statusActive',
+    Completed: 'admin.battles.statusCompleted',
+    Cancelled: 'admin.battles.statusCancelled',
+};
+
+const MODE_I18N = {
+    'AI Battle': 'admin.battles.modeAiBattle',
+    PvP: 'admin.battles.modePvp',
+    Tournament: 'admin.battles.modeTournament',
+};
+
 const progressByStatus = {
     PENDING: 10,
     ACTIVE: 60,
@@ -32,7 +46,7 @@ const progressByStatus = {
     CANCELLED: 0,
 };
 
-const formatDuration = (startedAt, endedAt, status) => {
+const formatDuration = (startedAt, endedAt, status, t) => {
     if (!startedAt || status === 'PENDING') return '—';
     const start = new Date(startedAt).getTime();
     const end = endedAt ? new Date(endedAt).getTime() : Date.now();
@@ -40,7 +54,7 @@ const formatDuration = (startedAt, endedAt, status) => {
     const totalSeconds = Math.max(0, Math.floor((end - start) / 1000));
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes}m ${seconds}s`;
+    return t('admin.battles.durationFormat', { minutes, seconds });
 };
 
 const toLocalInputValue = (value) => {
@@ -65,129 +79,135 @@ const BattleCard = ({
     onDelete,
     onView,
     isBusy,
-}) => (
-    <div className="glass-panel rounded-2xl p-6 shadow-custom spotlight-hover transition-all duration-300 hover:shadow-[0_0_24px_rgba(34,211,238,0.15)]">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 relative z-10">
-            <div className="flex items-center gap-4 flex-wrap">
-                <span className={`badge ${statusStyles[status]}`}>{status}</span>
-                <span style={{ color: 'var(--color-text-muted)' }} className="text-sm ">Battle ID: #{id}</span>
-                <span className={`badge ${modeStyles[mode]}`}>{mode}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-                <button
-                    onClick={onView}
-                    title={status === 'Completed' ? 'View Results' : 'View Details'}
-                    className="action-btn action-btn-view"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                </button>
-                <button
-                    onClick={onEdit}
-                    disabled={isBusy}
-                    title="Edit Battle"
-                    className="action-btn action-btn-edit"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                </button>
-                <button
-                    onClick={onDelete}
-                    disabled={isBusy}
-                    title="Delete Battle"
-                    className="action-btn action-btn-delete"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-3h4m-4 0a1 1 0 00-1 1v1h6V5a1 1 0 00-1-1m-4 0h4" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-            {/* Participants */}
-            <div>
-                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mb-2">
-                    {isWinner ? 'Winner' : (participants.length > 1 ? 'Participants' : 'Participant')}
-                </p>
-                {participants.map((p, idx) => (
-                    <div key={`${p.username}-${idx}`} className={`flex items-center gap-3 ${idx > 0 ? 'mt-2' : ''}`}>
-                        <img
-                            src={p.avatar}
-                            alt={p.username}
-                            className={`${participants.length > 1 ? 'w-8 h-8' : 'w-10 h-10'} rounded-full border-2 ${isWinner ? 'border-yellow-400' : 'border-cyan-400'
-                                }`}
-                        />
-                        <div>
-                            <p className={`${participants.length > 1 ? 'text-xs' : 'text-sm'} font-medium text-gray-200`}>
-                                @{p.username}
-                            </p>
-                            <p className={`text-xs ${isWinner ? 'text-yellow-400' : 'text-gray-400'}`}>
-                                Score: {p.score}
-                            </p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Challenge */}
-            <div>
-                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mb-2">Challenge</p>
-                <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm font-medium ">{challenge}</p>
-                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">{category}</p>
-            </div>
-
-            {/* Progress */}
-            <div>
-                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mb-2">{status === 'Completed' ? 'Completion' : 'Progress'}</p>
-                <div className="flex items-center gap-3">
-                    <div className="flex-1 progress-bar h-2">
-                        <div
-                            className={`progress-bar-fill ${progress === 100 ? 'progress-green' : 'progress-cyan'}`}
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <span className={`text-sm font-medium ${progress === 100 ? 'text-green-400' : 'text-cyan-400'}`}>
-                        {progress}%
-                    </span>
+}) => {
+    const { t } = useTranslation();
+    return (
+        <div className="glass-panel rounded-2xl p-6 shadow-custom spotlight-hover transition-all duration-300 hover:shadow-[0_0_24px_rgba(34,211,238,0.15)]">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 relative z-10">
+                <div className="flex items-center gap-4 flex-wrap">
+                    <span className={`badge ${statusStyles[status]}`}>{t(STATUS_I18N[status])}</span>
+                    <span style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{t('admin.battles.battleIdLabel')} #{id}</span>
+                    <span className={`badge ${modeStyles[mode]}`}>{t(MODE_I18N[mode])}</span>
                 </div>
-                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mt-1">
-                    {status === 'Completed' ? 'Duration' : 'Time'}: {time}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={onView}
+                        title={status === 'Completed' ? t('admin.battles.viewResults') : t('admin.battles.viewDetails')}
+                        className="action-btn action-btn-view"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={onEdit}
+                        disabled={isBusy}
+                        title={t('admin.battles.editBattle')}
+                        className="action-btn action-btn-edit"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={onDelete}
+                        disabled={isBusy}
+                        title={t('admin.battles.deleteBattle')}
+                        className="action-btn action-btn-delete"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-3h4m-4 0a1 1 0 00-1 1v1h6V5a1 1 0 00-1-1m-4 0h4" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                {/* Participants */}
+                <div>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mb-2">
+                        {isWinner ? t('admin.battles.winner') : (participants.length > 1 ? t('admin.battles.participants') : t('admin.battles.participant'))}
+                    </p>
+                    {participants.map((p, idx) => (
+                        <div key={`${p.username}-${idx}`} className={`flex items-center gap-3 ${idx > 0 ? 'mt-2' : ''}`}>
+                            <img
+                                src={p.avatar}
+                                alt={p.username}
+                                className={`${participants.length > 1 ? 'w-8 h-8' : 'w-10 h-10'} rounded-full border-2 ${isWinner ? 'border-yellow-400' : 'border-cyan-400'
+                                    }`}
+                            />
+                            <div>
+                                <p className={`${participants.length > 1 ? 'text-xs' : 'text-sm'} font-medium text-gray-200`}>
+                                    @{p.username}
+                                </p>
+                                <p className={`text-xs ${isWinner ? 'text-yellow-400' : 'text-gray-400'}`}>
+                                    {t('admin.battles.score')}: {p.score}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Challenge */}
+                <div>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mb-2">{t('admin.battles.challenge')}</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm font-medium ">{challenge}</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">{category}</p>
+                </div>
+
+                {/* Progress */}
+                <div>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mb-2">{status === 'Completed' ? t('admin.battles.completion') : t('admin.battles.progress')}</p>
+                    <div className="flex items-center gap-3">
+                        <div className="flex-1 progress-bar h-2">
+                            <div
+                                className={`progress-bar-fill ${progress === 100 ? 'progress-green' : 'progress-cyan'}`}
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                        <span className={`text-sm font-medium ${progress === 100 ? 'text-green-400' : 'text-cyan-400'}`}>
+                            {progress}%
+                        </span>
+                    </div>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mt-1">
+                        {status === 'Completed' ? t('admin.battles.duration') : t('admin.battles.time')}: {time}
+                    </p>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
-const StepMode = ({ mode, onSelect }) => (
-    <div>
-        <h3 className="battle-text-lg battle-font-semibold battle-mb-md">Choose Battle Mode</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-            <div
-                className={`battle-mode-card ${mode === '1VS1' ? 'battle-mode-card--selected' : ''}`}
-                onClick={() => onSelect('1VS1')}
-            >
-                <div className="battle-mode-icon battle-mode-icon--pvp">👥</div>
-                <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>1vs1 Battle</h4>
-                <p className="battle-text-sm battle-text-muted">Create a battle waiting for a real opponent</p>
-            </div>
+const StepMode = ({ mode, onSelect }) => {
+    const { t } = useTranslation();
+    return (
+        <div>
+            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">{t('admin.battles.chooseBattleMode')}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                <div
+                    className={`battle-mode-card ${mode === '1VS1' ? 'battle-mode-card--selected' : ''}`}
+                    onClick={() => onSelect('1VS1')}
+                >
+                    <div className="battle-mode-icon battle-mode-icon--pvp">👥</div>
+                    <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>{t('admin.battles.oneVsOneBattle')}</h4>
+                    <p className="battle-text-sm battle-text-muted">{t('admin.battles.oneVsOneDesc')}</p>
+                </div>
 
-            <div
-                className={`battle-mode-card ${mode === '1VSBOT' ? 'battle-mode-card--selected' : ''}`}
-                onClick={() => onSelect('1VSBOT')}
-            >
-                <div className="battle-mode-icon battle-mode-icon--ai">🤖</div>
-                <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>1vsAI Battle</h4>
-                <p className="battle-text-sm battle-text-muted">Auto-assign an AI opponent</p>
+                <div
+                    className={`battle-mode-card ${mode === '1VSBOT' ? 'battle-mode-card--selected' : ''}`}
+                    onClick={() => onSelect('1VSBOT')}
+                >
+                    <div className="battle-mode-icon battle-mode-icon--ai">🤖</div>
+                    <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>{t('admin.battles.oneVsAiBattle')}</h4>
+                    <p className="battle-text-sm battle-text-muted">{t('admin.battles.oneVsAiDesc')}</p>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const StepConfigure = ({
     totalRounds,
@@ -205,117 +225,120 @@ const StepConfigure = ({
     endedAt,
     onStartedAtChange,
     onEndedAtChange,
-}) => (
-    <div>
-        <h3 className="battle-text-lg battle-font-semibold battle-mb-md">Configure Battle</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div>
-                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                    Number of Rounds
-                </label>
-                <select
-                    className="battle-select"
-                    value={totalRounds}
-                    onChange={(e) => onTotalRoundsChange(parseInt(e.target.value, 10))}
-                >
-                    {[1, 3, 5, 7, 10].map((n) => (
-                        <option key={n} value={n}>Best of {n}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div>
-                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                    Battle Status
-                </label>
-                <select
-                    className="battle-select"
-                    value={battleStatus}
-                    onChange={(e) => onBattleStatusChange(e.target.value)}
-                >
-                    <option value="PENDING">Pending</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="FINISHED">Finished</option>
-                    <option value="CANCELLED">Cancelled</option>
-                </select>
-            </div>
-
-            <div>
-                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                    Challenge Type (auto)
-                </label>
-                <input
-                    className="battle-select"
-                    value={challengeType || '—'}
-                    readOnly
-                />
-            </div>
-
-            {showWinnerField && (
+}) => {
+    const { t } = useTranslation();
+    return (
+        <div>
+            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">{t('admin.battles.configureBattle')}</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div>
                     <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        Winner User ID
+                        {t('admin.battles.numberOfRounds')}
+                    </label>
+                    <select
+                        className="battle-select"
+                        value={totalRounds}
+                        onChange={(e) => onTotalRoundsChange(parseInt(e.target.value, 10))}
+                    >
+                        {[1, 3, 5, 7, 10].map((n) => (
+                            <option key={n} value={n}>{t('admin.battles.bestOf', { n })}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                        {t('admin.battles.battleStatus')}
+                    </label>
+                    <select
+                        className="battle-select"
+                        value={battleStatus}
+                        onChange={(e) => onBattleStatusChange(e.target.value)}
+                    >
+                        <option value="PENDING">{t('admin.battles.statusPending')}</option>
+                        <option value="ACTIVE">{t('admin.battles.statusActive')}</option>
+                        <option value="FINISHED">{t('admin.battles.statusFinished')}</option>
+                        <option value="CANCELLED">{t('admin.battles.statusCancelled')}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                        {t('admin.battles.challengeTypeAuto')}
                     </label>
                     <input
                         className="battle-select"
-                        value={winnerUserId}
-                        onChange={(e) => onWinnerUserIdChange(e.target.value)}
-                        placeholder="Winner User ID"
+                        value={challengeType || '—'}
+                        readOnly
                     />
                 </div>
-            )}
 
-            <div>
-                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                    Challenge per Round
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {roundChallenges.map((value, idx) => (
-                        <select
-                            key={`round-${idx}`}
+                {showWinnerField && (
+                    <div>
+                        <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                            {t('admin.battles.winnerUserId')}
+                        </label>
+                        <input
                             className="battle-select"
-                            value={value}
-                            onChange={(e) => onRoundChallengeChange(idx, e.target.value)}
-                        >
-                            <option value="">Round {idx + 1} - Select Challenge</option>
-                            {challenges.map((challenge) => (
-                                <option key={challenge._id} value={challenge._id}>
-                                    {challenge.title}
-                                </option>
-                            ))}
-                        </select>
-                    ))}
-                </div>
-            </div>
+                            value={winnerUserId}
+                            onChange={(e) => onWinnerUserIdChange(e.target.value)}
+                            placeholder={t('admin.battles.winnerUserId')}
+                        />
+                    </div>
+                )}
 
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                 <div>
                     <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        Start Time
+                        {t('admin.battles.challengePerRound')}
                     </label>
-                    <input
-                        type="datetime-local"
-                        className="battle-select"
-                        value={startedAt}
-                        onChange={(e) => onStartedAtChange(e.target.value)}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {roundChallenges.map((value, idx) => (
+                            <select
+                                key={`round-${idx}`}
+                                className="battle-select"
+                                value={value}
+                                onChange={(e) => onRoundChallengeChange(idx, e.target.value)}
+                            >
+                                <option value="">{t('admin.battles.roundSelectChallenge', { n: idx + 1 })}</option>
+                                {challenges.map((challenge) => (
+                                    <option key={challenge._id} value={challenge._id}>
+                                        {challenge.title}
+                                    </option>
+                                ))}
+                            </select>
+                        ))}
+                    </div>
                 </div>
-                <div>
-                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        End Time
-                    </label>
-                    <input
-                        type="datetime-local"
-                        className="battle-select"
-                        value={endedAt}
-                        onChange={(e) => onEndedAtChange(e.target.value)}
-                    />
+
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    <div>
+                        <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                            {t('admin.battles.startTime')}
+                        </label>
+                        <input
+                            type="datetime-local"
+                            className="battle-select"
+                            value={startedAt}
+                            onChange={(e) => onStartedAtChange(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                            {t('admin.battles.endTime')}
+                        </label>
+                        <input
+                            type="datetime-local"
+                            className="battle-select"
+                            value={endedAt}
+                            onChange={(e) => onEndedAtChange(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const StepConfirm = ({
     battleType,
@@ -327,47 +350,48 @@ const StepConfirm = ({
     battleStatus,
     battleIdLabel,
 }) => {
-    const modeLabel = battleType === '1VSBOT' ? '1vsAI Battle' : '1vs1 Battle';
+    const { t } = useTranslation();
+    const modeLabel = battleType === '1VSBOT' ? t('admin.battles.oneVsAiBattle') : t('admin.battles.oneVsOneBattle');
 
     return (
         <div>
-            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">Confirm Battle</h3>
+            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">{t('admin.battles.confirmBattle')}</h3>
             <div className="battle-card" style={{ border: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">Battle ID</span>
+                        <span className="battle-text-muted">{t('admin.battles.battleIdLabel')}</span>
                         <span className="battle-font-semibold">{battleIdLabel}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">Mode</span>
+                        <span className="battle-text-muted">{t('admin.battles.mode')}</span>
                         <span className="battle-font-semibold">{modeLabel}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">Rounds</span>
-                        <span className="battle-font-semibold">Best of {rounds}</span>
+                        <span className="battle-text-muted">{t('admin.battles.rounds')}</span>
+                        <span className="battle-font-semibold">{t('admin.battles.bestOf', { n: rounds })}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">Status</span>
-                        <span className="battle-font-semibold">{statusLabels[battleStatus] || 'Pending'}</span>
+                        <span className="battle-text-muted">{t('admin.battles.status')}</span>
+                        <span className="battle-font-semibold">{t(STATUS_I18N[statusLabels[battleStatus]] || 'admin.battles.statusPending')}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">User</span>
+                        <span className="battle-text-muted">{t('admin.battles.user')}</span>
                         <span className="battle-font-semibold">{userId || '—'}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">Opponent</span>
+                        <span className="battle-text-muted">{t('admin.battles.opponent')}</span>
                         <span className="battle-font-semibold">{opponentId || '—'}</span>
                     </div>
                     <div>
-                        <span className="battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>Round Challenges</span>
+                        <span className="battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>{t('admin.battles.roundChallenges')}</span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             {challengeLabels.map((label, idx) => (
-                                <span key={`confirm-${idx}`} className="battle-text-sm">Round {idx + 1}: {label || '—'}</span>
+                                <span key={`confirm-${idx}`} className="battle-text-sm">{t('admin.battles.roundN', { n: idx + 1 })}: {label || '—'}</span>
                             ))}
                         </div>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">Challenge Type</span>
+                        <span className="battle-text-muted">{t('admin.battles.challengeType')}</span>
                         <span className="battle-font-semibold">{challengeType || '—'}</span>
                     </div>
                 </div>
@@ -377,6 +401,7 @@ const StepConfirm = ({
 };
 
 const Battles = () => {
+    const { t } = useTranslation();
     const { currentUser } = useAuth();
     const aiCounterRef = useRef(0);
     const [battles, setBattles] = useState([]);
@@ -415,7 +440,7 @@ const Battles = () => {
             const list = Array.isArray(resp?.battles) ? resp.battles : Array.isArray(resp) ? resp : [];
             setBattles(list);
         } catch (err) {
-            setError(err?.message || 'Failed to load battles');
+            setError(err?.message || t('admin.battles.failedLoadBattles'));
         } finally {
             setLoading(false);
         }
@@ -434,7 +459,7 @@ const Battles = () => {
                         : [];
             setChallenges(list);
         } catch (err) {
-            setError(err?.message || 'Failed to load challenges');
+            setError(err?.message || t('admin.battles.failedLoadChallenges'));
         } finally {
         }
     };
@@ -622,13 +647,13 @@ const Battles = () => {
     const handleDelete = async (battle) => {
         const battleId = battle?._id || battle?.id;
         if (!battleId) return;
-        const ok = window.confirm(`Delete battle ${battle?.idBattle || battleId}?`);
+        const ok = window.confirm(t('admin.battles.confirmDeleteBattle', { id: battle?.idBattle || battleId }));
         if (!ok) return;
         try {
             await battlesService.remove(battleId);
             await loadBattles();
         } catch (err) {
-            setError(err?.message || 'Failed to delete battle');
+            setError(err?.message || t('admin.battles.failedDeleteBattle'));
         }
     };
 
@@ -668,7 +693,7 @@ const Battles = () => {
             setFormOpen(false);
             await loadBattles();
         } catch (err) {
-            setError(err?.message || 'Failed to save battle');
+            setError(err?.message || t('admin.battles.failedSaveBattle'));
         } finally {
             setIsSaving(false);
         }
@@ -696,7 +721,7 @@ const Battles = () => {
             challenge: challengeLabel,
             category: typeLabel,
             progress: progressByStatus[battle?.battleStatus] ?? 0,
-            time: formatDuration(battle?.startedAt, battle?.endedAt, battle?.battleStatus),
+            time: formatDuration(battle?.startedAt, battle?.endedAt, battle?.battleStatus, t),
             isWinner: Boolean(battle?.winnerUserId && battle?.winnerUserId === battle?.userId),
             raw: battle,
         };
@@ -739,26 +764,30 @@ const Battles = () => {
         step < createStep ? 'battle-step-line battle-step-line--active' : 'battle-step-line'
     );
 
-    const stepLabels = ['Mode', 'Configure', 'Confirm'];
+    const stepLabels = [
+        { key: 'mode', label: t('admin.battles.stepMode') },
+        { key: 'configure', label: t('admin.battles.stepConfigure') },
+        { key: 'confirm', label: t('admin.battles.stepConfirm') },
+    ];
 
     return (
         <div className="space-y-6 animate-fade-in-up">
             {/* Page Header */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">Battle Monitor</h1>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="">Track live battles and competition activity</p>
+                    <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.battles.pageTitle')}</h1>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.battles.pageSubtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => (formOpen ? closeModal() : openCreateModal())}
                         className="battle-btn battle-btn--primary"
                     >
-                        {formOpen ? 'Close Form' : 'New Battle'}
+                        {formOpen ? t('admin.battles.closeForm') : t('admin.battles.newBattle')}
                     </button>
                     <button
                         onClick={loadBattles}
-                        title="Refresh"
+                        title={t('admin.battles.refresh')}
                         className="action-btn action-btn-view"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -779,7 +808,7 @@ const Battles = () => {
                 <div className="battle-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
                     <div className="battle-modal">
                         <div className="battle-flex-between battle-mb-lg">
-                            <h2 className="battle-text-2xl battle-font-bold">{editingId ? 'Update Battle' : 'Create New Battle'}</h2>
+                            <h2 className="battle-text-2xl battle-font-bold">{editingId ? t('admin.battles.updateBattle') : t('admin.battles.createNewBattle')}</h2>
                             <button
                                 onClick={closeModal}
                                 style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '1.5rem' }}
@@ -789,8 +818,8 @@ const Battles = () => {
                         </div>
 
                         <div className="battle-step-indicator">
-                            {stepLabels.map((label, idx) => (
-                                <React.Fragment key={label}>
+                            {stepLabels.map((step, idx) => (
+                                <React.Fragment key={step.key}>
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                         <div className={stepCircleClass(idx + 1)}>
                                             {idx + 1 < createStep ? '✓' : idx + 1}
@@ -803,7 +832,7 @@ const Battles = () => {
                                                 marginTop: '0.5rem',
                                             }}
                                         >
-                                            {label}
+                                            {step.label}
                                         </span>
                                     </div>
                                     {idx < stepLabels.length - 1 && <div className={stepLineClass(idx + 1)} />}
@@ -851,9 +880,9 @@ const Battles = () => {
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', marginTop: '1.5rem' }}>
                             {createStep > 1 ? (
-                                <button className="battle-btn battle-btn--secondary" onClick={handleBack}>← Back</button>
+                                <button className="battle-btn battle-btn--secondary" onClick={handleBack}>{t('admin.battles.back')}</button>
                             ) : (
-                                <button className="battle-btn battle-btn--secondary" onClick={closeModal}>Cancel</button>
+                                <button className="battle-btn battle-btn--secondary" onClick={closeModal}>{t('admin.battles.cancel')}</button>
                             )}
 
                             {createStep < 3 ? (
@@ -863,7 +892,7 @@ const Battles = () => {
                                     disabled={!canGoNext()}
                                     style={{ opacity: canGoNext() ? 1 : 0.5 }}
                                 >
-                                    Next Step →
+                                    {t('admin.battles.nextStep')}
                                 </button>
                             ) : (
                                 <button
@@ -872,7 +901,7 @@ const Battles = () => {
                                     disabled={isSaving}
                                     style={{ opacity: isSaving ? 0.6 : 1 }}
                                 >
-                                    {isSaving ? 'Saving...' : editingId ? 'Update Battle' : 'Create Battle'}
+                                    {isSaving ? t('admin.battles.saving') : editingId ? t('admin.battles.updateBattle') : t('admin.battles.createBattle')}
                                 </button>
                             )}
                         </div>
@@ -891,7 +920,7 @@ const Battles = () => {
                         </div>
                     </div>
                     <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold  mb-1">{stats.activeCount}</h3>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">Active Battles</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{t('admin.battles.activeBattles')}</p>
                 </div>
 
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
@@ -903,7 +932,7 @@ const Battles = () => {
                         </div>
                     </div>
                     <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold  mb-1">{stats.completedToday}</h3>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">Completed Today</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{t('admin.battles.completedToday')}</p>
                 </div>
 
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
@@ -915,7 +944,7 @@ const Battles = () => {
                         </div>
                     </div>
                     <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold  mb-1">{stats.avgDurationLabel}</h3>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">Avg Duration</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{t('admin.battles.avgDuration')}</p>
                 </div>
             </div>
 
@@ -925,7 +954,7 @@ const Battles = () => {
                     <div className="flex-1 relative search-wrapper">
                         <input
                             type="text"
-                            placeholder="Search battles by ID or participants..."
+                            placeholder={t('admin.battles.searchPlaceholder')}
                             className="search-input w-full"
                             value={filters.search}
                             onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
@@ -939,20 +968,20 @@ const Battles = () => {
                         value={filters.mode}
                         onChange={(e) => setFilters((prev) => ({ ...prev, mode: e.target.value }))}
                     >
-                        <option>All Modes</option>
-                        <option>AI Battle</option>
-                        <option>PvP</option>
+                        <option value="All Modes">{t('admin.battles.allModes')}</option>
+                        <option value="AI Battle">{t('admin.battles.modeAiBattle')}</option>
+                        <option value="PvP">{t('admin.battles.modePvp')}</option>
                     </select>
                     <select
                         className="form-select w-full md:w-40 bg-(--color-bg-input)"
                         value={filters.status}
                         onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
                     >
-                        <option>All Status</option>
-                        <option>Pending</option>
-                        <option>Active</option>
-                        <option>Completed</option>
-                        <option>Cancelled</option>
+                        <option value="All Status">{t('admin.battles.allStatus')}</option>
+                        <option value="Pending">{t('admin.battles.statusPending')}</option>
+                        <option value="Active">{t('admin.battles.statusActive')}</option>
+                        <option value="Completed">{t('admin.battles.statusCompleted')}</option>
+                        <option value="Cancelled">{t('admin.battles.statusCancelled')}</option>
                     </select>
                 </div>
             </div>
@@ -961,12 +990,12 @@ const Battles = () => {
             <div className="space-y-4">
                 {loading && (
                     <div className="glass-panel rounded-xl p-4 text-sm text-gray-300">
-                        Loading battles...
+                        {t('admin.battles.loadingBattles')}
                     </div>
                 )}
                 {!loading && battleCards.length === 0 && (
                     <div className="glass-panel rounded-xl p-4 text-sm text-gray-300">
-                        No battles found.
+                        {t('admin.battles.noBattlesFound')}
                     </div>
                 )}
                 {battleCards.map((battle) => (

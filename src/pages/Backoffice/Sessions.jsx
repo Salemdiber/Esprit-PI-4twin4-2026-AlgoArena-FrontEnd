@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 
 const Sessions = () => {
+    const { t } = useTranslation();
     const [sessionData, setSessionData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,7 +16,7 @@ const Sessions = () => {
                 setLoading(false);
             } catch (err) {
                 console.error("Failed to fetch session data", err);
-                setError("Failed to load active session");
+                setError(t('admin.sessions.errorLoading'));
                 setLoading(false);
             }
         };
@@ -22,7 +24,7 @@ const Sessions = () => {
         fetchSession();
     }, []);
 
-    if (loading) return <div style={{ color: 'var(--color-text-heading)' }} className=" p-6">Loading Active Session...</div>;
+    if (loading) return <div style={{ color: 'var(--color-text-heading)' }} className=" p-6">{t('admin.sessions.loading')}</div>;
     if (error) return <div className="text-red-500 p-6">{error}</div>;
     if (!sessionData) return null;
 
@@ -30,8 +32,8 @@ const Sessions = () => {
         <div className="space-y-6 animate-fade-in-up pb-10">
             <div className="mb-6 flex justify-between items-end">
                 <div>
-                    <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">Active Session Details</h1>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="">Security and activity telemetry for your current access token</p>
+                    <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.sessions.title')}</h1>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.sessions.subtitle')}</p>
                 </div>
                 <div className="text-right">
                     <span
@@ -42,7 +44,7 @@ const Sessions = () => {
                             borderColor: sessionData.riskLevel === 'Minimal' ? 'var(--color-green-500)' : 'var(--color-cyan-400)'
                         }}
                     >
-                        Risk Level: {sessionData.riskLevel}
+                        {t('admin.sessions.riskLevel', { level: sessionData.riskLevel })}
                     </span>
                 </div>
             </div>
@@ -64,7 +66,7 @@ const Sessions = () => {
                                 </svg>
                             )}
                         </div>
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Device Target</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.sessions.deviceTarget')}</h3>
                     </div>
                     <div>
                         <p style={{ color: 'var(--color-text-heading)' }} className="text-2xl font-bold ">{sessionData.device}</p>
@@ -81,11 +83,11 @@ const Sessions = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                             </svg>
                         </div>
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Client App</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.sessions.clientApp')}</h3>
                     </div>
                     <div>
                         <p style={{ color: 'var(--color-text-heading)' }} className="text-2xl font-bold ">{sessionData.browser}</p>
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  truncate" title={sessionData.userAgent}>Detected via Header</p>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  truncate" title={sessionData.userAgent}>{t('admin.sessions.detectedViaHeader')}</p>
                     </div>
                 </div>
 
@@ -99,7 +101,7 @@ const Sessions = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Location</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.sessions.location')}</h3>
                     </div>
                     <div>
                         <p style={{ color: 'var(--color-text-heading)' }} className="text-xl font-bold  truncate">{sessionData.location}</p>
@@ -116,12 +118,12 @@ const Sessions = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Session Uptime</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.sessions.sessionUptime')}</h3>
                     </div>
                     <div>
                         <p style={{ color: 'var(--color-text-heading)' }} className="text-2xl font-bold ">{sessionData.activeTime}</p>
                         <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">
-                            {sessionData.refreshed ? 'Recently Transacted' : 'Stable Token'}
+                            {sessionData.refreshed ? t('admin.sessions.recentlyTransacted') : t('admin.sessions.stableToken')}
                         </p>
                     </div>
                 </div>
@@ -132,10 +134,10 @@ const Sessions = () => {
             <div className="mt-6 glass-panel rounded-xl p-5 shadow-custom border  flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse"></div>
-                    <p style={{ color: 'var(--color-text-secondary)' }} className=" font-medium">Session actively streaming metrics</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }} className=" font-medium">{t('admin.sessions.activelyStreaming')}</p>
                 </div>
                 <div style={{ color: 'var(--color-text-muted)' }} className="font-mono text-xs">
-                    Captured at: {new Date(sessionData.timestamp).toLocaleString()}
+                    {t('admin.sessions.capturedAt', { time: new Date(sessionData.timestamp).toLocaleString() })}
                 </div>
             </div>
 

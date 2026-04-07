@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { userService } from '../../services/userService';
 import usePasswordStrength from '../Frontoffice/profile/hooks/usePasswordStrength';
 import PasswordStrengthMeter from '../Frontoffice/profile/components/PasswordStrengthMeter';
@@ -9,6 +10,7 @@ import RequirementChecklist from '../Frontoffice/profile/components/RequirementC
 const AddAdmin = () => {
     const navigate = useNavigate();
     const toast = useToast();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -25,39 +27,39 @@ const AddAdmin = () => {
         setErrors({}); // Clear existing errors
 
         if (!formData.name.trim()) {
-            setErrors({ name: 'Full Name is required' });
+            setErrors({ name: t('admin.addAdmin.validationNameRequired') });
             return false;
         }
         if (formData.name.trim().length < 3) {
-            setErrors({ name: 'Full Name must be at least 3 characters' });
+            setErrors({ name: t('admin.addAdmin.validationNameMinLength') });
             return false;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!formData.email) {
-            setErrors({ email: 'Email is required' });
+            setErrors({ email: t('admin.addAdmin.validationEmailRequired') });
             return false;
         }
         if (!emailRegex.test(formData.email)) {
-            setErrors({ email: 'Please enter a valid email address' });
+            setErrors({ email: t('admin.addAdmin.validationEmailInvalid') });
             return false;
         }
 
         if (!formData.username.trim()) {
-            setErrors({ username: 'Username is required' });
+            setErrors({ username: t('admin.addAdmin.validationUsernameRequired') });
             return false;
         }
         if (formData.username.trim().length < 3) {
-            setErrors({ username: 'Username must be at least 3 characters' });
+            setErrors({ username: t('admin.addAdmin.validationUsernameMinLength') });
             return false;
         }
 
         if (!formData.password) {
-            setErrors({ password: 'Password is required' });
+            setErrors({ password: t('admin.addAdmin.validationPasswordRequired') });
             return false;
         }
         if (score < 4) {
-            setErrors({ password: 'Password must satisfy all security requirements below' });
+            setErrors({ password: t('admin.addAdmin.validationPasswordWeak') });
             return false;
         }
 
@@ -88,8 +90,8 @@ const AddAdmin = () => {
                 // Not pushing 'name' because back-end lacks a top level standard schema mapping for it, yet leaving UI present.
             });
             toast({
-                title: 'Admin Created',
-                description: 'The new admin has been successfully dispatched.',
+                title: t('admin.addAdmin.toastCreatedTitle'),
+                description: t('admin.addAdmin.toastCreatedDesc'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -97,8 +99,8 @@ const AddAdmin = () => {
             navigate('/admin/users');
         } catch (error) {
             toast({
-                title: 'Creation Failed',
-                description: error.message || 'Something went wrong while trying to generate the admin interface.',
+                title: t('admin.addAdmin.toastFailedTitle'),
+                description: error.message || t('admin.addAdmin.toastFailedDesc'),
                 status: 'error',
                 duration: 5000,
                 isClosable: true,
@@ -111,8 +113,8 @@ const AddAdmin = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">Add New Admin</h1>
-                <p style={{ color: 'var(--color-text-muted)' }} className="">Create a new administrator account with specific permissions</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.addAdmin.title')}</h1>
+                <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.addAdmin.subtitle')}</p>
             </div>
 
             <div className="max-w-2xl mx-auto">
@@ -127,41 +129,41 @@ const AddAdmin = () => {
                                 </svg>
                             </div>
                             <div>
-                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold ">Account Details</h3>
-                                <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">Enter the credentials for the new admin user</p>
+                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold ">{t('admin.addAdmin.accountDetails')}</h3>
+                                <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{t('admin.addAdmin.accountDetailsSubtitle')}</p>
                             </div>
                         </div>
 
                         {/* Form Fields */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Full Name</label>
-                                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. John Doe" className={`form-input w-full ${errors.name ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.addAdmin.fullName')}</label>
+                                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder={t('admin.addAdmin.fullNamePlaceholder')} className={`form-input w-full ${errors.name ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
                                 {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                             </div>
 
                             <div className="md:col-span-2">
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Email Address</label>
-                                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="e.g. john@algoarena.com" className={`form-input w-full ${errors.email ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.addAdmin.emailAddress')}</label>
+                                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder={t('admin.addAdmin.emailPlaceholder')} className={`form-input w-full ${errors.email ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
                                 {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                             </div>
 
                             <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Username</label>
-                                <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="e.g. johndoe" className={`form-input w-full ${errors.username ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.addAdmin.username')}</label>
+                                <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder={t('admin.addAdmin.usernamePlaceholder')} className={`form-input w-full ${errors.username ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
                                 {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
                             </div>
 
                             <div>
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Role</label>
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.addAdmin.role')}</label>
                                 <select name="role" value={formData.role} onChange={handleChange} className="form-select w-full bg-(--color-bg-input)">
-                                    <option value="Admin">Admin</option>
+                                    <option value="Admin">{t('admin.addAdmin.roleAdmin')}</option>
                                 </select>
                             </div>
 
                             <div className="md:col-span-2">
-                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Temporary Password</label>
-                                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className={`form-input w-full ${errors.password ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
+                                <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.addAdmin.temporaryPassword')}</label>
+                                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder={t('admin.addAdmin.passwordPlaceholder')} className={`form-input w-full ${errors.password ? 'border-red-500 focus:border-red-500 box-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
                                 {errors.password && (
                                     <p className="text-red-400 text-xs mt-1">{errors.password}</p>
                                 )}
@@ -175,21 +177,21 @@ const AddAdmin = () => {
 
                         {/* Permissions Review (Visual only) */}
                         <div className="pt-4 mt-2">
-                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-3">Permissions</label>
+                            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-3">{t('admin.addAdmin.permissions')}</label>
                             <div className="bg-(--color-bg-input) rounded-lg p-4 border  space-y-2">
-                                <PermissionItem label="Manage Users" />
-                                <PermissionItem label="Manage Battles" />
-                                <PermissionItem label="View Analytics" />
-                                <PermissionItem label="Edit System Settings" isActive={false} />
+                                <PermissionItem label={t('admin.addAdmin.permManageUsers')} />
+                                <PermissionItem label={t('admin.addAdmin.permManageBattles')} />
+                                <PermissionItem label={t('admin.addAdmin.permViewAnalytics')} />
+                                <PermissionItem label={t('admin.addAdmin.permEditSettings')} isActive={false} />
                             </div>
                         </div>
 
                         {/* Actions */}
                         <div className="flex items-center gap-4 pt-6 mt-6 border-t ">
                             <button type="submit" disabled={isLoading} className="flex-1 btn-primary py-3 justify-center">
-                                {isLoading ? 'Creating...' : 'Create Admin Account'}
+                                {isLoading ? t('admin.addAdmin.creating') : t('admin.addAdmin.createAdminAccount')}
                             </button>
-                            <button type="button" onClick={() => navigate(-1)} className="btn-secondary py-3 px-6">Cancel</button>
+                            <button type="button" onClick={() => navigate(-1)} className="btn-secondary py-3 px-6">{t('admin.addAdmin.cancel')}</button>
                         </div>
                     </form>
                 </div>

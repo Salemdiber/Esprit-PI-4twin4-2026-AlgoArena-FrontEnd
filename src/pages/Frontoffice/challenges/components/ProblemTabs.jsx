@@ -8,10 +8,14 @@ import {
     TabList,
     Tab,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
 
 const ProblemTabs = () => {
+    const { t } = useTranslation();
     const { activeTab, setActiveTab } = useChallengeContext();
+
+    const tabLabels = [t('challengePage.tabDescription'), t('challengePage.tabSubmissions'), t('challengePage.tabAiJudge')];
 
     return (
         <Tabs
@@ -23,7 +27,7 @@ const ProblemTabs = () => {
             mb={6}
         >
             <TabList gap={6}>
-                {['Description', 'Submissions', 'AI Judge'].map((label, i) => (
+                {tabLabels.map((label, i) => (
                     <Tab
                         key={label}
                         pb={3}

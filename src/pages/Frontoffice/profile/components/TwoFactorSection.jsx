@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '../context/ProfileContext';
 
 const MotionBox = motion.create(Box);
@@ -45,6 +46,7 @@ const ShieldPlusIcon = (props) => (
 );
 
 const TwoFactorSection = () => {
+    const { t } = useTranslation();
     const { twoFactorEnabled, setTwoFactorEnabled } = useProfile();
     const navigate = useNavigate();
     const prefersReducedMotion = useReducedMotion();
@@ -97,7 +99,7 @@ const TwoFactorSection = () => {
             >
                 <Flex align="center" gap={3}>
                     <Text fontFamily="heading" fontSize="lg" fontWeight="600" color={useColorModeValue("gray.800","gray.100")}>
-                        Two-Factor Authentication
+                        {t('profilePage.twoFactorAuth')}
                     </Text>
                     <Badge
                         display="flex"
@@ -118,7 +120,7 @@ const TwoFactorSection = () => {
                         ) : (
                             <ShieldOffIcon w={3} h={3} />
                         )}
-                        {twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                        {twoFactorEnabled ? t('profilePage.enabled') : t('profilePage.disabled')}
                     </Badge>
                 </Flex>
 
@@ -139,7 +141,7 @@ const TwoFactorSection = () => {
             {/* Description + buttons */}
             <Box position="relative" zIndex={1}>
                 <Text color={useColorModeValue("gray.500","gray.400")} fontSize="sm" lineHeight="1.7" maxW="2xl" mb={6}>
-                    Add an extra layer of security to your account. You'll need to enter a verification code in addition to your password when signing in.
+                    {t('profilePage.twoFactorDesc')}
                 </Text>
 
                 <Flex direction={{ base: 'column', sm: 'row' }} gap={4}>
@@ -157,7 +159,7 @@ const TwoFactorSection = () => {
                         }}
                         onClick={() => navigate('/profile/2fa-setup')}
                     >
-                        Set Up 2FA
+                        {t('profilePage.setUp2fa')}
                     </Button>
 
                     <Button
@@ -169,7 +171,7 @@ const TwoFactorSection = () => {
                         fontSize="sm"
                         _hover={{ color: '#22d3ee', borderColor: 'rgba(34, 211, 238, 0.5)' }}
                     >
-                        Learn more
+                        {t('profilePage.learnMore')}
                     </Button>
                 </Flex>
             </Box>

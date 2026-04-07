@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Flex, HStack, Text, Button, Image, useColorModeValue } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Logo from '../assets/logo_algoarena.png';
 
 const AuthLayout = ({ children, activeTab = 'signin' }) => {
@@ -11,6 +12,7 @@ const AuthLayout = ({ children, activeTab = 'signin' }) => {
     const inactiveColor = useColorModeValue('gray.500', 'gray.400');
     const activeTextColor = useColorModeValue('white', '#0f172a');
     const hoverColor = useColorModeValue('gray.800', 'white');
+    const { t } = useTranslation();
 
     return (
         <Box minH="100vh" bg={bg} position="relative" overflow="hidden" display="flex" flexDirection="column" transition="background-color 0.3s ease">
@@ -35,20 +37,20 @@ const AuthLayout = ({ children, activeTab = 'signin' }) => {
             {/* Nav */}
             <Flex as="nav" position="relative" zIndex={50} w="100%" p={6} justify="space-between" align="center" maxW="7xl" mx="auto">
                 <HStack as={RouterLink} to="/" spacing={2} _hover={{ textDecoration: 'none' }}>
-                    <Image src={Logo} alt="AlgoArena" h={{ base: '48px', md: '56px' }} objectFit="contain" />
+                    <Image src={Logo} alt={t('auth.layout.logoAlt')} h={{ base: '48px', md: '56px' }} objectFit="contain" />
                 </HStack>
                 <HStack spacing={0} bg={pillBg} backdropFilter="blur(12px)" p={1} borderRadius="lg" border="1px solid" borderColor={pillBorder}>
                     <Button as={RouterLink} to="/signin" size="sm" px={4} borderRadius="md" fontSize="sm" fontWeight="medium"
                         bg={activeTab === 'signin' ? 'brand.500' : 'transparent'} color={activeTab === 'signin' ? activeTextColor : inactiveColor}
                         boxShadow={activeTab === 'signin' ? '0 0 20px -5px rgba(34,211,238,0.3)' : 'none'}
                         _hover={activeTab === 'signin' ? { bg: 'brand.400' } : { color: hoverColor }}>
-                        Sign In
+                        {t('auth.layout.signIn')}
                     </Button>
                     <Button as={RouterLink} to="/signup" size="sm" px={4} borderRadius="md" fontSize="sm" fontWeight="medium"
                         bg={activeTab === 'signup' ? 'brand.500' : 'transparent'} color={activeTab === 'signup' ? activeTextColor : inactiveColor}
                         boxShadow={activeTab === 'signup' ? '0 0 20px -5px rgba(34,211,238,0.3)' : 'none'}
                         _hover={activeTab === 'signup' ? { bg: 'brand.400' } : { color: hoverColor }}>
-                        Sign Up
+                        {t('auth.layout.signUp')}
                     </Button>
                 </HStack>
             </Flex>

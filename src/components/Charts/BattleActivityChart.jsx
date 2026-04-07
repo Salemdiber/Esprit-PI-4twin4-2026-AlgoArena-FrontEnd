@@ -9,6 +9,7 @@ import {
     Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { useTranslation } from 'react-i18next';
 
 ChartJS.register(
     CategoryScale,
@@ -61,20 +62,21 @@ const options = {
     },
 };
 
-const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-const data = {
-    labels,
-    datasets: [
-        {
-            label: 'Battles',
-            data: [342, 389, 412, 378, 456, 523, 489],
-            backgroundColor: '#22d3ee',
-        },
-    ],
-};
+const battleValues = [342, 389, 412, 378, 456, 523, 489];
 
 const BattleActivityChart = () => {
+    const { t } = useTranslation();
+    const labels = [t('charts.mon'), t('charts.tue'), t('charts.wed'), t('charts.thu'), t('charts.fri'), t('charts.sat'), t('charts.sun')];
+    const data = {
+        labels,
+        datasets: [
+            {
+                label: t('charts.battles'),
+                data: battleValues,
+                backgroundColor: '#22d3ee',
+            },
+        ],
+    };
     return <Bar options={options} data={data} />;
 };
 
