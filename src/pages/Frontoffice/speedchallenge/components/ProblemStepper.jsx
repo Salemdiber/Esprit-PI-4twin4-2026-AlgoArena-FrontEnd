@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Flex, Text, HStack } from '@chakra-ui/react';
 
 const STEPS = [
@@ -8,6 +9,7 @@ const STEPS = [
 ];
 
 const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
+    const { t } = useTranslation();
     return (
         <Flex align="center" gap={0}>
             {STEPS.map((step, i) => {
@@ -84,7 +86,7 @@ const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
                                 letterSpacing="0.08em"
                                 textTransform="uppercase"
                             >
-                                {step.difficulty}
+                                {t(`speedChallenge.diff_${step.difficulty}`)}
                             </Text>
                         </Flex>
 

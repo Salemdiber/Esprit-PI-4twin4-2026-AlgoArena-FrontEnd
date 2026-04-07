@@ -3,6 +3,8 @@
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../../i18n';
 import { useBattleState } from '../hooks/useBattleState';
 import { BattleStatus, BattleMode, RoundStatus, difficultyBadgeMap } from '../types/battle.types';
 import BattleTimeline from '../components/BattleTimeline';
@@ -52,12 +54,10 @@ const computeBattleScore = ({
     const spaceComplexityScore = mapComplexityScore(spaceComplexity);
     const complexityScore = Math.round((timeComplexityScore + spaceComplexityScore) / 2);
 
-    // Runtime score: normalize against a soft cap (10s)
     const runtime = Math.max(0, Number(executionTimeMs || 0));
     const runtimeCapMs = 10_000;
     const runtimeScore = Math.round(100 * (1 - Math.min(1, runtime / runtimeCapMs)));
 
-    // Solve-time score (player): based on battle timer
     const limit = Math.max(1, Number(timeLimitSeconds || 900));
     const solveSecs = Math.max(0, Number.isFinite(Number(solveTimeSeconds)) ? Number(solveTimeSeconds) : 0);
     const solveTimeScore = Math.round(100 * (1 - Math.min(1, solveSecs / limit)));
@@ -65,13 +65,10 @@ const computeBattleScore = ({
     const quality = Number.isFinite(Number(codeQualityScore)) ? Number(codeQualityScore) : 60;
     const qualityScore = Math.max(0, Math.min(100, Math.round(quality)));
 
-    // Priority: complexity -> time -> code quality, then gated by correctness
-    // Player time uses solveTimeSeconds (real gameplay). Opponent uses execution runtime.
     const timeScore = side === 'player' ? solveTimeScore : runtimeScore;
     const composite = complexityScore * 0.45 + timeScore * 0.35 + qualityScore * 0.2;
     let score = Math.max(0, Math.round((maxPoints || 500) * (composite / 100) * correctnessFactor));
 
-    // Difficulty handicap for bot (makes EASY beatable)
     const diff = String(difficulty || '').toUpperCase();
     const difficultyMultiplier = diff === 'EASY' ? 0.9 : diff === 'HARD' ? 1.15 : 1.0;
     const handicap = diff === 'EASY' ? 0.82 : diff === 'HARD' ? 1.02 : 1.0;
@@ -99,7 +96,7 @@ const buildOutputLines = (response) => {
         return lines;
     }
 
-    lines.push({ type: 'info', text: 'Running test cases...' });
+    lines.push({ type: 'info', text: i18n.t('battles.runningTestCases') });
     const results = Array.isArray(response.results) ? response.results : [];
     results.slice(0, 5).forEach((r) => {
         const status = r.passed ? 'success' : 'error';
@@ -107,16 +104,16 @@ const buildOutputLines = (response) => {
         const expected = r.expected ?? r.expectedOutput ?? '—';
         lines.push({
             type: status,
-            text: `TC${r.testCase}: ${r.passed ? 'PASS' : 'FAIL'} | got: ${output} | expected: ${expected}`,
+            text: `TC${r.testCase}: ${r.passed ? i18n.t('battles.pass') : i18n.t('battles.fail')} | ${i18n.t('battles.got')}: ${output} | ${i18n.t('battles.expected')}: ${expected}`,
         });
     });
 
     if (results.length > 5) {
-        lines.push({ type: 'info', text: `+${results.length - 5} more test cases` });
+        lines.push({ type: 'info', text: i18n.t('battles.moreTestCases', { count: results.length - 5 }) });
     }
 
     if (response.executionTime) {
-        lines.push({ type: 'result', text: `Runtime: ${response.executionTime}` });
+        lines.push({ type: 'result', text: i18n.t('battles.runtimeLabel', { time: response.executionTime }) });
     }
 
     return lines;
@@ -168,20 +165,21 @@ const buildResult = ({ response, challenge, difficulty, side }) => {
         passedCount,
         total,
         criteria: [
-            `Correctness: ${scoreDetail.correctness}/100`,
-            `Complexity: ${scoreDetail.complexityScore}/100`,
+            i18n.t('battles.criteriaCorrectness', { score: scoreDetail.correctness }),
+            i18n.t('battles.criteriaComplexity', { score: scoreDetail.complexityScore }),
             side === 'player'
-                ? `Solve time: ${scoreDetail.solveTimeScore}/100`
-                : `Runtime: ${scoreDetail.runtimeScore}/100`,
-            `Code quality: ${scoreDetail.qualityScore}/100`,
-            `Execution time: ${executionTimeMs}ms`,
-            `Time complexity: ${timeComplexity}`,
-            `Space complexity: ${spaceComplexity}`,
+                ? i18n.t('battles.criteriaSolveTime', { score: scoreDetail.solveTimeScore })
+                : i18n.t('battles.criteriaRuntime', { score: scoreDetail.runtimeScore }),
+            i18n.t('battles.criteriaCodeQuality', { score: scoreDetail.qualityScore }),
+            i18n.t('battles.criteriaExecTime', { ms: executionTimeMs }),
+            i18n.t('battles.criteriaTimeComplexity', { value: timeComplexity }),
+            i18n.t('battles.criteriaSpaceComplexity', { value: spaceComplexity }),
         ],
     };
 };
 
 const ActiveBattlePage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const {
@@ -206,13 +204,11 @@ const ActiveBattlePage = () => {
 
     const battle = battles.find(b => b.id === id);
 
-    // Select battle on mount
     useEffect(() => {
         if (id) selectBattle(id);
         return () => deselectBattle();
     }, [id, selectBattle, deselectBattle]);
 
-    // Start timer on mount
     useEffect(() => {
         if (battle && battle.timeLimit) {
             startTimer(battle.timeLimit);
@@ -220,7 +216,6 @@ const ActiveBattlePage = () => {
         return () => stopTimer();
     }, [battle?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Redirect to summary if battle completed
     useEffect(() => {
         if (battle?.status === BattleStatus.COMPLETED) {
             navigate(`/battles/${id}/summary`, { replace: true });
@@ -231,10 +226,10 @@ const ActiveBattlePage = () => {
         return (
             <div className="battle-page">
                 <div className="battle-container battle-text-center" style={{ paddingTop: '4rem' }}>
-                    <h2 className="battle-text-2xl battle-font-bold battle-mb-md">Battle Not Found</h2>
-                    <p className="battle-text-muted battle-mb-lg">The requested battle doesn't exist.</p>
+                    <h2 className="battle-text-2xl battle-font-bold battle-mb-md">{t('battles.notFound')}</h2>
+                    <p className="battle-text-muted battle-mb-lg">{t('battles.notFoundDesc')}</p>
                     <button className="battle-btn battle-btn--primary" onClick={() => navigate('/battles')}>
-                        Back to Arena
+                        {t('battles.backToArena')}
                     </button>
                 </div>
             </div>
@@ -245,6 +240,7 @@ const ActiveBattlePage = () => {
     const challenge = currentRound?.challenge;
     const diffBadge = currentRound ? difficultyBadgeMap[currentRound.difficulty] : null;
     const timerStr = formatTimer(timer.remaining);
+    const difficultyLabel = currentRound ? ({ EASY: t('battles.easy'), MEDIUM: t('battles.medium'), HARD: t('battles.hard') }[currentRound.difficulty] || diffBadge?.label) : null;
 
     const opponentName = battle.opponent?.name || 'AI Master';
     const opponentLeague = battle.opponent?.league || 'AI League';
@@ -262,9 +258,9 @@ const ActiveBattlePage = () => {
 
     const hints = useMemo(() => {
         const list = Array.isArray(challenge?.hints) ? challenge.hints.slice(0, 3) : [];
-        while (list.length < 3) list.push('No hint available for this challenge.');
+        while (list.length < 3) list.push(t('battles.noHint'));
         return list;
-    }, [challenge]);
+    }, [challenge, t]);
 
     const toggleHint = useCallback((idx) => {
         setOpenHints((prev) => ({ ...prev, [idx]: !prev[idx] }));
@@ -290,7 +286,7 @@ const ActiveBattlePage = () => {
             });
             setOutput(buildOutputLines(response));
         } catch (error) {
-            setOutput([{ type: 'error', text: error?.message || 'Failed to run code.' }]);
+            setOutput([{ type: 'error', text: error?.message || t('battles.failedRunCode') }]);
         } finally {
             setIsRunning(false);
         }
@@ -323,7 +319,7 @@ const ActiveBattlePage = () => {
                 result,
             });
         } catch (error) {
-            setOutput([{ type: 'error', text: error?.message || 'Failed to submit solution.' }]);
+            setOutput([{ type: 'error', text: error?.message || t('battles.failedSubmitSolution') }]);
         } finally {
             setIsSubmitting(false);
         }
@@ -358,7 +354,7 @@ const ActiveBattlePage = () => {
             } catch (error) {
                 if (cancelled) return;
                 setAiStatus('error');
-                setAiError(error?.message || 'AI failed to submit.');
+                setAiError(error?.message || t('battles.aiFailed'));
             }
         };
 
@@ -405,18 +401,18 @@ const ActiveBattlePage = () => {
                         onClick={() => navigate('/battles')}
                         style={{ marginBottom: '1rem' }}
                     >
-                        ← Back to Arena
+                        {t('battles.backToArenaArrow')}
                     </button>
                     <h1 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-                        Battle in Progress
+                        {t('battles.inProgress')}
                     </h1>
                     <p className="battle-text-muted" style={{ fontSize: '1.125rem' }}>
-                        Round {battle.currentRoundIndex + 1} of {battle.totalRounds} • Time Remaining: {timerStr}
+                        {t('battles.roundOfTotal', { current: battle.currentRoundIndex + 1, total: battle.totalRounds, time: timerStr })}
                     </p>
                 </div>
 
                 <div className="battle-mb-xl">
-                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">Round Timeline</h2>
+                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.roundTimeline')}</h2>
                     <div className="battle-card" style={{ padding: '1rem' }}>
                         <BattleTimeline rounds={battle.rounds} currentRoundIndex={battle.currentRoundIndex} />
                     </div>
@@ -426,7 +422,7 @@ const ActiveBattlePage = () => {
                     {/* Challenge Panel */}
                     <section className="battle-panel">
                         <div className="battle-panel-header">
-                            <h2 className="battle-text-lg battle-font-semibold">Challenge</h2>
+                            <h2 className="battle-text-lg battle-font-semibold">{t('battles.challenge')}</h2>
                             <div className="battle-panel-meta">
                                 <span className="battle-text-muted">{timerStr}</span>
                             </div>
@@ -436,7 +432,7 @@ const ActiveBattlePage = () => {
                                 <div className="battle-chip-row">
                                     {diffBadge && (
                                         <span className={`battle-badge battle-badge--${diffBadge.color}`}>
-                                            {diffBadge.label}
+                                            {difficultyLabel}
                                         </span>
                                     )}
                                     {challenge.tags.map(tag => (
@@ -449,7 +445,7 @@ const ActiveBattlePage = () => {
                                 <p className="battle-text-muted" style={{ marginBottom: '0.75rem' }}>{challenge.description}</p>
 
                                 <div className="battle-hints">
-                                    <div className="battle-hints-title">Hints</div>
+                                    <div className="battle-hints-title">{t('battles.hints')}</div>
                                     {hints.map((hint, idx) => (
                                         <div key={`hint-${idx}`} className="battle-hint-card">
                                             <button
@@ -457,7 +453,7 @@ const ActiveBattlePage = () => {
                                                 className="battle-hint-toggle"
                                                 onClick={() => toggleHint(idx)}
                                             >
-                                                Hint {idx + 1}
+                                                {t('battles.hintN', { n: idx + 1 })}
                                                 <span className="battle-hint-toggle-icon">{openHints[idx] ? '−' : '+'}</span>
                                             </button>
                                             {openHints[idx] && (
@@ -472,29 +468,29 @@ const ActiveBattlePage = () => {
                                     <span className="battle-meta-pill">⭐ {challenge.maxPoints} XP</span>
                                 </div>
 
-                                <h4 className="battle-text-sm battle-text-muted" style={{ marginTop: '1.25rem', marginBottom: '0.5rem' }}>Test Cases</h4>
+                                <h4 className="battle-text-sm battle-text-muted" style={{ marginTop: '1.25rem', marginBottom: '0.5rem' }}>{t('battles.testCases')}</h4>
                                 {testCases.length === 0 ? (
-                                    <div className="battle-empty">No test cases available.</div>
+                                    <div className="battle-empty">{t('battles.noTestCases')}</div>
                                 ) : (
                                     <div className="battle-testcases">
                                         {testCases.map((tc, idx) => (
                                             <div key={`tc-${idx}`} className="battle-testcase">
-                                                <div className="battle-testcase-line">Input: <span>{tc.input}</span></div>
-                                                <div className="battle-testcase-line">Output: <span className="battle-text-green">{tc.output}</span></div>
+                                                <div className="battle-testcase-line">{t('battles.inputLabel')} <span>{tc.input}</span></div>
+                                                <div className="battle-testcase-line">{t('battles.outputLabel')} <span className="battle-text-green">{tc.output}</span></div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="battle-empty">No active challenge.</div>
+                            <div className="battle-empty">{t('battles.noActiveChallenge')}</div>
                         )}
                     </section>
 
                     {/* Editor Panel */}
                     <section className="battle-panel battle-panel--editor">
                         <div className="battle-panel-header">
-                            <div className="battle-editor-title">Your Solution</div>
+                            <div className="battle-editor-title">{t('battles.yourSolution')}</div>
                             <select
                                 className="battle-language-select"
                                 value={language}
@@ -515,10 +511,10 @@ const ActiveBattlePage = () => {
                         </div>
                         <div className="battle-editor-actions">
                             <button className="battle-btn battle-btn--primary battle-btn--lg" onClick={handleRun} disabled={isRunning || !code.trim()}>
-                                {isRunning ? 'Running...' : 'Run Code'}
+                                {isRunning ? t('battles.running') : t('battles.runCode')}
                             </button>
                             <button className="battle-btn battle-btn--secondary battle-btn--lg" onClick={handleSubmit} disabled={isSubmitting || !code.trim()}>
-                                {isSubmitting ? 'Submitting...' : 'Submit'}
+                                {isSubmitting ? t('battles.submitting') : t('battles.submit')}
                             </button>
                         </div>
                         <div className="battle-console">
@@ -529,8 +525,8 @@ const ActiveBattlePage = () => {
                     {/* AI Opponent Panel */}
                     <section className="battle-panel battle-panel--opponent">
                         <div className="battle-panel-header">
-                            <h2 className="battle-text-lg battle-font-semibold">AI Opponent</h2>
-                            <span className="battle-badge battle-badge--purple">LIVE</span>
+                            <h2 className="battle-text-lg battle-font-semibold">{t('battles.aiOpponent')}</h2>
+                            <span className="battle-badge battle-badge--purple">{t('battles.live')}</span>
                         </div>
                         <div className="battle-opponent-card">
                             <div className="battle-opponent-avatar">🤖</div>
@@ -541,7 +537,7 @@ const ActiveBattlePage = () => {
                         </div>
                         <div className="battle-opponent-status">
                             <span className={`battle-status-dot ${aiTyping ? 'battle-status-dot--active' : ''}`} />
-                            <span>{aiStatus === 'error' ? 'Error' : aiTyping ? 'Thinking...' : 'Ready'}</span>
+                            <span>{aiStatus === 'error' ? t('battles.error') : aiTyping ? t('battles.thinking') : t('battles.ready')}</span>
                         </div>
                         <div className="battle-typing-indicator">
                             <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
@@ -556,15 +552,15 @@ const ActiveBattlePage = () => {
                         {opponentResult && (
                             <div className="battle-opponent-metrics">
                                 <div className="battle-opponent-metric">
-                                    <span>Execution</span>
+                                    <span>{t('battles.execution')}</span>
                                     <strong>{opponentResult.executionTimeMs}ms</strong>
                                 </div>
                                 <div className="battle-opponent-metric">
-                                    <span>Time / Space</span>
+                                    <span>{t('battles.timeSpace')}</span>
                                     <strong>{opponentResult.timeComplexity} / {opponentResult.spaceComplexity}</strong>
                                 </div>
                                 <div className="battle-opponent-metric">
-                                    <span>Score</span>
+                                    <span>{t('battles.score')}</span>
                                     <strong>+{opponentResult.score}</strong>
                                 </div>
                                 <div className="battle-opponent-criteria">
@@ -578,15 +574,15 @@ const ActiveBattlePage = () => {
                         {playerResult && (
                             <div className="battle-opponent-metrics battle-opponent-metrics--player">
                                 <div className="battle-opponent-metric">
-                                    <span>Your Execution</span>
+                                    <span>{t('battles.yourExecution')}</span>
                                     <strong>{playerResult.executionTimeMs}ms</strong>
                                 </div>
                                 <div className="battle-opponent-metric">
-                                    <span>Time / Space</span>
+                                    <span>{t('battles.timeSpace')}</span>
                                     <strong>{playerResult.timeComplexity} / {playerResult.spaceComplexity}</strong>
                                 </div>
                                 <div className="battle-opponent-metric">
-                                    <span>Your Score</span>
+                                    <span>{t('battles.yourScore')}</span>
                                     <strong>+{playerResult.score}</strong>
                                 </div>
                             </div>

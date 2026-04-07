@@ -15,6 +15,7 @@ import {
     Input,
     VStack,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { Difficulty, ALL_TAGS, ChallengeUserStatus } from '../data/mockChallenges';
 
 const FilterSection = ({ title, children }) => (
@@ -48,17 +49,18 @@ const ChallengesFilters = ({
     difficultyCounts,
     tagCounts,
 }) => {
+    const { t } = useTranslation();
     const difficulties = [
-        { key: Difficulty.EASY, label: 'Easy' },
-        { key: Difficulty.MEDIUM, label: 'Medium' },
-        { key: Difficulty.HARD, label: 'Hard' },
-        { key: Difficulty.EXPERT, label: 'Expert' },
+        { key: Difficulty.EASY, label: t('challengePage.easy') },
+        { key: Difficulty.MEDIUM, label: t('challengePage.medium') },
+        { key: Difficulty.HARD, label: t('challengePage.hard') },
+        { key: Difficulty.EXPERT, label: t('challengePage.expert') },
     ];
 
     const statuses = [
-        { key: ChallengeUserStatus.SOLVED, label: 'Solved' },
-        { key: ChallengeUserStatus.ATTEMPTED, label: 'Attempted' },
-        { key: ChallengeUserStatus.UNSOLVED, label: 'Unsolved' },
+        { key: ChallengeUserStatus.SOLVED, label: t('challengePage.filterSolved') },
+        { key: ChallengeUserStatus.ATTEMPTED, label: t('challengePage.filterAttempted') },
+        { key: ChallengeUserStatus.UNSOLVED, label: t('challengePage.filterUnsolved') },
     ];
 
     // Show top 6 tags for compactness
@@ -69,7 +71,7 @@ const ChallengesFilters = ({
             <VStack spacing={4} align="stretch">
 
                 {/* Difficulty */}
-                <FilterSection title="Difficulty">
+                <FilterSection title={t('challengePage.difficultyFilter')}>
                     <VStack spacing={2} align="stretch">
                         {difficulties.map(d => (
                             <Flex
@@ -99,7 +101,7 @@ const ChallengesFilters = ({
                 </FilterSection>
 
                 {/* Tags */}
-                <FilterSection title="Tags">
+                <FilterSection title={t('challengePage.tagsFilter')}>
                     <VStack spacing={2} align="stretch">
                         {displayTags.map(tag => (
                             <Flex
@@ -131,7 +133,7 @@ const ChallengesFilters = ({
                 </FilterSection>
 
                 {/* Status */}
-                <FilterSection title="Status">
+                <FilterSection title={t('challengePage.statusFilter')}>
                     <VStack spacing={2} align="stretch">
                         {statuses.map(s => (
                             <Flex
@@ -158,7 +160,7 @@ const ChallengesFilters = ({
                 {/* Recommended toggle */}
                 <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" boxShadow="var(--shadow-card)" borderRadius="12px" p={5}>
                     <Flex as="label" align="center" justify="space-between" cursor="pointer">
-                        <Text fontSize="sm" fontWeight="medium" color="var(--color-text-primary)">Recommended for my rank</Text>
+                        <Text fontSize="sm" fontWeight="medium" color="var(--color-text-primary)">{t('challengePage.recommendedForRank')}</Text>
                         <Switch
                             isChecked={recommendedOnly}
                             onChange={(e) => setRecommendedOnly(e.target.checked)}
@@ -171,10 +173,10 @@ const ChallengesFilters = ({
                 {/* Search */}
                 <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" boxShadow="var(--shadow-card)" borderRadius="12px" p={5}>
                     <Text fontFamily="heading" fontSize="xs" fontWeight="bold" color="var(--color-text-secondary)" mb={3} textTransform="uppercase" letterSpacing="wider">
-                        Search
+                        {t('challengePage.searchFilter')}
                     </Text>
                     <Input
-                        placeholder="Search challenges..."
+                        placeholder={t('challengePage.searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="input-normalized"

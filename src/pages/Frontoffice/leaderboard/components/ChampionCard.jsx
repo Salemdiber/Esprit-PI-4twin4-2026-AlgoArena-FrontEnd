@@ -11,6 +11,7 @@
 import React from 'react';
 import { Box, Flex, Text, Image, Grid } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import RankBadge from './RankBadge';
 import EnergyBar from './EnergyBar';
 import StreakIndicator from './StreakIndicator';
@@ -34,6 +35,8 @@ const glowAnimation = {
 };
 
 const ChampionCard = ({ player }) => {
+    const { t } = useTranslation();
+
     return (
         <Box position="relative">
             {/* Spotlight effect */}
@@ -92,7 +95,7 @@ const ChampionCard = ({ player }) => {
                             boxShadow="0 4px 12px rgba(251, 191, 36, 0.4)"
                             whiteSpace="nowrap"
                         >
-                            Champion
+                            {t('leaderboardPage.champion')}
                         </Box>
 
                         {/* Rank number */}
@@ -169,7 +172,7 @@ const ChampionCard = ({ player }) => {
                     {/* Power Level */}
                     <Box textAlign="center" mb={5}>
                         <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
-                            Power Level
+                            {t('leaderboardPage.powerLevel')}
                         </Text>
                         <MotionFlex
                             justify="center"
@@ -212,7 +215,7 @@ const ChampionCard = ({ player }) => {
                                 {player.wins}
                             </Text>
                             <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-                                Victories
+                                {t('leaderboardPage.victories')}
                             </Text>
                         </Box>
                         <Box
@@ -226,7 +229,7 @@ const ChampionCard = ({ player }) => {
                                 {player.winRate}%
                             </Text>
                             <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-                                Win Rate
+                                {t('leaderboardPage.winRate')}
                             </Text>
                         </Box>
                     </Grid>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { settingsService } from '../../services/settingsService';
 
 const Settings = () => {
+    const { t } = useTranslation();
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -25,7 +27,7 @@ const Settings = () => {
             setApiRateLimit(data.apiRateLimit ?? 1000);
             setCodeExecutionLimit(data.codeExecutionLimit ?? 100);
         } catch (err) {
-            setError(err.message || 'Failed to load settings');
+            setError(err.message || t('admin.settings.failedToLoad'));
         } finally {
             setLoading(false);
         }
@@ -79,7 +81,7 @@ const Settings = () => {
                     if (typeof data.disableTabSwitch !== 'undefined') localStorage.setItem('disableTabSwitch', JSON.stringify(!!data.disableTabSwitch));
                 }
             } catch (_) {}
-            showSuccess(`${field} updated successfully`);
+            showSuccess(t('admin.settings.fieldUpdatedSuccess', { field }));
         } catch (err) {
             // Revert optimistic update on error
             try {
@@ -90,7 +92,7 @@ const Settings = () => {
                     localStorage.setItem(field, JSON.stringify(server[field] || false));
                 }
             } catch (_) { /* ignore */ }
-            setError(err.message || `Failed to update ${field}`);
+            setError(err.message || t('admin.settings.failedToUpdateField', { field }));
         }
     };
 
@@ -119,9 +121,9 @@ const Settings = () => {
                     if (typeof data.disableTabSwitch !== 'undefined') localStorage.setItem('disableTabSwitch', JSON.stringify(!!data.disableTabSwitch));
                 }
             } catch (_) {}
-            showSuccess('All settings saved successfully');
+            showSuccess(t('admin.settings.allSettingsSaved'));
         } catch (err) {
-            setError(err.message || 'Failed to save settings');
+            setError(err.message || t('admin.settings.failedToSave'));
         } finally {
             setSaving(false);
         }
@@ -156,9 +158,9 @@ const Settings = () => {
             setSupportEmail('support@algoarena.com');
             setApiRateLimit(1000);
             setCodeExecutionLimit(100);
-            showSuccess('Settings reset to defaults');
+            showSuccess(t('admin.settings.settingsResetSuccess'));
         } catch (err) {
-            setError(err.message || 'Failed to reset settings');
+            setError(err.message || t('admin.settings.failedToReset'));
         } finally {
             setSaving(false);
         }
@@ -175,8 +177,8 @@ const Settings = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">Platform Settings</h1>
-                <p style={{ color: 'var(--color-text-muted)' }} className="">Configure system preferences and platform behavior</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.settings.pageTitle')}</h1>
+                <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.settings.pageSubtitle')}</p>
             </div>
 
             {/* Feedback banners */}
@@ -196,13 +198,13 @@ const Settings = () => {
                 {/* Settings Nav */}
                 <div className="lg:col-span-1">
                     <div className="glass-panel rounded-2xl p-6 shadow-custom sticky top-24">
-                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-4">Settings Menu</h2>
+                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-4">{t('admin.settings.settingsMenu')}</h2>
                         <nav className="space-y-2">
-                            <NavButton active icon="general">General</NavButton>
-                            <NavButton icon="security">Security</NavButton>
-                            <NavButton icon="notifications">Notifications</NavButton>
-                            <NavButton icon="billing">Billing</NavButton>
-                            <NavButton icon="advanced">Advanced</NavButton>
+                            <NavButton active icon="general">{t('admin.settings.navGeneral')}</NavButton>
+                            <NavButton icon="security">{t('admin.settings.navSecurity')}</NavButton>
+                            <NavButton icon="notifications">{t('admin.settings.navNotifications')}</NavButton>
+                            <NavButton icon="billing">{t('admin.settings.navBilling')}</NavButton>
+                            <NavButton icon="advanced">{t('admin.settings.navAdvanced')}</NavButton>
                         </nav>
                     </div>
                 </div>
@@ -210,16 +212,16 @@ const Settings = () => {
                 {/* Content Area */}
                 <div className="lg:col-span-2">
                     <div className="glass-panel rounded-2xl p-6 shadow-custom">
-                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">General Settings</h2>
+                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">{t('admin.settings.generalSettings')}</h2>
 
                         <div className="space-y-6">
 
                             {/* Platform Info */}
                             <div>
-                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">Platform Information</h3>
+                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">{t('admin.settings.platformInfo')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Platform Name</label>
+                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.settings.platformName')}</label>
                                         <input
                                             type="text"
                                             value={platformName}
@@ -228,7 +230,7 @@ const Settings = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Support Email</label>
+                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.settings.supportEmail')}</label>
                                         <input
                                             type="email"
                                             value={supportEmail}
@@ -241,48 +243,48 @@ const Settings = () => {
 
                             {/* Toggles */}
                             <div className="pt-6 border-t " style={{ borderColor: 'var(--color-border)' }}>
-                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">Feature Toggles</h3>
+                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">{t('admin.settings.featureToggles')}</h3>
                                 <div className="space-y-4">
                                     <ToggleItem
-                                        title="User Registration"
-                                        description="Allow new users to create accounts"
+                                        title={t('admin.settings.toggleUserRegistration')}
+                                        description={t('admin.settings.toggleUserRegistrationDesc')}
                                         checked={settings?.userRegistration ?? true}
                                         onChange={() => handleToggle('userRegistration', settings?.userRegistration)}
                                     />
                                     <ToggleItem
-                                        title="AI Battles"
-                                        description="Enable AI-powered coding battles"
+                                        title={t('admin.settings.toggleAiBattles')}
+                                        description={t('admin.settings.toggleAiBattlesDesc')}
                                         checked={settings?.aiBattles ?? true}
                                         onChange={() => handleToggle('aiBattles', settings?.aiBattles)}
                                     />
                                     <ToggleItem
-                                        title="Maintenance Mode"
-                                        description="Put platform in maintenance mode"
+                                        title={t('admin.settings.toggleMaintenanceMode')}
+                                        description={t('admin.settings.toggleMaintenanceModeDesc')}
                                         checked={settings?.maintenanceMode ?? false}
                                         onChange={() => handleToggle('maintenanceMode', settings?.maintenanceMode)}
                                     />
                                     <ToggleItem
-                                        title="AI Classification"
-                                        description="Enable AI-powered code analysis and rank classification (disable if external AI is unavailable)"
+                                        title={t('admin.settings.toggleAiClassification')}
+                                        description={t('admin.settings.toggleAiClassificationDesc')}
                                         checked={settings?.ollamaEnabled ?? true}
                                         onChange={() => handleToggle('ollamaEnabled', settings?.ollamaEnabled)}
                                         accent="purple"
                                     />
                                     <ToggleItem
-                                        title="Disable Copy / Paste"
-                                        description="Prevent copy, cut and paste actions during speed challenges"
+                                        title={t('admin.settings.toggleDisableCopyPaste')}
+                                        description={t('admin.settings.toggleDisableCopyPasteDesc')}
                                         checked={settings?.disableCopyPaste ?? false}
                                         onChange={() => handleToggle('disableCopyPaste', settings?.disableCopyPaste)}
                                     />
                                     <ToggleItem
-                                        title="Disable Tab Switch"
-                                        description="Detect tab switching and suspend the challenge when user leaves the tab"
+                                        title={t('admin.settings.toggleDisableTabSwitch')}
+                                        description={t('admin.settings.toggleDisableTabSwitchDesc')}
                                         checked={settings?.disableTabSwitch ?? false}
                                         onChange={() => handleToggle('disableTabSwitch', settings?.disableTabSwitch)}
                                     />
                                     <ToggleItem
-                                        title="Disable Speed Challenges"
-                                        description="Disable the speed challenge placement test for new users"
+                                        title={t('admin.settings.toggleDisableSpeedChallenges')}
+                                        description={t('admin.settings.toggleDisableSpeedChallengesDesc')}
                                         checked={settings?.disableSpeedChallenges ?? false}
                                         onChange={() => handleToggle('disableSpeedChallenges', settings?.disableSpeedChallenges)}
                                     />
@@ -291,10 +293,10 @@ const Settings = () => {
 
                             {/* Rate Limits */}
                             <div className="pt-6 border-t " style={{ borderColor: 'var(--color-border)' }}>
-                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">Rate Limits</h3>
+                                <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold  mb-4">{t('admin.settings.rateLimits')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">API Requests per Hour</label>
+                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.settings.apiRequestsPerHour')}</label>
                                         <input
                                             type="number"
                                             min="1"
@@ -304,7 +306,7 @@ const Settings = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">Code Executions per Day</label>
+                                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium  mb-2">{t('admin.settings.codeExecutionsPerDay')}</label>
                                         <input
                                             type="number"
                                             min="1"
@@ -319,10 +321,10 @@ const Settings = () => {
                             {/* Actions */}
                             <div className="flex items-center gap-4 pt-6 mt-6 border-t " style={{ borderColor: 'var(--color-border)' }}>
                                 <button className="btn-primary" onClick={handleSaveAll} disabled={saving}>
-                                    {saving ? 'Saving...' : 'Save Changes'}
+                                    {saving ? t('admin.settings.saving') : t('admin.settings.saveChanges')}
                                 </button>
                                 <button className="btn-secondary" onClick={handleReset} disabled={saving}>
-                                    Reset to Defaults
+                                    {t('admin.settings.resetToDefaults')}
                                 </button>
                             </div>
 

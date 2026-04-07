@@ -9,32 +9,35 @@
  *  • requirements [{id, label, met}]
  */
 import { useMemo } from 'react';
+import i18n from 'i18next';
 
 const REQUIREMENTS = [
-    { id: 'length', label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
-    { id: 'number', label: 'Contains number', test: (pw) => /\d/.test(pw) },
-    { id: 'uppercase', label: 'Contains uppercase letter', test: (pw) => /[A-Z]/.test(pw) },
-    { id: 'special', label: 'Special character', test: (pw) => /[^A-Za-z0-9]/.test(pw) },
+    { id: 'length', labelKey: 'profilePage.req8chars', test: (pw) => pw.length >= 8 },
+    { id: 'number', labelKey: 'profilePage.reqNumber', test: (pw) => /\d/.test(pw) },
+    { id: 'uppercase', labelKey: 'profilePage.reqUppercase', test: (pw) => /[A-Z]/.test(pw) },
+    { id: 'special', labelKey: 'profilePage.reqSpecial', test: (pw) => /[^A-Za-z0-9]/.test(pw) },
 ];
 
-const LEVELS = [
-    { label: 'Weak', color: '#ef4444', glowColor: 'rgba(239, 68, 68, 0.5)' },
-    { label: 'Fair', color: '#f97316', glowColor: 'rgba(249, 115, 22, 0.5)' },
-    { label: 'Medium', color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.5)' },
-    { label: 'Strong', color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.5)' },
+const LEVEL_KEYS = [
+    { labelKey: 'profilePage.weak', color: '#ef4444', glowColor: 'rgba(239, 68, 68, 0.5)' },
+    { labelKey: 'profilePage.fair', color: '#f97316', glowColor: 'rgba(249, 115, 22, 0.5)' },
+    { labelKey: 'profilePage.medium', color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.5)' },
+    { labelKey: 'profilePage.strong', color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.5)' },
 ];
 
 const usePasswordStrength = (password = '') => {
     return useMemo(() => {
         const requirements = REQUIREMENTS.map((r) => ({
             id: r.id,
-            label: r.label,
+            label: i18n.t(r.labelKey),
             met: r.test(password),
         }));
 
-        const score = requirements.filter((r) => r.met).length; // 0–4
-        const idx = Math.max(0, Math.min(score - 1, LEVELS.length - 1));
-        const level = score === 0 ? { label: '', color: '#475569', glowColor: 'transparent' } : LEVELS[idx];
+        const score = requirements.filter((r) => r.met).length;
+        const idx = Math.max(0, Math.min(score - 1, LEVEL_KEYS.length - 1));
+        const level = score === 0
+            ? { label: '', color: '#475569', glowColor: 'transparent' }
+            : { label: i18n.t(LEVEL_KEYS[idx].labelKey), color: LEVEL_KEYS[idx].color, glowColor: LEVEL_KEYS[idx].glowColor };
 
         return {
             score,
@@ -44,7 +47,7 @@ const usePasswordStrength = (password = '') => {
             percent: (score / REQUIREMENTS.length) * 100,
             requirements,
         };
-    }, [password]);
+    }, [password, i18n.language]);
 };
 
 export default usePasswordStrength;

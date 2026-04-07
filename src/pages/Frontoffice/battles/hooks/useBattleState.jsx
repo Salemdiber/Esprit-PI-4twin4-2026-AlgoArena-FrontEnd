@@ -23,6 +23,7 @@ import {
 import { battlesService } from '../../../../services/battlesService';
 import { challengeService } from '../../../../services/challengeService';
 import { useAuth } from '../../auth/context/AuthContext';
+import i18n from '../../../../i18n';
 
 const BATTLE_RESULTS_PREFIX = 'battle-results:';
 const BATTLE_PLAN_PREFIX = 'battle-plan:';
@@ -602,7 +603,7 @@ export function BattleProvider({ children }) {
             const list = Array.isArray(resp) ? resp : Array.isArray(resp?.data) ? resp.data : [];
             dispatch({ type: ActionTypes.SET_CHALLENGES, payload: list });
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to load challenges' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadChallenges') });
         }
     }, []);
 
@@ -619,7 +620,7 @@ export function BattleProvider({ children }) {
             const mapped = list.map(mapBattleFromApi);
             dispatch({ type: ActionTypes.SET_BATTLES, payload: mapped });
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to load battles' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadBattles') });
         } finally {
             dispatch({ type: ActionTypes.SET_LOADING, payload: false });
         }
@@ -670,7 +671,7 @@ export function BattleProvider({ children }) {
         const primary = assigned[0];
 
         if (!primary?._id) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: 'No challenges available for the selected type.' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: i18n.t('battles.noChallengesForType') });
             return;
         }
 
@@ -717,7 +718,7 @@ export function BattleProvider({ children }) {
             dispatch({ type: ActionTypes.CLOSE_CREATE_MODAL });
             await refreshBattles();
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to create battle' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCreateBattle') });
         }
     }, [state.createModal, currentUser, currentUserId, refreshBattles, filterChallengesByType, resolveChallengeType]);
 
@@ -726,7 +727,7 @@ export function BattleProvider({ children }) {
             await battlesService.update(id, { battleStatus: 'CANCELLED' });
             await refreshBattles();
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to cancel battle' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCancelBattle') });
         }
     }, [refreshBattles]);
 

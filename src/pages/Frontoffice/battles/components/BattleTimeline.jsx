@@ -5,9 +5,12 @@
  * Highlights completed, active, and upcoming rounds.
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RoundStatus } from '../types/battle.types';
 
 const BattleTimeline = ({ rounds, currentRoundIndex }) => {
+    const { t } = useTranslation();
+
     return (
         <div className="battle-timeline">
             {rounds.map((round, i) => {
@@ -15,7 +18,6 @@ const BattleTimeline = ({ rounds, currentRoundIndex }) => {
                 const isActive = round.status === RoundStatus.IN_PROGRESS;
                 const isUpcoming = round.status === RoundStatus.UPCOMING;
 
-                // Circle class
                 const circleClass = [
                     'battle-timeline__circle',
                     isCompleted ? 'battle-timeline__circle--completed' : '',
@@ -23,14 +25,12 @@ const BattleTimeline = ({ rounds, currentRoundIndex }) => {
                     isUpcoming ? 'battle-timeline__circle--upcoming' : '',
                 ].filter(Boolean).join(' ');
 
-                // Status text
                 const statusText = isCompleted
-                    ? 'Completed'
+                    ? t('battles.statusCompleted')
                     : isActive
-                        ? 'In Progress'
-                        : 'Upcoming';
+                        ? t('battles.inProgressStatus')
+                        : t('battles.upcoming');
 
-                // Status color
                 const statusColor = isCompleted
                     ? '#22c55e'
                     : isActive
@@ -46,7 +46,7 @@ const BattleTimeline = ({ rounds, currentRoundIndex }) => {
                                 {isCompleted ? '✓' : i + 1}
                             </div>
                             <p style={{ fontWeight: 700, color: labelColor, marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                                Round {i + 1}
+                                {t('battles.roundN', { n: i + 1 })}
                             </p>
                             <p className="battle-text-xs" style={{ color: statusColor }}>
                                 {statusText}

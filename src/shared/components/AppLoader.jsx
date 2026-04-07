@@ -12,23 +12,25 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, Flex } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import useAccessibility from '../../accessibility/hooks/useAccessibility';
 
 const MotionBox = motion.create(Box);
 const MotionFlex = motion.create(Flex);
 
-const BOOT_MESSAGES = [
-    'Initializing Arena Engine...',
-    'Loading Challenges...',
-    'Synchronizing Leaderboard...',
-    'Preparing Battle Systems...',
-];
-
 const AppLoader = ({ isLoading = true }) => {
+    const { t } = useTranslation();
     const [messageIndex, setMessageIndex] = useState(0);
     const [progress, setProgress] = useState(0);
     const { settings } = useAccessibility();
     const reducedMotion = settings?.reducedMotion || false;
+
+    const BOOT_MESSAGES = [
+        t('appLoader.initEngine'),
+        t('appLoader.loadingChallenges'),
+        t('appLoader.syncLeaderboard'),
+        t('appLoader.prepareBattle'),
+    ];
 
     // Cycle through boot messages
     useEffect(() => {
@@ -213,7 +215,7 @@ const AppLoader = ({ isLoading = true }) => {
                                 letterSpacing="wider"
                                 fontFamily="'Inter', sans-serif"
                             >
-                                ALGO ARENA
+                                {t('appLoader.algoArena')}
                             </Text>
                         </MotionBox>
 

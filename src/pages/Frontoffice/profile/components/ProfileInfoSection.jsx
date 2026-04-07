@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react';
 import { CheckIcon } from '@chakra-ui/icons';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '../context/ProfileContext';
 
 const MotionBox = motion.create(Box);
@@ -43,6 +44,7 @@ const inputStyles = {
 };
 
 const ProfileInfoSection = () => {
+    const { t } = useTranslation();
     const { user, isEditing, setIsEditing, updateUser, isUpdating } = useProfile();
     const prefersReducedMotion = useReducedMotion();
 
@@ -101,7 +103,7 @@ const ProfileInfoSection = () => {
             {/* Header row */}
             <Flex justify="space-between" align="center" mb={6}>
                 <Text fontFamily="heading" fontSize="lg" fontWeight="600" color={useColorModeValue("gray.800","gray.100")}>
-                    Profile Information
+                    {t('profilePage.profileInfo')}
                 </Text>
 
                 {!isEditing ? (
@@ -117,7 +119,7 @@ const ProfileInfoSection = () => {
                         fontWeight="500"
                         onClick={() => setIsEditing(true)}
                     >
-                        Edit Profile
+                        {t('profilePage.editProfile')}
                     </Button>
                 ) : (
                     <Flex gap={2}>
@@ -132,7 +134,7 @@ const ProfileInfoSection = () => {
                             onClick={handleSave}
                             isLoading={isUpdating}
                         >
-                            Save
+                            {t('profilePage.save')}
                         </Button>
                         <Button
                             size="sm"
@@ -145,7 +147,7 @@ const ProfileInfoSection = () => {
                             fontWeight="500"
                             onClick={handleCancel}
                         >
-                            Cancel
+                            {t('profilePage.cancel')}
                         </Button>
                     </Flex>
                 )}
@@ -171,7 +173,7 @@ const ProfileInfoSection = () => {
                                 letterSpacing="wider"
                                 mb={2}
                             >
-                                Username
+                                {t('profilePage.username')}
                             </Text>
                             {isEditing ? (
                                 <Input
@@ -204,7 +206,7 @@ const ProfileInfoSection = () => {
                                 letterSpacing="wider"
                                 mb={2}
                             >
-                                Email Address
+                                {t('profilePage.emailAddress')}
                             </Text>
                             {isEditing ? (
                                 <Input
@@ -242,7 +244,7 @@ const ProfileInfoSection = () => {
                                             borderColor="rgba(16, 185, 129, 0.2)"
                                         >
                                             <CheckIcon w={3} h={3} />
-                                            Verified
+                                            {t('profilePage.verified')}
                                         </Badge>
                                     )}
                                 </Flex>
@@ -259,7 +261,7 @@ const ProfileInfoSection = () => {
                                 letterSpacing="wider"
                                 mb={2}
                             >
-                                Bio
+                                {t('profilePage.bio')}
                             </Text>
                             {isEditing ? (
                                 <Textarea

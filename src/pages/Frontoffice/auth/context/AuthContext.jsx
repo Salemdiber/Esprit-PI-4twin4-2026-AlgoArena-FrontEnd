@@ -9,6 +9,7 @@
  * Exposes login / signup / logout helpers.
  */
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import i18n from '../../../../i18n';
 import { authService } from '../../../../services/authService';
 import { userService } from '../../../../services/userService';
 import { setToken, removeToken, getToken } from '../../../../services/cookieUtils';
@@ -91,8 +92,8 @@ export const AuthProvider = ({ children }) => {
                 writeStorage(null);
                 setCurrentUser(null);
                 toast({
-                    title: 'Session Expired',
-                    description: 'You have been signed out. Please log in again to continue.',
+                    title: i18n.t('auth.context.sessionExpiredTitle'),
+                    description: i18n.t('auth.context.sessionExpiredSignedOut'),
                     status: 'warning',
                     duration: 5000,
                     isClosable: true,
@@ -176,8 +177,8 @@ export const AuthProvider = ({ children }) => {
                         // Refresh token invalid -> Logout cleanly across all tabs
                         logout();
                         toast({
-                            title: 'Session Expired',
-                            description: 'Your session has expired. Please log in again.',
+                            title: i18n.t('auth.context.sessionExpiredTitle'),
+                            description: i18n.t('auth.context.sessionExpiredLogin'),
                             status: 'warning',
                             duration: 5000,
                             isClosable: true,
@@ -223,10 +224,10 @@ export const AuthProvider = ({ children }) => {
         try {
             const data = await authService.login({ username, password, recaptchaToken });
             const user = await establishSession(data.access_token);
-            toast({ title: 'Welcome Back!', status: 'success', duration: 3000, isClosable: true });
+            toast({ title: i18n.t('auth.context.welcomeBack'), status: 'success', duration: 3000, isClosable: true });
             return user;
         } catch (error) {
-            toast({ title: 'Login failed', description: error.message, status: 'error', duration: 4000, isClosable: true });
+            toast({ title: i18n.t('auth.context.loginFailed'), description: error.message, status: 'error', duration: 4000, isClosable: true });
             throw error;
         }
     }, [establishSession, toast]);
@@ -238,10 +239,10 @@ export const AuthProvider = ({ children }) => {
         try {
             const data = await authService.register({ username, email, password, recaptchaToken, avatar });
             const user = await establishSession(data.access_token);
-            toast({ title: 'Account created successfully', description: 'You are now signed in.', status: 'success', duration: 4000, isClosable: true });
+            toast({ title: i18n.t('auth.context.accountCreated'), description: i18n.t('auth.context.nowSignedIn'), status: 'success', duration: 4000, isClosable: true });
             return user;
         } catch (error) {
-            toast({ title: 'Registration failed', description: error.message, status: 'error', duration: 4000, isClosable: true });
+            toast({ title: i18n.t('auth.context.registrationFailed'), description: error.message, status: 'error', duration: 4000, isClosable: true });
             throw error;
         }
     }, [establishSession, toast]);

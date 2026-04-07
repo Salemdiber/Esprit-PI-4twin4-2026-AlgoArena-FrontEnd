@@ -4,9 +4,11 @@
  * Used in both ActiveBattlePage and BattleSummaryPage.
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { BattleMode } from '../types/battle.types';
 
 const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winner = null }) => {
+    const { t } = useTranslation();
     const isAI = battle.mode === BattleMode.ONE_VS_AI;
 
     return (
@@ -26,12 +28,12 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                 </h3>
                 {isResult && winner === 'player' && (
                     <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>
-                        WINNER
+                        {t('battles.winner')}
                     </span>
                 )}
                 {!isResult && (
                     <p className="battle-text-sm battle-text-muted" style={{ marginBottom: '0.75rem' }}>
-                        Level {battle.player.level} • {battle.player.league}
+                        {t('battles.levelLeague', { level: battle.player.level, league: battle.player.league })}
                     </p>
                 )}
                 <p className={`battle-font-bold ${isResult ? 'battle-text-5xl' : 'battle-text-3xl'} ${isResult && winner === 'player' ? 'battle-text-green' : 'battle-text-cyan'
@@ -39,18 +41,18 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                     {playerScore}
                 </p>
                 <p className="battle-text-xs battle-text-muted battle-text-uppercase">
-                    {isResult ? 'Final Score' : 'Current Score'}
+                    {isResult ? t('battles.finalScore') : t('battles.currentScore')}
                 </p>
             </div>
 
             {/* VS */}
             <div className="battle-scoreboard__vs">
                 <div className="battle-scoreboard__vs-circle">
-                    <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>VS</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>{t('battles.vs')}</span>
                 </div>
                 {!isResult && battle.rounds && (
                     <>
-                        <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.5rem' }}>Round Progress</p>
+                        <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.5rem' }}>{t('battles.roundProgress')}</p>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             {battle.rounds.map((r, i) => (
                                 <div
@@ -82,7 +84,7 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                 ) : (
                     <img
                         src={battle.opponent?.avatar || ''}
-                        alt={battle.opponent?.name || 'Opponent'}
+                        alt={battle.opponent?.name || t('battles.opponent')}
                         className={`battle-scoreboard__avatar ${isResult && winner === 'opponent'
                                 ? 'battle-scoreboard__avatar--winner'
                                 : 'battle-scoreboard__avatar--opponent'
@@ -90,21 +92,21 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                     />
                 )}
                 <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.25rem' }}>
-                    {battle.opponent?.name || 'Unknown'}
+                    {battle.opponent?.name || t('battles.unknown')}
                 </h3>
                 {isResult && winner === 'opponent' && (
                     <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>
-                        WINNER
+                        {t('battles.winner')}
                     </span>
                 )}
                 {isResult && winner !== 'opponent' && (
                     <span className="battle-badge battle-badge--gray" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>
-                        DEFEATED
+                        {t('battles.defeated')}
                     </span>
                 )}
                 {!isResult && (
                     <p className="battle-text-sm battle-text-muted" style={{ marginBottom: '0.75rem' }}>
-                        Level {battle.opponent?.level} • {battle.opponent?.league}
+                        {t('battles.levelLeague', { level: battle.opponent?.level, league: battle.opponent?.league })}
                     </p>
                 )}
                 <p className={`battle-font-bold ${isResult ? 'battle-text-5xl' : 'battle-text-3xl'}`}
@@ -112,7 +114,7 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                     {opponentScore}
                 </p>
                 <p className="battle-text-xs battle-text-muted battle-text-uppercase">
-                    {isResult ? 'Final Score' : 'Current Score'}
+                    {isResult ? t('battles.finalScore') : t('battles.currentScore')}
                 </p>
             </div>
         </div>

@@ -23,6 +23,7 @@ import {
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
 import UserRankStatsBar from '../components/UserRankStatsBar';
 import ChallengesFilters from '../components/ChallengesFilters';
@@ -34,6 +35,7 @@ import { useChallengeContext } from '../context/ChallengeContext';
 const MotionBox = motion.create(Box);
 
 const ChallengesListPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const toast = useToast();
     const { streakDetails, userProgress, challenges } = useChallengeContext();
@@ -66,7 +68,7 @@ const ChallengesListPage = () => {
         if (sessionStorage.getItem(sessionKey)) return;
 
         toast({
-            title: `\u{1F525} ${currentStreak} day${currentStreak !== 1 ? 's' : ''} streak`,
+            title: `\u{1F525} ${currentStreak !== 1 ? t('challengePage.streakToastPlural', { count: currentStreak }) : t('challengePage.streakToast', { count: currentStreak })}`,
             description: message,
             status: currentStreak > 1 ? 'success' : 'info',
             duration: 6000,
@@ -94,14 +96,14 @@ const ChallengesListPage = () => {
         .sort((a, b) => new Date(b.lastActiveAt || b.lastAttemptAt || 0).getTime() - new Date(a.lastActiveAt || a.lastAttemptAt || 0).getTime())[0] || null;
 
     const getRelative = (iso) => {
-        if (!iso) return 'recently';
+        if (!iso) return t('challengePage.recently');
         const diff = Date.now() - new Date(iso).getTime();
         const minutes = Math.max(1, Math.floor(diff / 60000));
-        if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+        if (minutes < 60) return minutes === 1 ? t('challengePage.minuteAgo', { count: minutes }) : t('challengePage.minutesAgo', { count: minutes });
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        if (hours < 24) return hours === 1 ? t('challengePage.hourAgo', { count: hours }) : t('challengePage.hoursAgo', { count: hours });
         const days = Math.floor(hours / 24);
-        return `${days} day${days === 1 ? '' : 's'} ago`;
+        return days === 1 ? t('challengePage.dayAgo', { count: days }) : t('challengePage.daysAgo', { count: days });
     };
 
     const fullXpRemainingPercent = (elapsedSeconds) => {
@@ -135,10 +137,10 @@ const ChallengesListPage = () => {
                         color="var(--color-text-heading)"
                         mb={2}
                     >
-                        Challenges
+                        {t('challengePage.title')}
                     </Text>
                     <Text fontSize="lg" color="var(--color-text-secondary)" mb={6}>
-                        Sharpen your skills. Climb your rank.
+                        {t('challengePage.subtitle')}
                     </Text>
 
                     <UserRankStatsBar />
@@ -159,7 +161,7 @@ const ChallengesListPage = () => {
                                 <Icon as={FiZap} boxSize={6} color="orange.300" mt={0.5} />
                                 <Box>
                                     <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="bold" color="orange.300">
-                                        {inProgressItems.length === 1 ? 'You have a challenge in progress!' : `You have ${inProgressItems.length} challenges in progress!`}
+                                        {inProgressItems.length === 1 ? t('challengePage.inProgressSingle') : t('challengePage.inProgressMultiple', { count: inProgressItems.length })}
                                     </Text>
                                     {inProgressItems.length === 1 && mostRecentInProgress && (
                                         <>
@@ -174,7 +176,7 @@ const ChallengesListPage = () => {
                                             <HStack mt={1.5} spacing={2} color="var(--color-text-muted)">
                                                 <Icon as={FiClock} boxSize={3.5} />
                                                 <Text fontSize="sm">
-                                                    Started {getRelative(mostRecentInProgress.lastActiveAt || mostRecentInProgress.lastAttemptAt)} • {fullXpRemainingPercent(mostRecentInProgress.totalElapsedTime)}% of time remaining for full XP
+                                                    {t('challengePage.startedTimeRemaining', { time: getRelative(mostRecentInProgress.lastActiveAt || mostRecentInProgress.lastAttemptAt), percent: fullXpRemainingPercent(mostRecentInProgress.totalElapsedTime) })}
                                                 </Text>
                                             </HStack>
                                         </>
@@ -185,7 +187,7 @@ const ChallengesListPage = () => {
                                                 <HStack key={item.challengeId} spacing={2}>
                                                     <Text fontSize="sm" color="var(--color-text-primary)">{item.challenge?.title}</Text>
                                                     <Button variant="link" size="sm" colorScheme="orange" onClick={() => navigate(`/challenges/${item.challengeId}`)}>
-                                                        Continue
+                                                        {t('challengePage.continueBtn')}
                                                     </Button>
                                                 </HStack>
                                             ))}
@@ -202,7 +204,7 @@ const ChallengesListPage = () => {
                                 onClick={() => navigate(`/challenges/${(mostRecentInProgress || inProgressItems[0]).challengeId}`)}
                                 w={{ base: 'full', md: 'auto' }}
                             >
-                                Continue Solving
+                                {t('challengePage.continueSolving')}
                             </Button>
                         </Flex>
                     </Box>
@@ -230,11 +232,11 @@ const ChallengesListPage = () => {
                         {/* Toolbar */}
                         <Flex justify="space-between" align="center" mb={6}>
                             <Text color="var(--color-text-secondary)">
-                                Showing{' '}
+                                {t('challengePage.showing')}{' '}
                                 <Text as="span" color="brand.500" fontWeight="semibold">
                                     {filteredCount}
                                 </Text>{' '}
-                                challenges
+                                {t('challengePage.challengesCount')}
                             </Text>
                             <Select
                                 value={sortOption}
@@ -254,7 +256,7 @@ const ChallengesListPage = () => {
                             >
                                 {SORT_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>
-                                        Sort by: {opt.label}
+                                        {t('challengePage.sortByPrefix')} {opt.label}
                                     </option>
                                 ))}
                             </Select>
@@ -265,9 +267,9 @@ const ChallengesListPage = () => {
                             {filteredChallenges.length === 0 ? (
                                 <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" borderRadius="12px" p={10} textAlign="center">
                                     <Text fontSize="2xl" mb={2}>🔍</Text>
-                                    <Text color="var(--color-text-secondary)" fontWeight="medium">No challenges match your current filters.</Text>
+                                    <Text color="var(--color-text-secondary)" fontWeight="medium">{t('challengePage.noMatchTitle')}</Text>
                                     <Text color="var(--color-text-muted)" fontSize="sm" mt={1}>
-                                        Try adjusting your filters or search query.
+                                        {t('challengePage.noMatchHint')}
                                     </Text>
                                 </Box>
                             ) : (

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Box,
     Container,
@@ -17,9 +18,8 @@ import { motion } from 'framer-motion';
 
 const MotionBox = motion.create(Box);
 
-const gameData = {
+const gameStatic = {
     tetris: {
-        title: 'Tetris Logic',
         icon: '🎮',
         code: `function movePiece(grid, direction) {
   // Tetris-like logic
@@ -39,7 +39,6 @@ const gameData = {
         pattern: [3, 4, 11, 12, 19, 20, 27, 28],
     },
     maze: {
-        title: 'Maze Solver',
         icon: '🧩',
         code: `function solveMaze(maze, start, end) {
   const queue = [start];
@@ -59,7 +58,6 @@ const gameData = {
         pattern: [0, 1, 2, 10, 18, 26, 27, 28],
     },
     tower: {
-        title: 'Tower Defense',
         icon: '🏰',
         code: `function targetEnemy(towers, enemies) {
   for (let tower of towers) {
@@ -80,7 +78,6 @@ const gameData = {
         pattern: [4, 12, 13, 14, 20, 21, 22, 28],
     },
     puzzle: {
-        title: 'Puzzle Grid',
         icon: '🧠',
         code: `function solvePuzzle(grid) {
   const n = grid.length;
@@ -102,6 +99,16 @@ const gameData = {
 };
 
 const Games = () => {
+    const { t } = useTranslation();
+    const gameData = useMemo(
+        () => ({
+            tetris: { ...gameStatic.tetris, title: t('landing.games.tetrisTitle') },
+            maze: { ...gameStatic.maze, title: t('landing.games.mazeTitle') },
+            tower: { ...gameStatic.tower, title: t('landing.games.towerTitle') },
+            puzzle: { ...gameStatic.puzzle, title: t('landing.games.puzzleTitle') },
+        }),
+        [t],
+    );
     const [currentGame, setCurrentGame] = useState('tetris');
     const [stats, setStats] = useState({ score: 0, lines: 0, level: 1 });
     const [activeIndices, setActiveIndices] = useState([]);
@@ -168,10 +175,10 @@ const Games = () => {
                             fontWeight="bold"
                             color={headingColor}
                         >
-                            Your Code. Your Game.
+                            {t('landing.games.sectionTitle')}
                         </Heading>
                         <Text fontSize="xl" color={textColor}>
-                            Choose a game. Write the logic. Watch it evolve.
+                            {t('landing.games.sectionSubtitle')}
                         </Text>
                     </VStack>
 
@@ -235,8 +242,8 @@ const Games = () => {
                                         borderColor={borderColor}
                                         width="auto"
                                     >
-                                        <option>JavaScript</option>
-                                        <option>Python</option>
+                                        <option value="javascript">{t('landing.games.javascript')}</option>
+                                        <option value="python">{t('landing.games.python')}</option>
                                     </Select>
                                 </HStack>
 
@@ -256,10 +263,10 @@ const Games = () => {
 
                                 <HStack spacing={3}>
                                     <Button flex={1} variant="primary" onClick={handleRunCode}>
-                                        Run Code
+                                        {t('landing.games.runCode')}
                                     </Button>
                                     <Button variant="ghost" borderColor={borderColor} onClick={handleRunCode}>
-                                        Reset
+                                        {t('landing.games.reset')}
                                     </Button>
                                 </HStack>
                             </Box>
@@ -282,7 +289,7 @@ const Games = () => {
                                         {gameData[currentGame].title}
                                     </Heading>
                                     <Text fontSize="xs" color="brand.500" fontWeight="semibold">
-                                        ● LIVE
+                                        {t('landing.games.live')}
                                     </Text>
                                 </HStack>
 
@@ -309,7 +316,7 @@ const Games = () => {
                                             {stats.score}
                                         </Text>
                                         <Text fontSize="xs" color={mutedColor}>
-                                            Score
+                                            {t('landing.games.score')}
                                         </Text>
                                     </Box>
                                     <Box bg={codeBg} borderRadius="8px" p={3} textAlign="center">
@@ -317,7 +324,7 @@ const Games = () => {
                                             {stats.lines}
                                         </Text>
                                         <Text fontSize="xs" color={mutedColor}>
-                                            Progress
+                                            {t('landing.games.progress')}
                                         </Text>
                                     </Box>
                                     <Box bg={codeBg} borderRadius="8px" p={3} textAlign="center">
@@ -325,7 +332,7 @@ const Games = () => {
                                             {stats.level}
                                         </Text>
                                         <Text fontSize="xs" color={mutedColor}>
-                                            Level
+                                            {t('landing.games.level')}
                                         </Text>
                                     </Box>
                                 </Grid>

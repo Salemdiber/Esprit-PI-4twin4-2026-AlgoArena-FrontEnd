@@ -1,33 +1,35 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const Leaderboards = () => {
+    const { t } = useTranslation();
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">Leaderboard Management</h1>
-                <p style={{ color: 'var(--color-text-muted)' }} className="">Manage rankings and competitive standings</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.leaderboards.pageTitle')}</h1>
+                <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.leaderboards.pageSubtitle')}</p>
             </div>
 
             {/* Controls */}
             <div className="glass-panel rounded-2xl p-4 mb-6 shadow-custom">
                 <div className="flex flex-col md:flex-row gap-4">
                     <select className="form-select bg-(--color-bg-input) md:w-48">
-                        <option>All Leagues</option>
-                        <option>Bronze</option>
-                        <option>Silver</option>
-                        <option>Gold</option>
-                        <option>Platinum</option>
-                        <option>Diamond</option>
+                        <option>{t('admin.leaderboards.allLeagues')}</option>
+                        <option>{t('admin.leaderboards.bronze')}</option>
+                        <option>{t('admin.leaderboards.silver')}</option>
+                        <option>{t('admin.leaderboards.gold')}</option>
+                        <option>{t('admin.leaderboards.platinum')}</option>
+                        <option>{t('admin.leaderboards.diamond')}</option>
                     </select>
                     <select className="form-select bg-(--color-bg-input) md:w-48">
-                        <option>Current Season</option>
-                        <option>Season 1</option>
-                        <option>Season 2</option>
-                        <option>All Time</option>
+                        <option>{t('admin.leaderboards.currentSeason')}</option>
+                        <option>{t('admin.leaderboards.season1')}</option>
+                        <option>{t('admin.leaderboards.season2')}</option>
+                        <option>{t('admin.leaderboards.allTime')}</option>
                     </select>
                     <div className="flex-1"></div>
-                    <button className="btn-danger w-full md:w-auto">Reset Season</button>
-                    <button className="btn-primary w-full md:w-auto">Export Rankings</button>
+                    <button className="btn-danger w-full md:w-auto">{t('admin.leaderboards.resetSeason')}</button>
+                    <button className="btn-primary w-full md:w-auto">{t('admin.leaderboards.exportRankings')}</button>
                 </div>
             </div>
 
@@ -46,7 +48,7 @@ const Leaderboards = () => {
                             <div className="relative inline-block mb-3">
                                 <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop" alt="User" className="w-20 h-20 rounded-full border-4 border-yellow-400 mx-auto" />
                                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-[#0f172a] text-xs font-bold px-2 py-0.5 rounded-full">
-                                    CHAMPION
+                                    {t('admin.leaderboards.champion')}
                                 </div>
                             </div>
                             <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-2xl font-bold  mb-1">@algo_ninja</h3>
@@ -57,7 +59,7 @@ const Leaderboards = () => {
                                 </svg>
                                 <span className="font-heading text-xl font-bold text-yellow-400">12,890</span>
                             </div>
-                            <p className="text-xs text-yellow-500/80 font-medium mt-2">🔥 47 day streak</p>
+                            <p className="text-xs text-yellow-500/80 font-medium mt-2">🔥 {t('admin.leaderboards.dayStreak', { count: 47 })}</p>
                         </div>
                     </div>
                 </div>
@@ -81,7 +83,7 @@ const Leaderboards = () => {
                                 </svg>
                                 <span style={{ color: 'var(--color-text-secondary)' }} className="font-heading text-2xl font-bold ">11,234</span>
                             </div>
-                            <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">🔥 32 day streak</p>
+                            <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">🔥 {t('admin.leaderboards.dayStreak', { count: 32 })}</p>
                         </div>
                     </div>
                 </div>
@@ -105,7 +107,7 @@ const Leaderboards = () => {
                                 </svg>
                                 <span className="font-heading text-2xl font-bold text-orange-400">8,547</span>
                             </div>
-                            <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">🔥 21 day streak</p>
+                            <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">🔥 {t('admin.leaderboards.dayStreak', { count: 21 })}</p>
                         </div>
                     </div>
                 </div>
@@ -118,13 +120,13 @@ const Leaderboards = () => {
                     <table className="w-full">
                         <thead className="bg-(--color-bg-sidebar)/50 border-b ">
                             <tr>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">Rank</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">User</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">Score</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">Challenges</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">Streak</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">League</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">Actions</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thRank')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thUser')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thScore')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thChallenges')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thStreak')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thLeague')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold  uppercase tracking-wider">{t('admin.leaderboards.thActions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800/50">
@@ -134,8 +136,8 @@ const Leaderboards = () => {
                                 name="Sarah Johnson"
                                 score="6,234"
                                 challenges="127"
-                                streak="18 days"
-                                league="Gold"
+                                streak={t('admin.leaderboards.dayStreak', { count: 18 })}
+                                league={t('admin.leaderboards.gold')}
                                 leagueColor="yellow"
                             />
                             <LeaderboardRow
@@ -144,8 +146,8 @@ const Leaderboards = () => {
                                 name="Alex Turner"
                                 score="5,892"
                                 challenges="98"
-                                streak="12 days"
-                                league="Silver"
+                                streak={t('admin.leaderboards.dayStreak', { count: 12 })}
+                                league={t('admin.leaderboards.silver')}
                                 leagueColor="gray"
                             />
                         </tbody>
@@ -157,6 +159,7 @@ const Leaderboards = () => {
 };
 
 const LeaderboardRow = ({ rank, user, name, score, challenges, streak, league, leagueColor }) => {
+    const { t } = useTranslation();
     const leagueStyles = {
         yellow: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
         gray: "bg-gray-500/10 text-gray-400 border-gray-500/20",
@@ -186,7 +189,7 @@ const LeaderboardRow = ({ rank, user, name, score, challenges, streak, league, l
                 </span>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <button title="View Profile" className="action-btn action-btn-view">
+                <button title={t('admin.leaderboards.viewProfile')} className="action-btn action-btn-view">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                     </svg>
