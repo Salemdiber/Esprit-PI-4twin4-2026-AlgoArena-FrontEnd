@@ -14,6 +14,7 @@ import { useAuth, redirectBasedOnRole } from '../auth/context/AuthContext';
 import { Toast, useToast } from '@chakra-ui/react';
 import {
     Box, Flex, Text, Button, VStack, HStack, Image, Icon, Heading,
+    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner,
 } from '@chakra-ui/react';
 import { MdOutlineEdit, MdTimer, MdSwapHoriz, MdEmojiEvents, MdKey, MdBolt } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,6 +31,7 @@ import SpeedCodeEditor from './components/SpeedCodeEditor';
 import PlacementResult from './components/PlacementResult';
 import { userService } from '../../../services/userService';
 import { settingsService } from '../../../services/settingsService';
+import { apiClient } from '../../../services/apiClient';
 
 import Logo from '../../../assets/logo_algoarena.png';
 import { useTranslation } from 'react-i18next';
@@ -368,6 +370,12 @@ const ChallengeArena = ({
     const problem = problems[currentIndex];
     const [submitState, setSubmitState] = useState('idle'); // idle | running | success | error
     const [feedback, setFeedback] = useState('');
+    const [hintOpen, setHintOpen] = useState(false);
+    const [hintLoading, setHintLoading] = useState(false);
+    const [hintText, setHintText] = useState('');
+    const [hintError, setHintError] = useState('');
+    const [hintCache, setHintCache] = useState({});
+    const [hintProblem, setHintProblem] = useState(null);
 
     const handleSubmit = useCallback(() => {
         if (submitState === 'running') return;
@@ -392,28 +400,58 @@ const ChallengeArena = ({
                 return;
             }
 
-            const isCorrect = Math.random() > 0.25; // 75% success for demo
-            if (isCorrect) {
-                setSubmitState('success');
-                setFeedback(t('speedChallenge.allTestsPassed'));
-                onMarkSolved(problem.id);
-                // Auto-advance after 1.5s
-                setTimeout(() => {
-                    setSubmitState('idle');
-                    setFeedback('');
-                    const next = currentIndex + 1;
-                    if (next < problems.length) {
-                        setCurrentIndex(next);
-                    } else {
-                        onFinish();
-                    }
-                }, 1500);
-            } else {
-                setSubmitState('error');
-                setFeedback(t('speedChallenge.someTestsFailed'));
-            }
+            setSubmitState('success');
+            setFeedback(t('speedChallenge.submissionAccepted'));
+            onMarkSolved(problem.id);
+            setTimeout(() => {
+                setSubmitState('idle');
+                setFeedback('');
+                const next = currentIndex + 1;
+                if (next < problems.length) {
+                    setCurrentIndex(next);
+                } else {
+                    onFinish();
+                }
+            }, 1500);
         }, 1500);
-    }, [codes, problem, currentIndex, problems, onMarkSolved, onFinish, setCurrentIndex]);
+    }, [codes, problem, currentIndex, problems, onMarkSolved, onFinish, setCurrentIndex, t]);
+
+    const handleRequestHint = useCallback(async () => {
+        if (!problem) return;
+
+        setHintProblem(problem);
+        setHintOpen(true);
+
+        if (hintCache[problem.id]) {
+            setHintText(hintCache[problem.id]);
+            setHintError('');
+            setHintLoading(false);
+            return;
+        }
+
+        setHintLoading(true);
+        setHintText('');
+        setHintError('');
+
+        try {
+            const response = await apiClient('/speed-challenge/hint', {
+                method: 'POST',
+                body: JSON.stringify({
+                    title: problem.title,
+                    description: problem.description,
+                    hintLevel: 1,
+                }),
+            });
+
+            const text = String(response?.hint || 'Hint temporarily unavailable.');
+            setHintCache((prev) => ({ ...prev, [problem.id]: text }));
+            setHintText(text);
+        } catch (err) {
+            setHintError(err?.message || 'Failed to load hint.');
+        } finally {
+            setHintLoading(false);
+        }
+    }, [hintCache, problem]);
 
     const isExpired = secondsLeft <= 0;
     const isSolved = solvedIds.includes(problem?.id);
@@ -623,6 +661,18 @@ const ChallengeArena = ({
                             </Box>
 
                             <HStack spacing={2}>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    color="cyan.300"
+                                    _hover={{ bg: 'rgba(34,211,238,0.08)' }}
+                                    fontSize="xs"
+                                    fontFamily="mono"
+                                    onClick={handleRequestHint}
+                                    isDisabled={!problem}
+                                >
+                                    AI Hint
+                                </Button>
                                 {/* Skip to next */}
                                 <Button
                                     size="sm"
@@ -672,6 +722,49 @@ const ChallengeArena = ({
                         </Flex>
                     </Box>
                 </Flex>
+
+                <Modal isOpen={hintOpen} onClose={() => setHintOpen(false)} isCentered size="lg">
+                    <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(6px)" />
+                    <ModalContent bg="#0f172a" border="1px solid rgba(34,211,238,0.18)" color="white">
+                        <ModalCloseButton color="gray.400" />
+                        <ModalHeader>
+                            <Text fontSize="xs" fontFamily="mono" color="cyan.300" letterSpacing="0.1em" textTransform="uppercase">
+                                AI Hint
+                            </Text>
+                            <Text fontSize="xl" fontWeight="bold" mt={1}>
+                                {hintProblem?.title || 'Problem Hint'}
+                            </Text>
+                        </ModalHeader>
+                        <ModalBody pb={6}>
+                            {hintLoading ? (
+                                <HStack spacing={3} py={4}>
+                                    <Spinner size="sm" color="cyan.300" />
+                                    <Text color="gray.300">Generating a hint...</Text>
+                                </HStack>
+                            ) : hintError ? (
+                                <Text color="red.300" whiteSpace="pre-wrap">
+                                    {hintError}
+                                </Text>
+                            ) : (
+                                <Box
+                                    p={4}
+                                    borderRadius="12px"
+                                    bg="rgba(255,255,255,0.03)"
+                                    border="1px solid rgba(255,255,255,0.06)"
+                                >
+                                    <Text color="gray.200" lineHeight="1.8" whiteSpace="pre-wrap">
+                                        {hintText || 'No hint loaded yet.'}
+                                    </Text>
+                                </Box>
+                            )}
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button variant="outline" colorScheme="cyan" onClick={() => setHintOpen(false)}>
+                                Close
+                            </Button>
+                        </ModalFooter>
+                    </ModalContent>
+                </Modal>
             </Flex>
         </Flex>
     );
@@ -690,6 +783,7 @@ const SpeedChallengePage = () => {
     const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [solvedIds, setSolvedIds] = useState([]);
+    const solvedIdsRef = useRef([]);
     const [placement, setPlacement] = useState(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const timerRef = useRef(null);
@@ -947,9 +1041,10 @@ const SpeedChallengePage = () => {
         async (timeout = false) => {
             clearInterval(timerRef.current);
             const used = TOTAL_SECONDS - (timeout ? 0 : secondsLeft);
+            const finalSolvedIds = solvedIdsRef.current;
 
             // Immediate fallback placement (shown while AI analyses)
-            const fallback = computePlacement(solvedIds, used);
+            const fallback = computePlacement(finalSolvedIds, used);
             setPlacement(fallback);
             setElapsedSeconds(used);
             setAiAnalysis(false); // false = loading
@@ -992,7 +1087,7 @@ const SpeedChallengePage = () => {
                 difficulty: p.difficulty,
                 code: codes[p.id] || '',
                 language: languages[p.id] || 'javascript',
-                solved: solvedIds.includes(p.id),
+                solved: finalSolvedIds.includes(p.id),
             }));
 
             fetch('/api/classify', {
@@ -1052,7 +1147,7 @@ const SpeedChallengePage = () => {
                     } catch (_) { }
                 });
         },
-        [secondsLeft, solvedIds, activeProblems, codes, languages, updateCurrentUser]
+        [secondsLeft, activeProblems, codes, languages, updateCurrentUser]
     );
 
     // Update handleFinishRef whenever handleFinish changes
@@ -1061,8 +1156,15 @@ const SpeedChallengePage = () => {
     }, [handleFinish]);
 
     const handleMarkSolved = useCallback((id) => {
+        solvedIdsRef.current = solvedIdsRef.current.includes(id)
+            ? solvedIdsRef.current
+            : [...solvedIdsRef.current, id];
         setSolvedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     }, []);
+
+    useEffect(() => {
+        solvedIdsRef.current = solvedIds;
+    }, [solvedIds]);
 
     const handleCodeChange = useCallback((id, val) => {
         setCodes((prev) => ({ ...prev, [id]: val }));
