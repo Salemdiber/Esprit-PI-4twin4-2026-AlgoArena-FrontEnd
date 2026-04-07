@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
 import ActiveUsersChart from '../../components/Charts/ActiveUsersChart';
 import GamesChart from '../../components/Charts/GamesChart';
@@ -208,6 +209,7 @@ const GlassStatCard = ({ icon: IconComponent, iconColor, iconBg, label, children
 
 /* ─── Copy button with feedback ─── */
 const CopyButton = ({ text }) => {
+    const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const handleCopy = useCallback(() => {
         navigator.clipboard?.writeText(text || '');
@@ -227,7 +229,7 @@ const CopyButton = ({ text }) => {
         >
             <Icon as={copied ? Check : Code2} boxSize={3} color={copied ? '#22c55e' : 'var(--color-text-muted)'} />
             <Text fontSize="10px" color={copied ? '#22c55e' : 'var(--color-text-muted)'} fontWeight="600">
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? t('admin.dashboard.copied') : t('admin.dashboard.copy')}
             </Text>
         </Flex>
     );
@@ -235,6 +237,7 @@ const CopyButton = ({ text }) => {
 
 /* ─── Main Dashboard ─── */
 const Dashboard = () => {
+    const { t } = useTranslation();
     const [overview, setOverview] = useState(null);
     const [usersStats, setUsersStats] = useState(null);
     const [challengeStats, setChallengeStats] = useState(null);
@@ -280,7 +283,7 @@ const Dashboard = () => {
                 }
             } catch (err) {
                 console.error('Failed to fetch dashboard stats:', err);
-                setError(err?.message || 'Failed to load dashboard analytics');
+                setError(err?.message || t('admin.dashboard.loadError'));
             } finally {
                 setLoading(false);
             }
@@ -303,7 +306,7 @@ const Dashboard = () => {
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setSandboxError(err?.message || 'Failed to load sandbox status');
+                    setSandboxError(err?.message || t('admin.dashboard.sandboxLoadError'));
                 }
             } finally {
                 if (!cancelled) setSandboxLoading(false);
@@ -320,9 +323,9 @@ const Dashboard = () => {
     }, []);
 
     const challengeStatusData = useMemo(() => ({
-        labels: ['Draft', 'Published'],
+        labels: [t('admin.dashboard.draft'), t('admin.dashboard.published')],
         values: [Number(challengeStats?.draftChallenges || 0), Number(challengeStats?.publishedChallenges || 0)],
-    }), [challengeStats]);
+    }), [challengeStats, t]);
 
     const submissionsByDifficulty = useMemo(() => {
         const rows = submissionStats?.byDifficulty || [];
@@ -355,14 +358,14 @@ const Dashboard = () => {
     );
 
     const formatRelative = (value) => {
-        if (!value) return 'N/A';
+        if (!value) return t('admin.dashboard.na');
         const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return 'N/A';
+        if (Number.isNaN(date.getTime())) return t('admin.dashboard.na');
         const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return `${Math.floor(diff / 86400)}d ago`;
+        if (diff < 60) return t('admin.dashboard.secsAgo', { value: diff });
+        if (diff < 3600) return t('admin.dashboard.minsAgo', { value: Math.floor(diff / 60) });
+        if (diff < 86400) return t('admin.dashboard.hoursAgo', { value: Math.floor(diff / 3600) });
+        return t('admin.dashboard.daysAgo', { value: Math.floor(diff / 86400) });
     };
 
     /* Overall quality stats */
@@ -377,7 +380,7 @@ const Dashboard = () => {
     const animatedOverallRate = useCountUp(Math.round(overallQuality.rate * 10) / 10, 1200);
 
     if (loading) {
-        return <div className="p-6" style={{ color: 'var(--color-text-heading)' }}>Loading dashboard analytics...</div>;
+        return <div className="p-6" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.loading')}</div>;
     }
 
     if (error) {
@@ -387,14 +390,14 @@ const Dashboard = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 className="font-heading text-3xl font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>Dashboard Overview</h1>
-                <p style={{ color: 'var(--color-text-muted)' }}>Real-time platform analytics and challenge intelligence</p>
+                <h1 className="font-heading text-3xl font-bold mb-2 truncate" style={{ color: 'var(--color-text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{t('admin.dashboard.title')}</h1>
+                <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.dashboard.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <StatCard
                     value={(overview?.totalUsers || 0).toLocaleString()}
-                    label="Total Users"
+                    label={t('admin.dashboard.totalUsers')}
                     color="cyan"
                     icon={(
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +407,7 @@ const Dashboard = () => {
                 />
                 <StatCard
                     value={(overview?.activeUsers || 0).toLocaleString()}
-                    label="Active Users (7d)"
+                    label={t('admin.dashboard.activeUsers')}
                     isLive
                     color="green"
                     icon={(
@@ -415,7 +418,7 @@ const Dashboard = () => {
                 />
                 <StatCard
                     value={(overview?.totalChallenges || 0).toLocaleString()}
-                    label="Total Challenges"
+                    label={t('admin.dashboard.totalChallenges')}
                     color="yellow"
                     icon={(
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,7 +428,7 @@ const Dashboard = () => {
                 />
                 <StatCard
                     value={Number(overview?.totalSubmissions || 0) > 0 ? `${Number(overview?.successRate || 0).toFixed(1)}%` : '-'}
-                    label="Submission Success Rate"
+                    label={t('admin.dashboard.submissionSuccessRate')}
                     color="purple"
                     icon={(
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -437,22 +440,22 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="glass-panel p-6 rounded-2xl shadow-custom">
-                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>New Users (Last 7 Days)</h2>
+                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.newUsersTitle')}</h2>
                     <div className="h-64 overflow-hidden">
                         <ActiveUsersChart
                             labels={usersStats?.signupsLast7Days?.labels || []}
                             values={usersStats?.signupsLast7Days?.values || []}
-                            label="New Users"
+                            label={t('admin.dashboard.newUsersLabel')}
                         />
                     </div>
                 </div>
                 <div className="glass-panel p-6 rounded-2xl shadow-custom">
-                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>Draft vs Published Challenges</h2>
+                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.draftVsPublished')}</h2>
                     <div className="h-64 overflow-hidden">
                         <GamesChart
                             labels={challengeStatusData.labels}
                             values={challengeStatusData.values}
-                            datasetLabel="Challenges"
+                            datasetLabel={t('admin.dashboard.challengesLabel')}
                         />
                     </div>
                 </div>
@@ -460,18 +463,18 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="glass-panel p-6 rounded-2xl shadow-custom">
-                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>Difficulty Distribution</h2>
+                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.difficultyDistribution')}</h2>
                     <div className="h-64 overflow-hidden">
                         <DifficultyChart distribution={challengeStats?.difficultyDistribution} />
                     </div>
                 </div>
                 <div className="glass-panel p-6 rounded-2xl shadow-custom">
-                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>Submissions by Difficulty</h2>
+                    <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.submissionsByDifficulty')}</h2>
                     <div className="h-64 overflow-hidden">
                         <GamesChart
                             labels={submissionsByDifficulty.labels}
                             values={submissionsByDifficulty.values}
-                            datasetLabel="Submissions"
+                            datasetLabel={t('admin.dashboard.submissionsLabel')}
                         />
                     </div>
                 </div>
@@ -498,13 +501,13 @@ const Dashboard = () => {
                                 bgGradient="linear(to-r, var(--color-text-heading), #a78bfa)"
                                 bgClip="text"
                             >
-                                Submission Quality by Difficulty
+                                {t('admin.dashboard.submissionQuality')}
                             </Text>
                             <Text fontSize="xs" color="var(--color-text-muted)" mt={0.5}>
-                                Success rates across difficulty tiers
+                                {t('admin.dashboard.qualitySubtitle')}
                             </Text>
                         </Box>
-                        <Tooltip label="Shows the success/failure distribution for each difficulty tier" hasArrow placement="left">
+                        <Tooltip label={t('admin.dashboard.qualityTooltip')} hasArrow placement="left">
                             <Flex
                                 align="center" justify="center"
                                 boxSize={7} borderRadius="full"
@@ -522,10 +525,10 @@ const Dashboard = () => {
                     <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
                         {qualityRows.map((item, idx) => {
                             const rate = Math.max(0, Math.min(100, item.successRate || 0));
-                            const tierColor = getDiffColor(item.label);
+                            const tierColor = getDiffColor(item.key);
                             return (
                                 <Box
-                                    key={item.label}
+                                    key={item.key}
                                     p={6}
                                     borderRadius="16px"
                                     border={`1px solid ${tierColor}20`}
@@ -550,7 +553,7 @@ const Dashboard = () => {
                                             letterSpacing="0.1em"
                                             color="var(--color-text-muted)"
                                         >
-                                            {item.label}
+                                            {t(`admin.dashboard.${item.key}`)}
                                         </Text>
                                     </Flex>
 
@@ -570,9 +573,9 @@ const Dashboard = () => {
                                     {/* Submission count */}
                                     <Text fontSize="xs" color="var(--color-text-muted)" lineHeight="tall">
                                         {item.total === 0 ? (
-                                            <em>No submissions yet</em>
+                                            <em>{t('admin.dashboard.noSubmissionsYet')}</em>
                                         ) : (
-                                            <>{item.successful} successful / {item.total} total</>
+                                            t('admin.dashboard.successfulOfTotal', { successful: item.successful, total: item.total })
                                         )}
                                     </Text>
                                 </Box>
@@ -617,7 +620,7 @@ const Dashboard = () => {
                                 color="#F6C343"
                                 animation={`${goldPulse} 3s ease infinite`}
                             >
-                                Overall Performance
+                                {t('admin.dashboard.overallPerformance')}
                             </Text>
                         </Box>
 
@@ -649,11 +652,11 @@ const Dashboard = () => {
                         {/* Total submissions */}
                         <Box textAlign={{ base: 'center', md: 'left' }}>
                             <Text fontSize="sm" color="var(--color-text-muted)">
-                                success rate across{' '}
+                                {t('admin.dashboard.successRateAcross')}{' '}
                                 <Text as="span" fontWeight="700" color="#F6C343">
                                     {overallQuality.total.toLocaleString()}
                                 </Text>
-                                {' '}total submissions
+                                {' '}{t('admin.dashboard.totalSubmissions')}
                             </Text>
                         </Box>
                     </Flex>
@@ -681,10 +684,10 @@ const Dashboard = () => {
                                 bgGradient="linear(to-r, var(--color-text-heading), #38bdf8)"
                                 bgClip="text"
                             >
-                                Challenge Submission Analytics
+                                {t('admin.dashboard.challengeAnalytics')}
                             </Text>
                             <Text fontSize="xs" color="var(--color-text-muted)" mt={0.5}>
-                                Real-time submission monitoring and analysis
+                                {t('admin.dashboard.analyticsSubtitle')}
                             </Text>
                         </Box>
                         <Badge
@@ -693,7 +696,7 @@ const Dashboard = () => {
                             border="1px solid rgba(34,211,238,0.2)"
                             fontSize="xs" fontWeight="700"
                         >
-                            {challengeSubmissionOverview.length} challenges
+                            {t('admin.dashboard.challengeCount', { count: challengeSubmissionOverview.length })}
                         </Badge>
                     </Flex>
                 </Box>
@@ -716,7 +719,7 @@ const Dashboard = () => {
                             {challengeSubmissionOverview.length === 0 ? (
                                 <Flex direction="column" align="center" justify="center" py={16} gap={3}>
                                     <Icon as={BarChart3} boxSize={8} color="var(--color-text-muted)" opacity={0.4} />
-                                    <Text fontSize="sm" color="var(--color-text-muted)">No challenges found</Text>
+                                    <Text fontSize="sm" color="var(--color-text-muted)">{t('admin.dashboard.noChallengesFound')}</Text>
                                 </Flex>
                             ) : challengeSubmissionOverview.map((item, i) => {
                                 const rate = Number(item.successRate || 0);
@@ -781,10 +784,10 @@ const Dashboard = () => {
                                                 textTransform="uppercase"
                                                 letterSpacing="0.04em"
                                             >
-                                                {item.difficulty}
+                                                {t(`admin.dashboard.${(item.difficulty || 'easy').toLowerCase()}`)}
                                             </Text>
                                             <Text fontSize="xs" color="var(--color-text-muted)">
-                                                {item.totalSubmissions} subs
+                                                {t('admin.dashboard.subs', { count: item.totalSubmissions })}
                                             </Text>
                                             <Text fontSize="xs" fontWeight="600" color={item.totalSubmissions === 0 ? 'var(--color-text-muted)' : rateColor}>
                                                 {item.totalSubmissions === 0 ? '—' : `${rate.toFixed(0)}%`}
@@ -801,7 +804,7 @@ const Dashboard = () => {
                         {!selectedChallengeOverview ? (
                             <Flex direction="column" align="center" justify="center" h="full" gap={4} py={16}>
                                 <Icon as={BarChart3} boxSize={12} color="var(--color-text-muted)" opacity={0.2} />
-                                <Text color="var(--color-text-muted)" fontSize="sm">Select a challenge to view detailed analytics</Text>
+                                <Text color="var(--color-text-muted)" fontSize="sm">{t('admin.dashboard.selectChallenge')}</Text>
                             </Flex>
                         ) : (
                             <VStack align="stretch" spacing={5}>
@@ -822,7 +825,7 @@ const Dashboard = () => {
                                             textTransform="uppercase"
                                             letterSpacing="0.04em"
                                         >
-                                            {selectedChallengeOverview.difficulty}
+                                            {t(`admin.dashboard.${(selectedChallengeOverview.difficulty || 'easy').toLowerCase()}`)}
                                         </Text>
                                     </Flex>
                                 </Box>
@@ -835,7 +838,7 @@ const Dashboard = () => {
                                         border="1px solid rgba(239,68,68,0.15)"
                                     >
                                         <Icon as={TrendingDown} boxSize={4} color="#ef4444" />
-                                        <Text fontSize="xs" color="#ef4444">Very low success rate. Consider reviewing this challenge&apos;s difficulty or test cases.</Text>
+                                        <Text fontSize="xs" color="#ef4444">{t('admin.dashboard.lowSuccessWarning')}</Text>
                                     </Flex>
                                 )}
                                 {selectedChallengeOverview.totalSubmissions > 0 && Number(selectedChallengeOverview.successRate || 0) >= 30 && Number(selectedChallengeOverview.successRate || 0) < 50 && (
@@ -845,7 +848,7 @@ const Dashboard = () => {
                                         border="1px solid rgba(249,115,22,0.15)"
                                     >
                                         <Icon as={AlertTriangle} boxSize={4} color="#f97316" />
-                                        <Text fontSize="xs" color="#f97316">This challenge may be too difficult. Review recommended.</Text>
+                                        <Text fontSize="xs" color="#f97316">{t('admin.dashboard.difficultWarning')}</Text>
                                     </Flex>
                                 )}
                                 {selectedChallengeOverview.totalSubmissions > 0 && (Number(selectedChallengeOverview.abandonedAttempts || 0) / Math.max(1, Number(selectedChallengeOverview.totalSubmissions || 0))) > 0.4 && (
@@ -855,7 +858,7 @@ const Dashboard = () => {
                                         border="1px solid rgba(234,179,8,0.15)"
                                     >
                                         <Icon as={DoorOpen} boxSize={4} color="#eab308" />
-                                        <Text fontSize="xs" color="#eab308">High abandonment rate. Users may find this challenge frustrating.</Text>
+                                        <Text fontSize="xs" color="#eab308">{t('admin.dashboard.highAbandonmentWarning')}</Text>
                                     </Flex>
                                 )}
 
@@ -864,7 +867,7 @@ const Dashboard = () => {
                                     {/* Total Submissions */}
                                     <GlassStatCard
                                         icon={BarChart3} iconColor="#22d3ee" iconBg="rgba(34,211,238,0.12)"
-                                        label="Total Subs" delay={0.05}
+                                        label={t('admin.dashboard.totalSubs')} delay={0.05}
                                     >
                                         <Text fontWeight="800" fontSize="2xl" color="var(--color-text-heading)">
                                             {selectedChallengeOverview.totalSubmissions}
@@ -874,7 +877,7 @@ const Dashboard = () => {
                                     {/* Success Rate with ring (FIX 1 — larger ring) */}
                                     <GlassStatCard
                                         icon={CheckCircle2} iconColor="#22c55e" iconBg="rgba(34,197,94,0.12)"
-                                        label="Success" delay={0.1}
+                                        label={t('admin.dashboard.success')} delay={0.1}
                                     >
                                         <Flex align="center" gap={3}>
                                             <Text fontWeight="800" fontSize="2xl" color="green.400">
@@ -890,7 +893,7 @@ const Dashboard = () => {
                                     {/* Avg Solve Time */}
                                     <GlassStatCard
                                         icon={Clock} iconColor="#6366f1" iconBg="rgba(99,102,241,0.12)"
-                                        label="Avg Time" delay={0.15}
+                                        label={t('admin.dashboard.avgTime')} delay={0.15}
                                     >
                                         <Text fontWeight="800" fontSize="2xl" color="var(--color-text-heading)">
                                             {selectedChallengeOverview.averageSolveTime > 0 ? `${Number(selectedChallengeOverview.averageSolveTime).toFixed(1)}s` : '—'}
@@ -900,7 +903,7 @@ const Dashboard = () => {
                                     {/* Abandoned */}
                                     <GlassStatCard
                                         icon={PauseCircle} iconColor="#f97316" iconBg="rgba(249,115,22,0.12)"
-                                        label="Abandoned" delay={0.2}
+                                        label={t('admin.dashboard.abandoned')} delay={0.2}
                                     >
                                         <Text fontWeight="800" fontSize="2xl" color="orange.300">
                                             {selectedChallengeOverview.abandonedAttempts}
@@ -915,7 +918,7 @@ const Dashboard = () => {
                                 <VStack align="stretch" spacing={2} maxH="360px" overflowY="auto" className="scrollbar-thin">
                                     {(selectedChallengeOverview.recentSubmissions || []).map((submission, index) => {
                                         const rowKey = `${submission.userId}-${submission.submittedAt || index}`;
-                                        const status = submission.status === 'success' ? 'Passed' : submission.status === 'abandoned' ? 'Abandoned' : 'Failed';
+                                        const status = submission.status === 'success' ? t('admin.dashboard.passed') : submission.status === 'abandoned' ? t('admin.dashboard.abandoned') : t('admin.dashboard.failed');
                                         const statusColor = submission.status === 'success' ? '#22c55e' : submission.status === 'abandoned' ? '#f97316' : '#ef4444';
                                         const StatusIcon = submission.status === 'success' ? CheckCircle2 : submission.status === 'abandoned' ? PauseCircle : XCircle;
                                         const isExpanded = expandedSubmissionKey === rowKey;
@@ -997,7 +1000,7 @@ const Dashboard = () => {
                                                         >
                                                             <Icon as={isExpanded ? EyeOff : Eye} boxSize={3} color="var(--color-text-muted)" />
                                                             <Text fontSize="10px" fontWeight="600" color="var(--color-text-muted)">
-                                                                {isExpanded ? 'Hide' : 'Code'}
+                                                                {isExpanded ? t('admin.dashboard.hide') : t('admin.dashboard.code')}
                                                             </Text>
                                                         </Flex>
                                                     </Flex>
@@ -1044,7 +1047,7 @@ const Dashboard = () => {
                                     {(selectedChallengeOverview.recentSubmissions || []).length === 0 && (
                                         <Flex direction="column" align="center" justify="center" py={12} gap={3}>
                                             <Icon as={BarChart3} boxSize={8} color="var(--color-text-muted)" opacity={0.3} />
-                                            <Text color="var(--color-text-muted)" fontSize="sm">No recent submissions for this challenge.</Text>
+                                            <Text color="var(--color-text-muted)" fontSize="sm">{t('admin.dashboard.noRecentSubmissions')}</Text>
                                         </Flex>
                                     )}
                                 </VStack>
