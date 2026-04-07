@@ -21,7 +21,6 @@ import {
     VStack,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 
 import LeaderboardHeader from '../components/LeaderboardHeader';
 import ArenaStage from '../components/ArenaStage';
@@ -198,7 +197,6 @@ const LeaderboardPage = () => {
     const [loadError, setLoadError] = useState('');
     const { settings } = useAccessibility();
     const { currentUser } = useAuth();
-    const { t } = useTranslation();
 
     const noMotion = settings.reducedMotion;
 
@@ -220,7 +218,7 @@ const LeaderboardPage = () => {
 
                 setUsers(mockLeaderboard);
                 setIsFallbackData(true);
-                setLoadError(error?.message || t('leaderboardPage.liveUnavailable'));
+                setLoadError(error?.message || 'Live leaderboard data is temporarily unavailable.');
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -266,7 +264,7 @@ const LeaderboardPage = () => {
         stopSpeaking();
         const text = getPageText('#main-content');
         if (text) readAloud(text);
-        else readAloud(t('leaderboardPage.noReadableContent'));
+        else readAloud('No readable content found.');
     };
 
     return (
@@ -286,9 +284,9 @@ const LeaderboardPage = () => {
         >
             <Box maxW="7xl" mx="auto" position="relative" zIndex={10}>
                 <LeaderboardHeader
-                    eyebrow={t('leaderboardPage.liveRanking')}
-                    title={t('leaderboardPage.leaderboardArena')}
-                    subtitle={t('leaderboardPage.subtitle')}
+                    eyebrow="Live Ranking"
+                    title="Leaderboard Arena"
+                    subtitle="Rankings powered by XP, streaks, and challenge progress"
                 />
 
                 <MotionBox
@@ -299,28 +297,28 @@ const LeaderboardPage = () => {
                 >
                     <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={4}>
                         <StatCard
-                            label={t('leaderboardPage.competitors')}
+                            label="Competitors"
                             value={totalCompetitors.toLocaleString()}
                             tone="#22d3ee"
-                            hint={isFallbackData ? t('leaderboardPage.demoHint') : t('leaderboardPage.liveHint')}
+                            hint={isFallbackData ? 'Demo board loaded from local data' : 'Live ranking from the user base'}
                         />
                         <StatCard
-                            label={t('leaderboardPage.mode')}
-                            value={t('leaderboardPage.allPlayers')}
+                            label="Mode"
+                            value="All players"
                             tone="white"
-                            hint={t('leaderboardPage.publicHint')}
+                            hint="Public leaderboard without admin accounts"
                         />
                         <StatCard
-                            label={t('leaderboardPage.topCutoff')}
+                            label="Top cutoff"
                             value="#10"
                             tone="#60a5fa"
-                            hint={t('leaderboardPage.topCutoffHint')}
+                            hint="Only the ten strongest players are highlighted"
                         />
                         <StatCard
-                            label={t('leaderboardPage.averageXp')}
+                            label="Average XP"
                             value={averageXp.toLocaleString()}
                             tone="#fbbf24"
-                            hint={currentUserRow ? t('leaderboardPage.yourCurrentRank', { position: currentUserRow.rankPosition }) : t('leaderboardPage.signInHint')}
+                            hint={currentUserRow ? `Your current rank: #${currentUserRow.rankPosition}` : 'Sign in to highlight your position'}
                         />
                     </SimpleGrid>
                 </MotionBox>
@@ -334,9 +332,9 @@ const LeaderboardPage = () => {
                         bg="rgba(245, 158, 11, 0.08)"
                         color="orange.100"
                     >
-                        <Text fontWeight="700">{t('leaderboardPage.liveDataUnavailable')}</Text>
+                        <Text fontWeight="700">Live data unavailable</Text>
                         <Text mt={1} fontSize="sm" color="rgba(255, 237, 213, 0.92)">
-                            {loadError} {t('leaderboardPage.demoFallback')}
+                            {loadError} The leaderboard is showing the local demo board so the page stays usable.
                         </Text>
                     </Box>
                 ) : null}
@@ -351,10 +349,10 @@ const LeaderboardPage = () => {
                     <Flex align="center" justify="space-between" mb={6} gap={3} flexWrap="wrap">
                         <Box>
                             <Text fontFamily="heading" fontSize="2xl" fontWeight="bold" color="var(--color-text-primary)">
-                                {t('leaderboardPage.eliteContenders')}
+                                Elite Contenders
                             </Text>
                             <Text fontFamily="body" fontSize="sm" color="gray.400">
-                                {t('leaderboardPage.showingRanks')}
+                                Showing ranks 4 to 10 in the public board.
                             </Text>
                         </Box>
 
@@ -362,11 +360,11 @@ const LeaderboardPage = () => {
                             <Text as="span" fontWeight="semibold" color="#22d3ee">
                                 {Math.min(leaderboardRows.length, 10)}
                             </Text>{' '}
-                            {t('leaderboardPage.of')}{' '}
+                            of{' '}
                             <Text as="span" fontWeight="semibold" color="#22d3ee">
                                 {totalCompetitors.toLocaleString()}
                             </Text>{' '}
-                            {t('leaderboardPage.competitorsVisible')}
+                            competitors visible
                         </Text>
                     </Flex>
 
@@ -385,10 +383,10 @@ const LeaderboardPage = () => {
                             textAlign="center"
                         >
                             <Text fontFamily="heading" fontSize="xl" fontWeight="700" color="var(--color-text-primary)">
-                                {t('leaderboardPage.noContenders')}
+                                No contenders match this filter.
                             </Text>
                             <Text mt={2} color="var(--color-text-secondary)">
-                                {t('leaderboardPage.switchBackHint')}
+                                Switch back to Global or Monthly to restore the full leaderboard.
                             </Text>
                         </Box>
                     )}
@@ -406,7 +404,7 @@ const LeaderboardPage = () => {
                         <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
                             <Box>
                                 <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.18em" color="#22d3ee" fontWeight="700">
-                                    {t('leaderboardPage.yourPosition')}
+                                    Your Position
                                 </Text>
                                 <Text mt={1} fontFamily="heading" fontSize="2xl" fontWeight="800" color="white">
                                     #{currentUserRow.rankPosition} · {currentUserRow.username}
@@ -420,7 +418,7 @@ const LeaderboardPage = () => {
                                     {currentUserRow.xp.toLocaleString()} XP
                                 </Badge>
                                 <Badge px={3} py={1.5} borderRadius="999px" bg="rgba(245, 158, 11, 0.12)" color="#fbbf24">
-                                    {t('leaderboardPage.streakCount', { count: currentUserRow.streak })}
+                                    {currentUserRow.streak} streak
                                 </Badge>
                             </Flex>
                         </Flex>
@@ -429,9 +427,9 @@ const LeaderboardPage = () => {
             </Box>
 
             {settings.voiceMode && (
-                <Tooltip label={t('leaderboardPage.readAloud')} hasArrow placement="left">
+                <Tooltip label="Read this page aloud" hasArrow placement="left">
                     <IconButton
-                        aria-label={t('leaderboardPage.readPageAloud')}
+                        aria-label="Read page content aloud"
                         icon={<SpeakerIcon w={5} h={5} />}
                         position="fixed"
                         bottom={6}

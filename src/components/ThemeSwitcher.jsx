@@ -19,7 +19,6 @@ import {
     Tooltip,
 } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import { useThemePreference } from '../shared/context/ThemeContext';
 
 /* ─── Motion wrapper ─── */
@@ -65,22 +64,22 @@ const CheckIcon = (props) => (
 const THEME_OPTIONS = [
     {
         key: 'light',
-        labelKey: 'theme.light',
-        descriptionKey: 'theme.lightDescription',
+        label: 'Light',
+        description: 'Always use light theme',
         icon: SunIcon,
         preview: { bg: '#f9fafb', accent: '#e0f7fa' },
     },
     {
         key: 'dark',
-        labelKey: 'theme.dark',
-        descriptionKey: 'theme.darkDescription',
+        label: 'Dark',
+        description: 'Always use dark theme',
         icon: MoonIcon,
         preview: { bg: '#111827', accent: '#006064' },
     },
     {
         key: 'auto',
-        labelKey: 'theme.auto',
-        descriptionKey: 'theme.autoDescription',
+        label: 'Auto',
+        description: 'Follow system preference',
         icon: MonitorIcon,
         preview: { bg: 'linear-gradient(135deg, #f9fafb 50%, #111827 50%)', accent: null },
     },
@@ -88,7 +87,6 @@ const THEME_OPTIONS = [
 
 /* ─── Individual Option Row ─── */
 const ThemeOption = ({ option, isActive, resolvedColorMode, onClick }) => {
-    const { t } = useTranslation();
     /* Semantic colors that adapt to current mode — all hooks at the top */
     const hoverBg = useColorModeValue('gray.100', 'rgba(34, 211, 238, 0.08)');
     const textColor = useColorModeValue('gray.700', 'gray.200');
@@ -147,13 +145,13 @@ const ThemeOption = ({ option, isActive, resolvedColorMode, onClick }) => {
                     lineHeight="1.3"
                     transition="color 0.2s"
                 >
-                    {t(option.labelKey)}
+                    {option.label}
                 </Text>
                 <Text fontSize="xs" color={descColor} lineHeight="1.3" mt="1px">
-                    {t(option.descriptionKey)}
+                    {option.description}
                     {option.key === 'auto' && isActive && (
                         <Text as="span" color="brand.500" fontWeight="500">
-                            {' '}· {resolvedColorMode === 'dark' ? t('theme.currentlyDark') : t('theme.currentlyLight')}
+                            {' '}· Currently: {resolvedColorMode === 'dark' ? 'Dark' : 'Light'}
                         </Text>
                     )}
                 </Text>
@@ -192,7 +190,6 @@ const ThemeOption = ({ option, isActive, resolvedColorMode, onClick }) => {
 
 /* ─── Main ThemeSwitcher Component ─── */
 const ThemeSwitcher = ({ size = 'md', ...rest }) => {
-    const { t } = useTranslation();
     const { themePreference, resolvedColorMode, setThemePreference } = useThemePreference();
 
     /* Icon shown in the header button */
@@ -220,10 +217,10 @@ const ThemeSwitcher = ({ size = 'md', ...rest }) => {
 
     return (
         <Menu placement="bottom-end" isLazy {...rest}>
-            <Tooltip label={t('theme.tooltip')} aria-label={t('theme.switchTheme')} hasArrow placement="bottom" openDelay={300}>
+            <Tooltip label="Theme" aria-label="Switch theme" hasArrow placement="bottom" openDelay={300}>
                 <MenuButton
                     as={IconButton}
-                    aria-label={t('theme.switchTheme')}
+                    aria-label="Switch theme"
                     variant="ghost"
                     size={size}
                     color={btnColor}
@@ -274,7 +271,7 @@ const ThemeSwitcher = ({ size = 'md', ...rest }) => {
                         letterSpacing="0.06em"
                         color={headerLabelColor}
                     >
-                        {t('theme.appearance')}
+                        Appearance
                     </Text>
                 </Box>
 

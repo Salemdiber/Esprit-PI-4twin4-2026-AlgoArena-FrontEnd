@@ -22,7 +22,6 @@ import {
     SliderThumb,
     Tooltip,
 } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { LANGUAGES } from '../data/mockChallenges';
 
@@ -56,7 +55,6 @@ const FONT_OPTIONS = [
 ];
 
 const EditorToolbar = () => {
-    const { t } = useTranslation();
     const {
         language,
         setLanguage,
@@ -104,16 +102,16 @@ const EditorToolbar = () => {
                             color="gray.400"
                             _hover={{ color: 'gray.100' }}
                             size="sm"
-                            aria-label={t('challengePage.editorSettingsAria')}
+                            aria-label="Editor settings"
                         />
                     </PopoverTrigger>
                     <PopoverContent bg="var(--color-bg-secondary)" borderColor="gray.700" color="gray.200" w="280px">
                         <PopoverArrow bg="var(--color-bg-secondary)" borderColor="gray.700" />
-                        <PopoverHeader borderColor="gray.700" fontWeight="semibold">{t('challengePage.editorSettings')}</PopoverHeader>
+                        <PopoverHeader borderColor="gray.700" fontWeight="semibold">Editor Settings</PopoverHeader>
                         <PopoverBody>
                             <VStack align="stretch" spacing={4}>
                                 <VStack align="stretch" spacing={2}>
-                                    <Text fontSize="xs" color="gray.400">{t('challengePage.fontFamily')}</Text>
+                                    <Text fontSize="xs" color="gray.400">Font Family</Text>
                                     <Select
                                         size="sm"
                                         value={editorSettings.fontFamily}
@@ -130,7 +128,7 @@ const EditorToolbar = () => {
                                 </VStack>
 
                                 <VStack align="stretch" spacing={2}>
-                                    <Text fontSize="xs" color="gray.400">{t('challengePage.fontSize', { size: editorSettings.fontSize })}</Text>
+                                    <Text fontSize="xs" color="gray.400">Font Size: {editorSettings.fontSize}px</Text>
                                     <Slider
                                         min={12}
                                         max={28}
@@ -149,14 +147,14 @@ const EditorToolbar = () => {
                     </PopoverContent>
                 </Popover>
 
-                <Tooltip label={isEditorFullscreen ? t('challengePage.exitFullScreen') : t('challengePage.fullScreen')}>
+                <Tooltip label={isEditorFullscreen ? 'Exit Full Screen' : 'Full Screen'}>
                     <IconButton
                         icon={isEditorFullscreen ? <ExitFullscreenIcon w={5} h={5} /> : <FullscreenIcon w={5} h={5} />}
                         variant="ghost"
                         color="gray.400"
                         _hover={{ color: 'gray.100' }}
                         size="sm"
-                        aria-label={t('challengePage.toggleFullscreenAria')}
+                        aria-label="Toggle fullscreen"
                         onClick={() => setEditorFullscreen(!isEditorFullscreen)}
                     />
                 </Tooltip>

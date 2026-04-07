@@ -29,7 +29,6 @@ import {
     Tooltip,
     Badge,
 } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 import useAccessibility from '../hooks/useAccessibility';
 import { readAloud, stopSpeaking, getPageText } from '../utils/speechUtils';
 
@@ -95,21 +94,21 @@ const ControlRow = ({ label, description, children }) => (
     </HStack>
 );
 
+/* ── Font scale labels ── */
+const FONT_SCALE_LABELS = { 0: 'Small', 1: 'Medium', 2: 'Large' };
 const FONT_SCALE_VALUES = ['small', 'medium', 'large'];
 
 const AccessibilityDrawer = ({ isOpen, onClose }) => {
-    const { t } = useTranslation();
     const { settings, updateSetting, resetSettings } = useAccessibility();
 
     const fontScaleIndex = FONT_SCALE_VALUES.indexOf(settings.fontScale);
-    const FONT_SCALE_LABELS = { 0: t('accessibility.small'), 1: t('accessibility.medium'), 2: t('accessibility.large') };
 
     const handleReadPage = () => {
         const text = getPageText('main') || getPageText('#root');
         if (text) {
             readAloud(text);
         } else {
-            readAloud(t('accessibility.noReadableContent'));
+            readAloud('No readable content found on this page.');
         }
     };
 
@@ -156,10 +155,10 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                         </Box>
                         <Box>
                             <Text fontFamily="heading" fontSize="lg" fontWeight="bold" color="var(--color-text-primary)">
-                                {t('accessibility.title')}
+                                Accessibility
                             </Text>
                             <Text fontSize="xs" color="var(--color-text-muted)">
-                                {t('accessibility.subtitle')}
+                                Customize your experience
                             </Text>
                         </Box>
                     </HStack>
@@ -171,13 +170,13 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                         <Box>
                             <SectionHeader
                                 icon={<EyeIcon w={5} h={5} color="#22d3ee" />}
-                                title={t('accessibility.visualModes')}
+                                title="Visual Modes"
                             />
 
                             <VStack spacing={1} align="stretch">
                                 <ControlRow
-                                    label={t('accessibility.highContrast')}
-                                    description={t('accessibility.highContrastDesc')}
+                                    label="High Contrast"
+                                    description="Stronger borders, no transparency"
                                 >
                                     <Switch
                                         isChecked={settings.highContrast}
@@ -188,8 +187,8 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                 </ControlRow>
 
                                 <ControlRow
-                                    label={t('accessibility.reducedMotion')}
-                                    description={t('accessibility.reducedMotionDesc')}
+                                    label="Reduced Motion"
+                                    description="Disable animations"
                                 >
                                     <Switch
                                         isChecked={settings.reducedMotion}
@@ -200,8 +199,8 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                 </ControlRow>
 
                                 <ControlRow
-                                    label={t('accessibility.dyslexiaFont')}
-                                    description={t('accessibility.dyslexiaFontDesc')}
+                                    label="Dyslexia-Friendly Font"
+                                    description="OpenDyslexic typeface"
                                 >
                                     <Switch
                                         isChecked={settings.dyslexiaFont}
@@ -214,7 +213,7 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                 {/* Font Size Slider */}
                                 <Box pt={2}>
                                     <Text fontSize="sm" fontWeight="medium" color="var(--color-text-primary)" mb={3}>
-                                        {t('accessibility.fontSize')}
+                                        Font Size
                                     </Text>
                                     <HStack spacing={4}>
                                         <Text fontSize="xs" color="var(--color-text-muted)" minW="40px">
@@ -248,13 +247,13 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                         <Box>
                             <SectionHeader
                                 icon={<VolumeIcon w={5} h={5} color="#22d3ee" />}
-                                title={t('accessibility.voiceMode')}
+                                title="Voice Mode"
                             />
 
                             <VStack spacing={1} align="stretch">
                                 <ControlRow
-                                    label={t('accessibility.enableVoiceMode')}
-                                    description={t('accessibility.enableVoiceModeDesc')}
+                                    label="Enable Voice Mode"
+                                    description="Read page content aloud"
                                 >
                                     <Switch
                                         isChecked={settings.voiceMode}
@@ -276,7 +275,7 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                             onClick={handleReadPage}
                                             flex={1}
                                         >
-                                            {t('accessibility.readPage')}
+                                            Read Page
                                         </Button>
                                         <Button
                                             size="sm"
@@ -288,15 +287,15 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                             onClick={stopSpeaking}
                                             flex={1}
                                         >
-                                            {t('accessibility.stop')}
+                                            Stop
                                         </Button>
                                     </HStack>
                                 )}
 
                                 <Box pt={2}>
                                     <ControlRow
-                                        label={t('accessibility.voiceCommands')}
-                                        description={t('accessibility.voiceCommandsDesc')}
+                                        label="Voice Commands"
+                                        description="Navigate by speaking"
                                     >
                                         <Switch
                                             isChecked={settings.voiceCommandsEnabled}
@@ -317,7 +316,7 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                             <HStack mb={2}>
                                                 <MicIcon w={4} h={4} color="#22d3ee" />
                                                 <Text fontSize="xs" fontWeight="semibold" color="#22d3ee">
-                                                    {t('accessibility.availableCommands')}
+                                                    Available Commands
                                                 </Text>
                                                 <Badge
                                                     colorScheme="cyan"
@@ -325,15 +324,15 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                                     fontSize="10px"
                                                     ml="auto"
                                                 >
-                                                    {t('accessibility.listeningBadge')}
+                                                    LISTENING
                                                 </Badge>
                                             </HStack>
                                             <VStack spacing={1} align="stretch">
                                                 {[
-                                                    t('accessibility.cmdGoToLeaderboard'),
-                                                    t('accessibility.cmdOpenChallenges'),
-                                                    t('accessibility.cmdStartBattle'),
-                                                    t('accessibility.cmdGoHome'),
+                                                    '"Go to leaderboard"',
+                                                    '"Open challenges"',
+                                                    '"Start battle"',
+                                                    '"Go home"',
                                                 ].map((cmd) => (
                                                     <Text key={cmd} fontSize="xs" color="var(--color-text-muted)" fontFamily="mono">
                                                         {cmd}
@@ -360,7 +359,7 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                             onClick={resetSettings}
                             w="full"
                         >
-                            {t('accessibility.resetToDefaults')}
+                            Reset to Defaults
                         </Button>
                     </VStack>
                 </DrawerBody>

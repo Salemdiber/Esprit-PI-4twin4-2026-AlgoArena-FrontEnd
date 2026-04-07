@@ -34,7 +34,6 @@ import { settingsService } from '../../../services/settingsService';
 import { apiClient } from '../../../services/apiClient';
 
 import Logo from '../../../assets/logo_algoarena.png';
-import { useTranslation } from 'react-i18next';
 
 // Key used to persist the placement so the SignIn page can read it
 const PLACEMENT_STORAGE_KEY = 'sc_placement';
@@ -65,9 +64,7 @@ const PHASE = {
 };
 
 // ─── Intro screen ────────────────────────────────────────────────
-const IntroScreen = ({ onStart, loading = false }) => {
-    const { t } = useTranslation();
-    return (
+const IntroScreen = ({ onStart, loading = false }) => (
     <Box
         minH="100vh"
         pt={["80px", "80px", "96px"]}
@@ -176,7 +173,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
                     >
                         <Box w="8px" h="8px" borderRadius="full" bg="brand.500" className="animate-pulse-glow" />
                         <Text fontSize="xs" fontFamily="mono" color="brand.500" letterSpacing="0.1em">
-                            {t('speedChallenge.newUserPlacementTest')}
+                            NEW USER PLACEMENT TEST
                         </Text>
                     </HStack>
 
@@ -191,11 +188,11 @@ const IntroScreen = ({ onStart, loading = false }) => {
                                 color="white"
                                 lineHeight={1.1}
                             >
-                                {t('speedChallenge.speedChallenge')}
+                                Speed Challenge
                             </Text>
                         </Flex>
                         <Text fontSize="sm" color="gray.400" maxW="380px" lineHeight="1.8">
-                            {t('speedChallenge.introDescPart1')} <strong style={{ color: '#22d3ee' }}>{t('speedChallenge.fifteenMinutes')}</strong> {t('speedChallenge.introDescPart2')} <strong style={{ color: 'white' }}>{t('speedChallenge.autoAssigned')}</strong> {t('speedChallenge.appliedToAccount')}
+                            Complete 3 coding problems in <strong style={{ color: '#22d3ee' }}>15 minutes</strong> to discover your true level. Your rank will be <strong style={{ color: 'white' }}>automatically assigned</strong> and applied to your new account.
                         </Text>
                     </VStack>
 
@@ -215,15 +212,15 @@ const IntroScreen = ({ onStart, loading = false }) => {
                             textTransform="uppercase"
                             mb={4}
                         >
-                            {t('speedChallenge.rules')}
+                            Rules
                         </Text>
                         <VStack spacing={3} align="stretch">
                             {[
-                                    { icon: MdOutlineEdit, text: t('speedChallenge.rule1') },
-                                    { icon: MdTimer, text: t('speedChallenge.rule2') },
-                                    { icon: MdSwapHoriz, text: t('speedChallenge.rule3') },
-                                    { icon: MdEmojiEvents, text: t('speedChallenge.rule4') },
-                                    { icon: MdKey, text: t('speedChallenge.rule5') },
+                                    { icon: MdOutlineEdit, text: '3 algorithmic problems — Easy, Medium, Hard' },
+                                    { icon: MdTimer, text: '15 minutes total — the clock is always ticking' },
+                                    { icon: MdSwapHoriz, text: 'Solve in any order — skip and come back' },
+                                    { icon: MdEmojiEvents, text: 'Your rank is computed from speed + problems solved' },
+                                    { icon: MdKey, text: 'Sign in after the test — your rank will be waiting!' },
                                 ].map((rule, i) => (
                                     <HStack key={i} spacing={3} align="flex-start">
                                         <Icon as={rule.icon} boxSize={6} color="brand.500" mt="2px" />
@@ -245,13 +242,13 @@ const IntroScreen = ({ onStart, loading = false }) => {
                             textTransform="uppercase"
                             mb={3}
                         >
-                            {t('speedChallenge.possibleRanks')}
+                            Possible ranks
                         </Text>
                         <Flex gap={2} flexWrap="wrap" justify="center">
                             {[
-                                { label: t('speedChallenge.bronze'), color: '#cd7f32' },
-                                { label: t('speedChallenge.silver'), color: '#c0c0c0' },
-                                { label: t('speedChallenge.gold'), color: '#facc15' },
+                                { label: 'Bronze', color: '#cd7f32' },
+                                { label: 'Silver', color: '#c0c0c0' },
+                                { label: 'Gold', color: '#facc15' },
                             ].map((r) => (
                                 <Box
                                     key={r.label}
@@ -303,7 +300,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
                             transition="transform 0.5s"
                         />
                         <HStack spacing={2} position="relative">
-                            <Text>{t('speedChallenge.startChallenge')}</Text>
+                            <Text>Start the Challenge</Text>
                             <Icon as={MdBolt} boxSize={6} color="#ffffff" />
                         </HStack>
                     </Button>
@@ -311,8 +308,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
             </Box>
         </MotionBox>
     </Box>
-    );
-};
+);
 
 // ─── Main Challenge Arena ─────────────────────────────────────────
 const ChallengeArena = ({
@@ -329,7 +325,6 @@ const ChallengeArena = ({
     onMarkSolved,
     onFinish,
 }) => {
-    const { t } = useTranslation();
     const [disableCopyPaste, setDisableCopyPaste] = useState(false);
     const [disableTabSwitch, setDisableTabSwitch] = useState(false);
     const activeSubmissionRef = useRef(0);
@@ -380,7 +375,7 @@ const ChallengeArena = ({
     const handleSubmit = useCallback(() => {
         if (submitState === 'running') return;
         if (!codes[problem.id]?.trim()) {
-            setFeedback(t('speedChallenge.writeCodeFirst'));
+            setFeedback('⚠️ Please write some code before submitting.');
             setSubmitState('error');
             return;
         }
@@ -401,8 +396,9 @@ const ChallengeArena = ({
             }
 
             setSubmitState('success');
-            setFeedback(t('speedChallenge.submissionAccepted'));
+            setFeedback('Submission accepted.');
             onMarkSolved(problem.id);
+            // Auto-advance after 1.5s
             setTimeout(() => {
                 setSubmitState('idle');
                 setFeedback('');
@@ -414,7 +410,7 @@ const ChallengeArena = ({
                 }
             }, 1500);
         }, 1500);
-    }, [codes, problem, currentIndex, problems, onMarkSolved, onFinish, setCurrentIndex, t]);
+    }, [codes, problem, currentIndex, problems, onMarkSolved, onFinish, setCurrentIndex]);
 
     const handleRequestHint = useCallback(async () => {
         if (!problem) return;
@@ -478,7 +474,7 @@ const ChallengeArena = ({
                     <HStack spacing={2}>
                         <Icon as={MdBolt} boxSize={4} color="brand.500" />
                         <Text fontSize="sm" fontWeight="semibold" color="white">
-                            {t('speedChallenge.speedChallenge')}
+                            Speed Challenge
                         </Text>
                     </HStack>
                 </HStack>
@@ -510,7 +506,7 @@ const ChallengeArena = ({
                         fontSize="xs"
                         fontFamily="mono"
                     >
-                        {t('speedChallenge.finish')}
+                        Finish
                     </Button>
                 </HStack>
             </Flex>
@@ -654,7 +650,7 @@ const ChallengeArena = ({
                                             <path d="M20 6 9 17l-5-5" />
                                         </svg>
                                         <Text fontSize="xs" color="green.400" fontFamily="mono">
-                                            {t('speedChallenge.solved')}
+                                            Solved!
                                         </Text>
                                     </HStack>
                                 )}
@@ -693,7 +689,7 @@ const ChallengeArena = ({
                                         }
                                     }}
                                 >
-                                    {currentIndex < problems.length - 1 ? t('speedChallenge.skip') : t('speedChallenge.skipAndFinish')}
+                                    {currentIndex < problems.length - 1 ? 'Skip →' : 'Skip & Finish'}
                                 </Button>
 
                                 {/* Submit */}
@@ -703,7 +699,7 @@ const ChallengeArena = ({
                                     px={5}
                                     onClick={handleSubmit}
                                     isLoading={submitState === 'running'}
-                                    loadingText={t('speedChallenge.running')}
+                                    loadingText="Running..."
                                     isDisabled={isExpired || isSolved}
                                     bgGradient={isSolved ? undefined : 'linear(to-r, brand.500, cyan.400)'}
                                     bg={isSolved ? 'rgba(34,197,94,0.15)' : undefined}
@@ -716,7 +712,7 @@ const ChallengeArena = ({
                                     _hover={isSolved ? {} : { transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(34,211,238,0.5)' }}
                                     transition="all 0.2s"
                                 >
-                                    {isSolved ? t('speedChallenge.solvedBtn') : t('speedChallenge.submit')}
+                                    {isSolved ? 'Solved' : 'Submit →'}
                                 </Button>
                             </HStack>
                         </Flex>
@@ -772,7 +768,6 @@ const ChallengeArena = ({
 
 // ─── SpeedChallengePage ───────────────────────────────────────────
 const SpeedChallengePage = () => {
-    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
@@ -988,8 +983,8 @@ const SpeedChallengePage = () => {
                 setLanguages(restoredSession.languages || languages);
                 
                 toast({
-                    title: t('speedChallenge.sessionRestored'),
-                    description: t('speedChallenge.sessionRestoredDesc'),
+                    title: 'Session Restored',
+                    description: 'Your progress has been restored. Continue solving!',
                     status: 'success',
                     duration: 3,
                 });
@@ -1243,7 +1238,7 @@ const SpeedChallengePage = () => {
     if (checkingStatus) {
         return (
             <Box minH="100vh" bg="#0f172a" display="flex" alignItems="center" justifyContent="center">
-                <Text color="white">{t('speedChallenge.loading')}</Text>
+                <Text color="white">Loading...</Text>
             </Box>
         );
     }
@@ -1269,10 +1264,10 @@ const SpeedChallengePage = () => {
                     </Box>
                     <VStack spacing={2}>
                         <Heading as="h1" size="lg" color="white">
-                            {t('speedChallenge.unavailable')}
+                            Speed Challenges Unavailable
                         </Heading>
                         <Text color="gray.400" fontSize="sm">
-                            {t('speedChallenge.unavailableDesc')}
+                            The Speed Challenge placement test is currently disabled by administrators.
                         </Text>
                     </VStack>
                     <Button
@@ -1281,7 +1276,7 @@ const SpeedChallengePage = () => {
                         color="#0f172a"
                         _hover={{ opacity: 0.9 }}
                     >
-                        {t('speedChallenge.returnHome')}
+                        Return to Home
                     </Button>
                 </VStack>
             </Box>

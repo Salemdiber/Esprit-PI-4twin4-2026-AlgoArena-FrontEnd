@@ -8,7 +8,6 @@ import AuthLayout from '../../layout/AuthLayout';
 import { useAuth } from './auth/context/AuthContext';
 import { authService } from '../../services/authService';
 import FormFeedbackAlert from './auth/components/FormFeedbackAlert';
-import { useTranslation } from 'react-i18next';
 
 const MotionBox = motion.create(Box);
 
@@ -25,6 +24,11 @@ const EyeOffIcon = (props) => (
         <line x1="1" y1="1" x2="23" y2="23" />
     </Icon>
 );
+
+const PASSWORD_SECURITY_MESSAGE = 'Password cannot contain your username or email for security reasons';
+const INVALID_FORMAT_MESSAGE = 'Invalid email format';
+const DISPOSABLE_EMAIL_MESSAGE = 'Disposable emails are not allowed';
+const DOMAIN_CANNOT_RECEIVE_MESSAGE = 'Email domain cannot receive emails';
 
 const normalize = (value) => value.trim().toLowerCase();
 const toAlphaNumeric = (value) => value.replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -76,7 +80,6 @@ const SignUp = () => {
     const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
     const { signup } = useAuth();
     const navigate = useNavigate();
-    const { t } = useTranslation();
 
     const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '' }); // 'idle', 'loading', 'available', 'taken'
     const [emailStatus, setEmailStatus] = useState({ state: 'idle', message: '' }); // idle | loading | available | taken | invalid
@@ -95,15 +98,15 @@ const SignUp = () => {
             setUsernameStatus({ state: 'loading', message: '' });
             try {
                 const res = await authService.checkAvailability('username', username);
-                if (res.available) setUsernameStatus({ state: 'available', message: t('auth.signUp.available') });
-                else setUsernameStatus({ state: 'taken', message: res.message || t('auth.signUp.taken') });
+                if (res.available) setUsernameStatus({ state: 'available', message: 'Available' });
+                else setUsernameStatus({ state: 'taken', message: res.message || 'Taken' });
             } catch {
                 setUsernameStatus({ state: 'idle', message: '' });
             }
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [username, t]);
+    }, [username]);
 
     useEffect(() => {
         const trimmedEmail = email.trim();
@@ -114,7 +117,7 @@ const SignUp = () => {
 
         const strictEmailRegex = /^(?=.{6,254}$)(?=.{1,64}@)([a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*)@([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+)$/i;
         if (!strictEmailRegex.test(trimmedEmail)) {
-            setEmailStatus({ state: 'invalid', message: t('auth.signUp.invalidEmail') });
+            setEmailStatus({ state: 'invalid', message: INVALID_FORMAT_MESSAGE });
             return;
         }
 
@@ -122,23 +125,15 @@ const SignUp = () => {
             setEmailStatus({ state: 'loading', message: '' });
             try {
                 const res = await authService.checkAvailability('email', trimmedEmail);
-                if (res.available) setEmailStatus({ state: 'available', message: t('auth.signUp.available') });
+                if (res.available) setEmailStatus({ state: 'available', message: 'Available' });
                 else {
                     const message = res.message || '';
-                    const isInvalid = message === 'Invalid email format' ||
-                        message === 'Disposable emails are not allowed' ||
-                        message === 'Email domain cannot receive emails';
-                    let displayMessage = message;
-                    if (isInvalid) {
-                        if (message === 'Invalid email format') displayMessage = t('auth.signUp.invalidEmail');
-                        else if (message === 'Disposable emails are not allowed') displayMessage = t('auth.signUp.disposableEmail');
-                        else displayMessage = t('auth.signUp.emailNoReceive');
-                    } else {
-                        displayMessage = message || t('auth.signUp.taken');
-                    }
+                    const isInvalid = message === INVALID_FORMAT_MESSAGE ||
+                        message === DISPOSABLE_EMAIL_MESSAGE ||
+                        message === DOMAIN_CANNOT_RECEIVE_MESSAGE;
                     setEmailStatus({
                         state: isInvalid ? 'invalid' : 'taken',
-                        message: displayMessage,
+                        message: message || (isInvalid ? INVALID_FORMAT_MESSAGE : 'Taken'),
                     });
                 }
             } catch {
@@ -147,7 +142,7 @@ const SignUp = () => {
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [email, t]);
+    }, [email]);
 
     useEffect(() => {
         if (!RECAPTCHA_SITE_KEY) return;
@@ -176,27 +171,27 @@ const SignUp = () => {
         setErrorMsg('');
 
         if (usernameStatus.state === 'taken') {
-            setErrorMsg(t('auth.signUp.usernameTaken'));
+            setErrorMsg('Username is already taken.');
             triggerShake('username');
             return;
         }
         if (emailStatus.state === 'taken') {
-            setErrorMsg(t('auth.signUp.emailTaken'));
+            setErrorMsg('Email is already taken.');
             triggerShake('email');
             return;
         }
         if (password.length < 6) {
-            setErrorMsg(t('auth.signUp.passwordMinLength'));
+            setErrorMsg('Password must be at least 6 characters long.');
             triggerShake('password');
             return;
         }
         if (hasSensitivePasswordContent) {
-            setErrorMsg(t('auth.signUp.passContainsUsername'));
+            setErrorMsg(PASSWORD_SECURITY_MESSAGE);
             triggerShake('password');
             return;
         }
         if (emailStatus.state === 'invalid') {
-            setErrorMsg(emailStatus.message || t('auth.signUp.invalidEmail'));
+            setErrorMsg(emailStatus.message || INVALID_FORMAT_MESSAGE);
             triggerShake('email');
             return;
         }
@@ -215,10 +210,10 @@ const SignUp = () => {
     };
 
     const strength = password.length === 0 ? { w: '0%', l: '', c: 'gray.500' }
-        : password.length < 4 ? { w: '25%', l: t('auth.signUp.strengthWeak'), c: 'red.400' }
-            : password.length < 6 ? { w: '50%', l: t('auth.signUp.strengthFair'), c: 'yellow.400' }
-                : password.length < 8 ? { w: '75%', l: t('auth.signUp.strengthGood'), c: 'blue.400' }
-                    : { w: '100%', l: t('auth.signUp.strengthStrong'), c: 'green.400' };
+        : password.length < 4 ? { w: '25%', l: 'Weak', c: 'red.400' }
+            : password.length < 6 ? { w: '50%', l: 'Fair', c: 'yellow.400' }
+                : password.length < 8 ? { w: '75%', l: 'Good', c: 'blue.400' }
+                    : { w: '100%', l: 'Strong Defense', c: 'green.400' };
 
     const inputStyles = {
         bg: 'var(--color-bg-input)', border: '1px solid', borderColor: 'var(--color-border)', borderRadius: '10px',
@@ -274,33 +269,33 @@ const SignUp = () => {
                                     <Box position="absolute" inset={0} borderRadius="full" bg="brand.500" opacity={0.75} sx={{ animation: 'ping 1s cubic-bezier(0,0,0.2,1) infinite' }} />
                                     <Box position="relative" w={2} h={2} borderRadius="full" bg="brand.500" />
                                 </Box>
-                                <Text fontSize="xs" fontFamily="mono" color="brand.500">{t('auth.signUp.liveArena')}</Text>
+                                <Text fontSize="xs" fontFamily="mono" color="brand.500">LIVE ARENA</Text>
                             </HStack>
                             <Heading fontFamily="heading" fontSize="3xl" fontWeight="bold" color="var(--color-text-primary)" lineHeight="tight">
-                                {t('auth.signUp.riseThrough')}<br />{t('auth.signUp.the')}<Text as="span" bgGradient="linear(to-r, brand.500, blue.500)" bgClip="text" color="transparent">{t('auth.signUp.ranks')}</Text>
+                                Rise Through<br />The <Text as="span" bgGradient="linear(to-r, brand.500, blue.500)" bgClip="text" color="transparent">Ranks</Text>
                             </Heading>
-                            <Text mt={4} color="gray.400" fontSize="sm" lineHeight="relaxed">{t('auth.signUp.joinDevs')}</Text>
+                            <Text mt={4} color="gray.400" fontSize="sm" lineHeight="relaxed">Join 10,000+ developers competing daily. Solve problems, earn XP, and get scouted by top tech companies.</Text>
                         </Box>
 
                         {/* Stats cards */}
                         <VStack spacing={4} position="relative" zIndex={10} mt={8}>
                             <Box w="100%" bg="rgba(30,41,59,0.8)" backdropFilter="blur(8px)" border="1px solid" borderColor="var(--color-border)" borderRadius="lg" p={4} transition="transform 0.3s" _hover={{ transform: 'scale(1.05)' }}>
                                 <Flex justify="space-between" align="center" mb={2}>
-                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">{t('auth.signUp.currentRank')}</Text>
+                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">CURRENT RANK</Text>
                                     <HStack spacing={1}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
-                                        <Text fontSize="xs" fontWeight="bold" color="yellow.400">{t('auth.signUp.rookieIII')}</Text>
+                                        <Text fontSize="xs" fontWeight="bold" color="yellow.400">ROOKIE III</Text>
                                     </HStack>
                                 </Flex>
                                 <Box w="100%" bg="gray.600" h="6px" borderRadius="full" overflow="hidden">
                                     <Box h="100%" w="75%" borderRadius="full" bgGradient="linear(to-r, brand.500, cyan.400)" boxShadow="0 0 10px rgba(34,211,238,0.5)" />
                                 </Box>
-                                <Flex justify="space-between" mt={1}><Text fontSize="10px" color="gray.500">{t('auth.signUp.xpStart')}</Text><Text fontSize="10px" color="gray.500">{t('auth.signUp.xpEnd')}</Text></Flex>
+                                <Flex justify="space-between" mt={1}><Text fontSize="10px" color="gray.500">0 XP</Text><Text fontSize="10px" color="gray.500">1000 XP</Text></Flex>
                             </Box>
 
                             <Flex w="100%" bg="rgba(30,41,59,0.8)" backdropFilter="blur(8px)" border="1px solid" borderColor="var(--color-border)" borderRadius="lg" p={4} align="center" gap={4}>
-                                <Flex w={10} h={10} borderRadius="full" bgGradient="linear(to-br, purple.500, purple.700)" align="center" justify="center" fontWeight="bold" color="var(--color-text-primary)" fontSize="sm">{t('auth.signUp.js')}</Flex>
-                                <Box><Text fontSize="xs" color="gray.400">{t('auth.signUp.primaryWeapon')}</Text><Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)">{t('auth.signUp.javascript')}</Text></Box>
+                                <Flex w={10} h={10} borderRadius="full" bgGradient="linear(to-br, purple.500, purple.700)" align="center" justify="center" fontWeight="bold" color="var(--color-text-primary)" fontSize="sm">JS</Flex>
+                                <Box><Text fontSize="xs" color="gray.400">Primary Weapon</Text><Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)">JavaScript</Text></Box>
                                 <Box ml="auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg></Box>
                             </Flex>
                         </VStack>
@@ -311,9 +306,9 @@ const SignUp = () => {
                                 {['photo-1534528741775-53994a69daeb', 'photo-1506794778202-cad84cf45f1d', 'photo-1507003211169-0a1dd7228f2d'].map((id, i) => (
                                     <Image key={id} src={`https://images.unsplash.com/${id}?auto=format&fit=crop&w=64&h=64`} alt="" w={8} h={8} borderRadius="full" border="2px solid var(--color-bg-primary)" ml={i > 0 ? '-8px' : 0} objectFit="cover" />
                                 ))}
-                                <Flex w={8} h={8} borderRadius="full" border="2px solid var(--color-bg-primary)" bg="gray.600" align="center" justify="center" fontSize="10px" fontWeight="bold" color="var(--color-text-primary)" ml="-8px">{t('auth.signUp.plus2k')}</Flex>
+                                <Flex w={8} h={8} borderRadius="full" border="2px solid var(--color-bg-primary)" bg="gray.600" align="center" justify="center" fontSize="10px" fontWeight="bold" color="var(--color-text-primary)" ml="-8px">+2k</Flex>
                             </Flex>
-                            <Text fontSize="xs" color="gray.500" mt={2}>{t('auth.signUp.joinCommunity')}</Text>
+                            <Text fontSize="xs" color="gray.500" mt={2}>Join the community today.</Text>
                         </Box>
                     </Box>
 
@@ -321,8 +316,8 @@ const SignUp = () => {
                     <Box flex={1} p={{ base: 8, md: 12 }} overflowY="auto">
                         <Box maxW="md" mx="auto">
                             <Box mb={8}>
-                                <Heading fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color="var(--color-text-primary)" mb={2}>{t('auth.signUp.createProfile')}</Heading>
-                                <Text color="gray.400" fontSize="sm">{t('auth.signUp.startCompeting')}</Text>
+                                <Heading fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color="var(--color-text-primary)" mb={2}>Create Your Profile</Heading>
+                                <Text color="gray.400" fontSize="sm">Start competing. Rise through the ranks.</Text>
                             </Box>
 
                             <form onSubmit={handleSubmit}>
@@ -330,19 +325,19 @@ const SignUp = () => {
                                     {/* Username + Avatar DiceBear */}
                                     <Box w="100%">
                                         <Flex justify="space-between" align="center" ml={1} mb={1}>
-                                            <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">{t('auth.signUp.username')}</Text>
+                                            <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">Username</Text>
 
                                             {usernameStatus.state === 'loading' && <Spinner size="xs" color="brand.500" />}
                                             {usernameStatus.state === 'available' && (
                                                 <HStack spacing={1}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                                                    <Text fontSize="10px" fontFamily="mono" color="brand.500">{t('auth.signUp.available')}</Text>
+                                                    <Text fontSize="10px" fontFamily="mono" color="brand.500">Available</Text>
                                                 </HStack>
                                             )}
                                             {usernameStatus.state === 'taken' && (
                                                 <HStack spacing={1}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">{t('auth.signUp.taken')}</Text>
+                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">Taken</Text>
                                                 </HStack>
                                             )}
                                         </Flex>
@@ -356,41 +351,41 @@ const SignUp = () => {
                                                 <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
                                                 </InputLeftElement>
-                                                <Input type="text" placeholder={t('auth.signUp.usernamePlaceholder')} value={username} onChange={(e) => setUsername(e.target.value)} {...getFieldStyles({ hasError: usernameHasError, isSuccess: usernameIsSuccess })} pr={avatarUrl ? "52px" : "1.25rem"} />
+                                                <Input type="text" placeholder="AlgoMaster99" value={username} onChange={(e) => setUsername(e.target.value)} {...getFieldStyles({ hasError: usernameHasError, isSuccess: usernameIsSuccess })} pr={avatarUrl ? "52px" : "1.25rem"} />
                                                 {avatarUrl && (
                                                     <InputRightElement width="52px" h="100%" display="flex" alignItems="center" justifyContent="center">
-                                                        <img src={avatarUrl} alt={t('auth.signUp.avatarAlt')} style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
+                                                        <img src={avatarUrl} alt="avatar preview" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
                                                     </InputRightElement>
                                                 )}
                                             </InputGroup>
                                         </MotionBox>
                                         <Box mt={2}>
-                                            <FormFeedbackAlert message={usernameHasError ? t('auth.signUp.usernameTaken') : ''} />
+                                            <FormFeedbackAlert message={usernameHasError ? 'Username is already taken.' : ''} />
                                         </Box>
-                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>{t('auth.signUp.rankStarts')}<Text as="span" color="yellow.500" fontWeight="bold">{t('auth.signUp.rookie')}</Text></Text>                                    </Box>
+                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>Your rank starts as: <Text as="span" color="yellow.500" fontWeight="bold">Rookie</Text></Text>                                    </Box>
 
                                     {/* Email */}
                                     <Box w="100%">
                                         <Flex justify="space-between" align="center" ml={1} mb={1}>
-                                            <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">{t('auth.signUp.emailAddress')}</Text>
+                                            <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">Email Address</Text>
 
                                             {emailStatus.state === 'loading' && <Spinner size="xs" color="brand.500" />}
                                             {emailStatus.state === 'available' && (
                                                 <HStack spacing={1}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                                                    <Text fontSize="10px" fontFamily="mono" color="brand.500">{t('auth.signUp.available')}</Text>
+                                                    <Text fontSize="10px" fontFamily="mono" color="brand.500">Available</Text>
                                                 </HStack>
                                             )}
                                             {emailStatus.state === 'taken' && (
                                                 <HStack spacing={1}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">{t('auth.signUp.inUse')}</Text>
+                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">In Use</Text>
                                                 </HStack>
                                             )}
                                             {emailStatus.state === 'invalid' && (
                                                 <HStack spacing={1}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">{t('auth.signUp.invalid')}</Text>
+                                                    <Text fontSize="10px" fontFamily="mono" color="red.400">Invalid</Text>
                                                 </HStack>
                                             )}
                                         </Flex>
@@ -404,7 +399,7 @@ const SignUp = () => {
                                                 <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                                                 </InputLeftElement>
-                                                <Input type="email" placeholder={t('auth.signUp.emailPlaceholder')} value={email} onChange={(e) => setEmail(e.target.value)} {...getFieldStyles({ hasError: emailHasError, isSuccess: emailIsSuccess })} pr={emailIsSuccess ? '52px' : '1.25rem'} />
+                                                <Input type="email" placeholder="dev@example.com" value={email} onChange={(e) => setEmail(e.target.value)} {...getFieldStyles({ hasError: emailHasError, isSuccess: emailIsSuccess })} pr={emailIsSuccess ? '52px' : '1.25rem'} />
                                                 {emailIsSuccess && (
                                                     <InputRightElement width="52px" h="100%" display="flex" alignItems="center" justifyContent="center">
                                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -413,13 +408,13 @@ const SignUp = () => {
                                             </InputGroup>
                                         </MotionBox>
                                         <Box mt={2}>
-                                            <FormFeedbackAlert message={emailStatus.state === 'invalid' ? (emailStatus.message || t('auth.signUp.invalidEmail')) : emailStatus.state === 'taken' ? t('auth.signUp.emailTaken') : ''} />
+                                            <FormFeedbackAlert message={emailStatus.state === 'invalid' ? (emailStatus.message || INVALID_FORMAT_MESSAGE) : emailStatus.state === 'taken' ? 'Email is already taken.' : ''} />
                                         </Box>
                                     </Box>
 
                                     {/* Password */}
                                     <Box w="100%">
-                                        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider" ml={1} mb={1}>{t('auth.signUp.password')}</Text>
+                                        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider" ml={1} mb={1}>Password</Text>
                                         <MotionBox
                                             key={`password-shake-${shakeKeys.password}`}
                                             initial={false}
@@ -430,7 +425,7 @@ const SignUp = () => {
                                             <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                                             </InputLeftElement>
-                                            <Input type={showPassword ? 'text' : 'password'} placeholder={t('auth.signUp.passwordPlaceholder')} value={password} onChange={(e) => setPassword(e.target.value)} {...getFieldStyles({ hasError: passwordHasError, isSuccess: passwordIsSuccess })} pr="52px" />
+                                            <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} {...getFieldStyles({ hasError: passwordHasError, isSuccess: passwordIsSuccess })} pr="52px" />
                                             <InputRightElement h="100%" w="52px" right="0" display="flex" alignItems="center" justifyContent="center">
                                                 <IconButton
                                                     variant="unstyled"
@@ -442,7 +437,7 @@ const SignUp = () => {
                                                     icon={showPassword ? <EyeOffIcon w={4} h={4} /> : <EyeIcon w={4} h={4} />}
                                                     color="gray.500"
                                                     _hover={{ color: 'var(--color-text-heading)' }}
-                                                    aria-label={showPassword ? t('auth.signUp.hidePassword') : t('auth.signUp.showPassword')}
+                                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                 />
                                             </InputRightElement>
                                         </InputGroup>
@@ -454,7 +449,7 @@ const SignUp = () => {
                                             <Text fontSize="10px" fontFamily="mono" color={strength.c}>{strength.l}</Text>
                                         </Flex>
                                         <Box mt={2}>
-                                            <FormFeedbackAlert message={hasSensitivePasswordContent ? t('auth.signUp.passContainsUsername') : ''} />
+                                            <FormFeedbackAlert message={hasSensitivePasswordContent ? PASSWORD_SECURITY_MESSAGE : ''} />
                                         </Box>
                                     </Box>
 
@@ -467,11 +462,11 @@ const SignUp = () => {
                                     <Box pt={4} w="100%">
                                         <Button type="submit" w="100%" h="48px" bgGradient="linear(to-r, brand.500, cyan.400)" color="#0f172a" fontSize="sm" fontWeight="bold" borderRadius="8px"
                                             isDisabled={isFormInvalid}
-                                            isLoading={isLoading} loadingText={t('auth.signUp.creatingProfile')} boxShadow="0 0 30px -5px rgba(34,211,238,0.5)" position="relative" overflow="hidden" role="group"
+                                            isLoading={isLoading} loadingText="Creating Profile..." boxShadow="0 0 30px -5px rgba(34,211,238,0.5)" position="relative" overflow="hidden" role="group"
                                             _hover={{ bgGradient: 'linear(to-r, brand.500, cyan.300)', transform: 'translateY(-2px)' }} _active={{ transform: 'translateY(0)' }} transition="all 0.3s">
                                             <Box position="absolute" inset={0} bg="whiteAlpha.200" transform="translateX(-100%) skewX(-12deg)" _groupHover={{ transform: 'translateX(100%) skewX(-12deg)' }} transition="transform 0.5s" />
                                             <HStack spacing={2} position="relative">
-                                                <Text>{t('auth.signUp.enterArena')}</Text>
+                                                <Text>Enter the Arena</Text>
                                                 <Box _groupHover={{ transform: 'translateX(4px)' }} transition="transform 0.3s">
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
                                                 </Box>
@@ -482,8 +477,8 @@ const SignUp = () => {
                             </form>
 
                             <Text mt={6} textAlign="center" fontSize="sm" color="gray.400">
-                                {t('auth.signUp.alreadyHaveAccount')}{' '}
-                                <Link as={RouterLink} to="/signin" fontWeight="medium" color="brand.500" _hover={{ color: 'brand.300' }}>{t('auth.signUp.signIn')}</Link>
+                                Already have an account?{' '}
+                                <Link as={RouterLink} to="/signin" fontWeight="medium" color="brand.500" _hover={{ color: 'brand.300' }}>Sign in</Link>
                             </Text>
                         </Box>
                     </Box>

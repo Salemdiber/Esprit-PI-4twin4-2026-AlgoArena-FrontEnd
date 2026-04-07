@@ -5,7 +5,6 @@ import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
 import { useAuth, redirectBasedOnRole, hasCompletedSpeedChallenge } from './auth/context/AuthContext';
-import { useTranslation } from 'react-i18next';
 
 const MotionBox = motion.create(Box);
 
@@ -34,7 +33,6 @@ const SignIn = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const { t } = useTranslation();
 
     useEffect(() => {
         if (!RECAPTCHA_SITE_KEY) return;
@@ -108,34 +106,34 @@ const SignIn = () => {
                     <Box position="relative" zIndex={10}>
                         <VStack spacing={2} mb={8} textAlign="center">
                             <Heading fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color={headingColor}>
-                                {t('auth.signIn.welcomeBack')} <Text as="span" color="brand.500">{t('auth.signIn.challenger')}</Text>
+                                Welcome Back, <Text as="span" color="brand.500">Challenger</Text>
                             </Heading>
-                            <Text color={labelColor} fontSize="sm">{t('auth.signIn.subtitle')}</Text>
+                            <Text color={labelColor} fontSize="sm">Continue your coding journey.</Text>
                         </VStack>
 
                         <form onSubmit={handleSubmit}>
                             <VStack spacing={5}>
                                 {/* Username */}
                                 <Box w="100%">
-                                    <Text fontSize="xs" fontWeight="semibold" color={labelColor} textTransform="uppercase" letterSpacing="wider" ml={1} mb={1}>{t('auth.signIn.username')}</Text>
+                                    <Text fontSize="xs" fontWeight="semibold" color={labelColor} textTransform="uppercase" letterSpacing="wider" ml={1} mb={1}>Username</Text>
                                     <InputGroup>
                                         <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
                                         </InputLeftElement>
-                                        <Input type="text" placeholder={t('auth.signIn.usernamePlaceholder')} value={username} onChange={(e) => setUsername(e.target.value)} {...inputStyles} />
+                                        <Input type="text" placeholder="dev_algoarena" value={username} onChange={(e) => setUsername(e.target.value)} {...inputStyles} />
                                     </InputGroup>
                                 </Box>
 
                                 {/* Password */}
                                 <Box w="100%">
                                     <Flex justify="space-between" align="center" ml={1} mb={1}>
-                                        <Text fontSize="xs" fontWeight="semibold" color={labelColor} textTransform="uppercase" letterSpacing="wider">{t('auth.signIn.password')}</Text>
+                                        <Text fontSize="xs" fontWeight="semibold" color={labelColor} textTransform="uppercase" letterSpacing="wider">Password</Text>
                                     </Flex>
                                     <InputGroup>
                                         <InputLeftElement pointerEvents="none" h="100%" w="52px" display="flex" alignItems="center" justifyContent="center">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                                         </InputLeftElement>
-                                        <Input type={showPassword ? 'text' : 'password'} placeholder={t('auth.signIn.passwordPlaceholder')} value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} pr="52px" />
+                                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} pr="52px" />
                                         <InputRightElement h="100%" w="52px" right="0" display="flex" alignItems="center" justifyContent="center">
                                             <IconButton
                                                 variant="unstyled"
@@ -147,7 +145,7 @@ const SignIn = () => {
                                                 icon={showPassword ? <EyeOffIcon w={4} h={4} /> : <EyeIcon w={4} h={4} />}
                                                 color="gray.500"
                                                 _hover={{ color: 'var(--color-text-heading)' }}
-                                                aria-label={showPassword ? t('auth.signIn.hidePassword') : t('auth.signIn.showPassword')}
+                                                aria-label={showPassword ? 'Hide password' : 'Show password'}
                                             />
                                         </InputRightElement>
                                     </InputGroup>
@@ -156,9 +154,9 @@ const SignIn = () => {
                                 {/* Remember + Forgot */}
                                 <Flex w="100%" justify="space-between" align="center">
                                     <Checkbox colorScheme="cyan" size="sm" isChecked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>
-                                        <Text fontSize="sm" color={labelColor}>{t('auth.signIn.rememberMe')}</Text>
+                                        <Text fontSize="sm" color={labelColor}>Remember me</Text>
                                     </Checkbox>
-                                    <Link as={RouterLink} to="/forgot-password" fontSize="sm" fontWeight="medium" color="brand.500" _hover={{ color: 'brand.300' }}>{t('auth.signIn.forgotPassword')}</Link>
+                                    <Link as={RouterLink} to="/forgot-password" fontSize="sm" fontWeight="medium" color="brand.500" _hover={{ color: 'brand.300' }}>Forgot password?</Link>
                                 </Flex>
 
                                 {/* reCAPTCHA v3 : token généré automatiquement lors du submit */}
@@ -166,9 +164,9 @@ const SignIn = () => {
 
                                 {/* Submit */}
                                 <Button type="submit" w="100%" h="48px" bgGradient="linear(to-r, brand.500, cyan.400)" color="#0f172a" fontSize="sm" fontWeight="bold" borderRadius="8px"
-                                    isLoading={isLoading} loadingText={t('auth.signIn.authenticating')} boxShadow="0 0 30px -5px rgba(34,211,238,0.5)"
+                                    isLoading={isLoading} loadingText="Authenticating..." boxShadow="0 0 30px -5px rgba(34,211,238,0.5)"
                                     _hover={{ bgGradient: 'linear(to-r, brand.500, cyan.300)', transform: 'translateY(-2px)' }} _active={{ transform: 'translateY(0)' }} transition="all 0.3s">
-                                    {t('auth.signIn.enterArena')}
+                                    Enter the Arena
                                 </Button>
                             </VStack>
                         </form>
@@ -177,15 +175,15 @@ const SignIn = () => {
                         <Box mt={8} position="relative">
                             <Box position="absolute" inset={0} display="flex" alignItems="center"><Box w="100%" borderTop="1px solid" borderColor="var(--color-border)" /></Box>
                             <Flex position="relative" justify="center">
-                                <Text px={4} fontSize="xs" color="gray.500" className="glass-panel" borderRadius="full">{t('auth.signIn.orWith')}</Text>
+                                <Text px={4} fontSize="xs" color="gray.500" className="glass-panel" borderRadius="full">Or enter the arena with</Text>
                             </Flex>
                         </Box>
 
                         {/* Social */}
                         <HStack mt={6} spacing={3}>
                             {[
-                                { label: t('auth.signIn.google'), path: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z', vb: '0 0 24 24' },
-                                { label: t('auth.signIn.github'), path: 'M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z', vb: '0 0 20 20' },
+                                { label: 'Google', path: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z', vb: '0 0 24 24' },
+                                { label: 'GitHub', path: 'M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z', vb: '0 0 20 20' },
                             ].map(({ label, path, vb }) => (
                                 <Button
                                     as="a"
@@ -200,8 +198,8 @@ const SignIn = () => {
 
                         {/* Link to sign up */}
                         <Text mt={8} textAlign="center" fontSize="sm" color={labelColor}>
-                            {t('auth.signIn.newToAlgo')}{' '}
-                            <Link as={RouterLink} to="/signup" fontWeight="medium" color="brand.500" _hover={{ color: 'brand.300' }}>{t('auth.signIn.signUp')}</Link>
+                            New to AlgoArena?{' '}
+                            <Link as={RouterLink} to="/signup" fontWeight="medium" color="brand.500" _hover={{ color: 'brand.300' }}>Sign up</Link>
                         </Text>
                     </Box>
                 </Box>

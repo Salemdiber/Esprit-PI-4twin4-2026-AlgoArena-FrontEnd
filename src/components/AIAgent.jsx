@@ -1,21 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 
 const AIAgent = () => {
-    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
-    const [mode, setMode] = useState('chat');
+    const [mode, setMode] = useState('chat'); // 'chat' or 'nav'
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [playingMessageId, setPlayingMessageId] = useState(null);
 
-    const [chatMessages, setChatMessages] = useState(() => [
-        { id: 1, text: t('aiAgent.initialChatMessage'), isUser: false, time: t('aiAgent.justNow') }
+    // Separate chat histories for modes to avoid confusion
+    const [chatMessages, setChatMessages] = useState([
+        { id: 1, text: "Hello! I'm your AlgoArena AI assistant. How can I guide you in the arena today?", isUser: false, time: 'Just now' }
     ]);
-    const [navMessages, setNavMessages] = useState(() => [
-        { id: 1, text: t('aiAgent.initialNavMessage'), isUser: false, time: t('aiAgent.justNow') }
+    const [navMessages, setNavMessages] = useState([
+        { id: 1, text: "Audio Navigation Active. Type or use the microphone to dictate a destination (e.g. 'Take me to challenges', 'Open dashboard', 'Home').", isUser: false, time: 'Just now' }
     ]);
 
     const messagesEndRef = useRef(null);
@@ -103,18 +102,18 @@ User input: "${userText}"`;
             if (target === 'landing') target = 'home';
 
             switch (target) {
-                case 'Signin': route = '/signin'; spokenText = t('aiAgent.navigatingToSignin'); break;
-                case 'Signup': route = '/signup'; spokenText = t('aiAgent.navigatingToSignup'); break;
-                case 'home': route = '/'; spokenText = t('aiAgent.navigatingToHome'); break;
-                case 'challenges': route = '/challenges'; spokenText = t('aiAgent.navigatingToChallenges'); break;
-                case 'battles': route = '/battles'; spokenText = t('aiAgent.navigatingToBattles'); break;
-                case 'leaderboard': route = '/leaderboard'; spokenText = t('aiAgent.navigatingToLeaderboard'); break;
-                case 'community': route = '/community'; spokenText = t('aiAgent.navigatingToCommunity'); break;
-                case 'profile': route = '/profile'; spokenText = t('aiAgent.openingProfile'); break;
-                case 'dashboard': route = '/admin'; spokenText = t('aiAgent.goingToDashboard'); break;
+                case 'Signin': route = '/signin'; spokenText = 'Navigating to Signin page.'; break;
+                case 'Signup': route = '/signup'; spokenText = 'Navigating to Signup page.'; break;
+                case 'home': route = '/'; spokenText = 'Navigating to home page.'; break;
+                case 'challenges': route = '/challenges'; spokenText = 'Navigating to challenges.'; break;
+                case 'battles': route = '/battles'; spokenText = 'Navigating to battles.'; break;
+                case 'leaderboard': route = '/leaderboard'; spokenText = 'Navigating to leaderboard.'; break;
+                case 'community': route = '/community'; spokenText = 'Navigating to community.'; break;
+                case 'profile': route = '/profile'; spokenText = 'Opening your profile.'; break;
+                case 'dashboard': route = '/admin'; spokenText = 'Going to your dashboard.'; break;
                 default:
                     route = null;
-                    spokenText = t('aiAgent.unrecognizedDestination');
+                    spokenText = 'I could not recognize that destination. Please state a valid platform page.';
             }
 
             const aiMsg = { id: Date.now() + 1, text: spokenText, isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
@@ -130,7 +129,7 @@ User input: "${userText}"`;
             }
         } catch (error) {
             console.error("Navigation Error:", error);
-            setNavMessages(prev => [...prev, { id: Date.now() + 1, text: t('aiAgent.systemOffline'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setNavMessages(prev => [...prev, { id: Date.now() + 1, text: "System offline. Unable to reach cognitive cores.", isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         } finally {
             setIsLoading(false);
         }
@@ -168,7 +167,7 @@ Your primary responsibilities:
 
         } catch (error) {
             console.error("Chat Error:", error);
-            setChatMessages(prev => [...prev, { id: Date.now() + 1, text: t('aiAgent.systemOffline'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setChatMessages(prev => [...prev, { id: Date.now() + 1, text: "System offline. Unable to reach cognitive cores.", isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         } finally {
             setIsLoading(false);
         }
@@ -205,12 +204,12 @@ Your primary responsibilities:
                     if (response && response.text) {
                         processNavigation(response.text);
                     } else {
-                        setNavMessages(prev => [...prev, { id: Date.now(), text: t('aiAgent.couldNotHear'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                        setNavMessages(prev => [...prev, { id: Date.now(), text: "I couldn't hear anything clearly. Try again.", isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
                         setIsLoading(false);
                     }
                 } catch (err) {
                     console.error("Speech2txt error:", err);
-                    setNavMessages(prev => [...prev, { id: Date.now(), text: t('aiAgent.speechFailed'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                    setNavMessages(prev => [...prev, { id: Date.now(), text: "Sorry, speech processing failed. Please try text input.", isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
                     setIsLoading(false);
                 }
             };
@@ -219,7 +218,7 @@ Your primary responsibilities:
             setIsListening(true);
         } catch (err) {
             console.error("Microphone access denied or error:", err);
-            setNavMessages(prev => [...prev, { id: Date.now(), text: t('aiAgent.micDenied'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setNavMessages(prev => [...prev, { id: Date.now(), text: "Microphone access denied. Please allow microphone permissions.", isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         }
     };
 
@@ -250,7 +249,7 @@ Your primary responsibilities:
                 <button
                     onClick={() => setIsOpen(true)}
                     className="group relative w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-(--color-bg-primary) to-(--color-bg-secondary) text-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_40px_rgba(34,211,238,0.6)] hover:-translate-y-1 transition-all duration-300 border border-(--color-border) overflow-visible"
-                    aria-label={t('aiAgent.openAssistant')}
+                    aria-label="Open AI Assistant"
                 >
                     <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="absolute inset-[-4px] rounded-full border border-dashed border-(--color-border) animate-[spin_8s_linear_infinite] group-hover:border-cyan-400/60 hidden md:block"></div>
@@ -281,10 +280,10 @@ Your primary responsibilities:
                                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-(--color-bg-secondary)"></div>
                                 </div>
                                 <div>
-                                    <h2 className="font-heading font-bold text-(--color-text-heading) text-lg tracking-wide">{t('aiAgent.algoArenaAI')}</h2>
+                                    <h2 className="font-heading font-bold text-(--color-text-heading) text-lg tracking-wide">AlgoArena AI</h2>
                                     <p className="text-xs text-green-400 flex items-center gap-1.5 font-medium">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                                        {t('aiAgent.systemOnline')}
+                                        System Online
                                     </p>
                                 </div>
                             </div>
@@ -303,14 +302,14 @@ Your primary responsibilities:
                                     className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'chat' ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-[0_4px_12px_rgba(34,211,238,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                                    {t('aiAgent.chatAI')}
+                                    Chat AI
                                 </button>
                                 <button
                                     onClick={() => setMode('nav')}
                                     className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'nav' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-[0_4px_12px_rgba(168,85,247,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                                    {t('aiAgent.audioNav')}
+                                    Audio Nav
                                 </button>
                             </div>
                         </div>
@@ -344,7 +343,7 @@ Your primary responsibilities:
                                             <button
                                                 onClick={() => playMessageAudio(msg.id, msg.text)}
                                                 className={`absolute -right-3 -top-3 p-1.5 rounded-full shadow-lg transition-all duration-300 ${playingMessageId === msg.id ? 'bg-cyan-500 text-white ring-2 ring-cyan-500/50 opacity-100 scale-110' : 'bg-(--color-bg-secondary) text-(--color-text-muted) opacity-0 group-hover:opacity-100 border border-(--color-border) hover:text-cyan-400 hover:bg-(--color-hover-bg) hover:scale-105'} focus:outline-none`}
-                                                title={playingMessageId === msg.id ? t('aiAgent.stopPlayback') : t('aiAgent.readAloud')}
+                                                title={playingMessageId === msg.id ? "Stop playback" : "Read aloud"}
                                             >
                                                 {playingMessageId === msg.id ? (
                                                     <div className="flex items-center justify-center w-4 h-4 gap-[2px]">
@@ -378,7 +377,7 @@ Your primary responsibilities:
                                     {isListening ? (
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                                            <span className="text-sm text-(--color-text-primary) animate-pulse">{t('aiAgent.listening')}</span>
+                                            <span className="text-sm text-(--color-text-primary) animate-pulse">Listening...</span>
                                         </div>
                                     ) : (
                                         <>
@@ -403,7 +402,7 @@ Your primary responsibilities:
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     disabled={isLoading || isListening}
-                                    placeholder={mode === 'chat' ? t('aiAgent.chatPlaceholder') : t('aiAgent.navPlaceholder')}
+                                    placeholder={mode === 'chat' ? "Ask about the platform..." : "Type or speak destination..."}
                                     className="w-full h-12 bg-(--color-bg-input) border border-(--color-border) rounded-xl pl-4 pr-12 text-[13px] text-(--color-text-primary) placeholder:text-(--color-text-muted) hover:border-(--color-border-hover) focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-[var(--color-focus-glow)] transition-all duration-300 disabled:opacity-60 shadow-sm"
                                 />
                                 <button
@@ -436,7 +435,7 @@ Your primary responsibilities:
                         <div className="text-center mt-3">
                             <p className="text-[10px] text-(--color-text-muted) uppercase tracking-widest font-semibold flex items-center justify-center gap-1.5">
                                 <svg className="w-3 h-3 text-(--color-text-muted)" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
-                                {t('aiAgent.poweredBy')}
+                                Powered by AlgoArena Dev team
                             </p>
                         </div>
                     </div>

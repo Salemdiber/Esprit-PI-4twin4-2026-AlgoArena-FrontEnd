@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import {
     Box,
     Container,
@@ -11,23 +10,16 @@ import {
     VStack,
     HStack,
     Select,
+    Tag,
     Code,
     Badge,
+    Avatar,
+    Divider,
     useColorModeValue,
 } from '@chakra-ui/react';
 
 const Arena = () => {
-    const { t } = useTranslation();
     const [mode, setMode] = useState('ai');
-    const leaderboardRows = useMemo(
-        () => [
-            { rank: 1, nameKey: 'landing.arena.playerCodeMaster', score: '2,450', color: 'yellow.500', flame: 12 },
-            { rank: 2, nameKey: 'landing.arena.playerAlgoNinja', score: '2,180', color: 'gray.700', flame: 8 },
-            { rank: 3, nameKey: 'landing.arena.playerYou', score: '1,920', color: 'brand.500', flame: 5, active: true },
-            { rank: 4, nameKey: 'landing.arena.playerDevQueen', score: '1,750', color: 'gray.700', flame: 4 },
-        ],
-        [],
-    );
 
     return (
         <Box as="section" py={32} bg={useColorModeValue("white", "gray.900")} position="relative" overflow="hidden">
@@ -55,10 +47,10 @@ const Arena = () => {
                             fontWeight="bold"
                             color={useColorModeValue("gray.800", "gray.100")}
                         >
-                            {t('landing.arena.title')}
+                            This Is The Product.
                         </Heading>
                         <Text fontSize={{ base: 'xl', sm: '2xl' }} color={useColorModeValue("gray.600", "gray.300")}>
-                            {t('landing.arena.subtitle')}
+                            Experience the full competitive coding arena. Battle AI or real players in real-time.
                         </Text>
 
                         {/* Mode Toggle */}
@@ -70,7 +62,7 @@ const Arena = () => {
                                 px={8}
                                 py={4}
                             >
-                                {t('landing.arena.vsAi')}
+                                1 vs AI
                             </Button>
                             <Button
                                 variant={mode === 'pvp' ? 'primary' : 'secondary'}
@@ -79,7 +71,7 @@ const Arena = () => {
                                 px={8}
                                 py={4}
                             >
-                                {t('landing.arena.vsPvp')}
+                                1 vs 1
                             </Button>
                         </HStack>
                     </VStack>
@@ -99,39 +91,39 @@ const Arena = () => {
                             {/* Challenge Panel */}
                             <GridItem colSpan={{ base: 12, lg: 3 }} bg={useColorModeValue("white", "gray.900")} borderRight="1px solid" borderColor={useColorModeValue("gray.200", "gray.700")} p={6}>
                                 <Heading as="h3" size="md" mb={4} color={useColorModeValue("gray.800", "gray.100")}>
-                                    {t('landing.arena.challengeHeading')}
+                                    Challenge
                                 </Heading>
                                 <VStack spacing={4} align="stretch">
                                     <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={4}>
                                         <HStack justify="space-between" mb={2}>
                                             <Text fontSize="sm" fontWeight="bold" color="brand.500">
-                                                {t('landing.arena.sampleTitle')}
+                                                Two Sum
                                             </Text>
                                             <Badge colorScheme="green" variant="subtle" fontSize="xs">
-                                                {t('landing.arena.easy')}
+                                                Easy
                                             </Badge>
                                         </HStack>
                                         <Text fontSize="xs" color={useColorModeValue("gray.500", "gray.400")} mb={3}>
-                                            {t('landing.arena.sampleDescription')}
+                                            Given an array of integers, return indices of two numbers that add up to target.
                                         </Text>
                                         <HStack justify="space-between" fontSize="xs" color="gray.500">
-                                            <Text>{t('landing.arena.timeMin')}</Text>
-                                            <Text>{t('landing.arena.points')}</Text>
+                                            <Text>⏱ 15 min</Text>
+                                            <Text>🎯 100 pts</Text>
                                         </HStack>
                                     </Box>
 
                                     <Box>
                                         <Text fontSize="xs" fontWeight="bold" color={useColorModeValue("gray.500", "gray.400")} textTransform="uppercase" mb={2}>
-                                            {t('landing.arena.testCases')}
+                                            Test Cases
                                         </Text>
                                         <VStack spacing={2} align="stretch">
                                             <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={3} fontSize="xs" fontFamily="mono">
-                                                <Text color={useColorModeValue("gray.500", "gray.400")}>{t('landing.arena.inputLine1')}</Text>
-                                                <Text color="green.400">{t('landing.arena.outputLine1')}</Text>
+                                                <Text color={useColorModeValue("gray.500", "gray.400")}>Input: [2,7,11,15], 9</Text>
+                                                <Text color="green.400">Output: [0,1]</Text>
                                             </Box>
                                             <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={3} fontSize="xs" fontFamily="mono">
-                                                <Text color={useColorModeValue("gray.500", "gray.400")}>{t('landing.arena.inputLine2')}</Text>
-                                                <Text color="green.400">{t('landing.arena.outputLine2')}</Text>
+                                                <Text color={useColorModeValue("gray.500", "gray.400")}>Input: [3,2,4], 6</Text>
+                                                <Text color="green.400">Output: [1,2]</Text>
                                             </Box>
                                         </VStack>
                                     </Box>
@@ -146,15 +138,15 @@ const Arena = () => {
                                         <HStack justify="space-between" mb={4}>
                                             <HStack spacing={3}>
                                                 <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue("gray.800", "gray.100")}>
-                                                    {t('landing.arena.yourSolution')}
+                                                    Your Solution
                                                 </Text>
                                                 <Select size="xs" width="auto" bg={useColorModeValue("gray.50", "gray.800")} borderColor={useColorModeValue("gray.200", "gray.700")}>
-                                                    <option>{t('landing.games.javascript')}</option>
-                                                    <option>{t('landing.games.python')}</option>
+                                                    <option>JavaScript</option>
+                                                    <option>Python</option>
                                                 </Select>
                                             </HStack>
                                             <Text fontSize="xs" color={useColorModeValue("gray.500", "gray.400")}>
-                                                {t('landing.arena.timerSample')}
+                                                ⏱ 12:34
                                             </Text>
                                         </HStack>
                                         <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={4} mb={4} h="80" overflow="auto">
@@ -177,21 +169,21 @@ const Arena = () => {
                                             </Code>
                                         </Box>
                                         <HStack spacing={3} mb={4}>
-                                            <Button flex={1} variant="primary">{t('landing.arena.runCode')}</Button>
-                                            <Button flex={1} colorScheme="green">{t('landing.arena.submit')}</Button>
+                                            <Button flex={1} variant="primary">Run Code</Button>
+                                            <Button flex={1} colorScheme="green">Submit</Button>
                                         </HStack>
                                         <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={4}>
                                             <Text fontSize="xs" fontWeight="semibold" color={useColorModeValue("gray.500", "gray.400")} mb={2}>
-                                                {t('landing.arena.consoleOutput')}
+                                                Console Output
                                             </Text>
                                             <Text fontSize="xs" fontFamily="mono" color="green.400">
-                                                {t('landing.arena.testPassed1')}
+                                                ✓ Test case 1 passed
                                             </Text>
                                             <Text fontSize="xs" fontFamily="mono" color="green.400">
-                                                {t('landing.arena.testPassed2')}
+                                                ✓ Test case 2 passed
                                             </Text>
                                             <Text fontSize="xs" fontFamily="mono" color={useColorModeValue("gray.500", "gray.400")} mt={2}>
-                                                {t('landing.arena.runtimeLine')}
+                                                Runtime: 52ms | Memory: 42.1MB
                                             </Text>
                                         </Box>
                                     </Box>
@@ -201,8 +193,8 @@ const Arena = () => {
                                         {/* Your Terminal */}
                                         <Box>
                                             <HStack justify="space-between" mb={3}>
-                                                <Text fontSize="sm" fontWeight="bold" color="brand.500">{t('landing.arena.you')}</Text>
-                                                <Text fontSize="xs" color="green.400">{t('landing.arena.active')}</Text>
+                                                <Text fontSize="sm" fontWeight="bold" color="brand.500">You</Text>
+                                                <Text fontSize="xs" color="green.400">● Active</Text>
                                             </HStack>
                                             <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={3} h="64" overflow="auto" mb={3}>
                                                 <Code display="block" whiteSpace="pre" bg="transparent" color={useColorModeValue("gray.600", "gray.300")} fontSize="xs">
@@ -217,14 +209,14 @@ const Arena = () => {
                                         {/* Opponent Terminal */}
                                         <Box>
                                             <HStack justify="space-between" mb={3}>
-                                                <Text fontSize="sm" fontWeight="bold" color="yellow.400">{t('landing.arena.opponent')}</Text>
-                                                <Text fontSize="xs" color="yellow.400">{t('landing.arena.typing')}</Text>
+                                                <Text fontSize="sm" fontWeight="bold" color="yellow.400">Opponent</Text>
+                                                <Text fontSize="xs" color="yellow.400">Typing...</Text>
                                             </HStack>
                                             <Box bg={useColorModeValue("gray.50", "gray.800")} borderRadius="8px" p={3} h="64" overflow="hidden" mb={3} position="relative">
                                                 <Box position="absolute" inset={0} bg="rgba(17, 24, 39, 0.8)" backdropFilter="blur(4px)" display="flex" alignItems="center" justifyContent="center">
                                                     <VStack>
                                                         <Box w={12} h={12} borderRadius="full" border="4px solid" borderColor="yellow.400" borderTopColor="transparent" animation="spin 1s linear infinite" />
-                                                        <Text fontSize="xs" color={useColorModeValue("gray.500", "gray.400")}>{t('landing.arena.opponentCoding')}</Text>
+                                                        <Text fontSize="xs" color={useColorModeValue("gray.500", "gray.400")}>Opponent is coding...</Text>
                                                     </VStack>
                                                 </Box>
                                             </Box>
@@ -236,10 +228,15 @@ const Arena = () => {
                             {/* Leaderboard Sidebar */}
                             <GridItem colSpan={{ base: 12, lg: 3 }} bg={useColorModeValue("white", "gray.900")} borderLeft="1px solid" borderColor={useColorModeValue("gray.200", "gray.700")} p={6}>
                                 <Heading as="h3" size="md" mb={4} color={useColorModeValue("gray.800", "gray.100")}>
-                                    {t('landing.arena.liveLeaderboard')}
+                                    Live Leaderboard
                                 </Heading>
                                 <VStack spacing={3} align="stretch">
-                                    {leaderboardRows.map((user) => (
+                                    {[
+                                        { rank: 1, name: 'CodeMaster', score: '2,450 pts', color: 'yellow.500', flame: 12 },
+                                        { rank: 2, name: 'AlgoNinja', score: '2,180 pts', color: 'gray.700', flame: 8 },
+                                        { rank: 3, name: 'You', score: '1,920 pts', color: 'brand.500', flame: 5, active: true },
+                                        { rank: 4, name: 'DevQueen', score: '1,750 pts', color: 'gray.700', flame: 4 },
+                                    ].map((user) => (
                                         <HStack
                                             key={user.rank}
                                             bg={user.active ? useColorModeValue('cyan.50', 'rgba(34, 211, 238, 0.1)') : useColorModeValue('white', 'gray.800')}
@@ -267,10 +264,10 @@ const Arena = () => {
                                             </Box>
                                             <Box flex={1} ml={1}>
                                                 <Text fontSize="sm" fontWeight="semibold" color={user.active ? 'brand.500' : useColorModeValue('gray.900', 'gray.100')}>
-                                                    {t(user.nameKey)}
+                                                    {user.name}
                                                 </Text>
                                                 <Text fontSize="xs" fontWeight="medium" color={useColorModeValue('gray.500', 'gray.400')}>
-                                                    {t('landing.arena.scorePts', { score: user.score })}
+                                                    {user.score}
                                                 </Text>
                                             </Box>
                                             <Badge colorScheme="green" variant="subtle" borderRadius="full" px={2} py={0.5}>

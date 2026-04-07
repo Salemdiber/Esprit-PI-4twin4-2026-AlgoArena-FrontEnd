@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Box, Flex, Text, VStack } from '@chakra-ui/react';
 import { TOTAL_SECONDS } from '../data/speedChallengeProblems';
 
@@ -19,7 +18,6 @@ const fmt = (totalSecs) => {
  *   isExpired    – force red state
  */
 const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired, disableCopyPaste = false, disableTabSwitch = false }) => {
-    const { t } = useTranslation();
     const ratio = secondsLeft / TOTAL_SECONDS;
     const isWarning = ratio <= 0.33 && !isExpired;
     const isDanger = ratio <= 0.1 || isExpired;
@@ -136,7 +134,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                 </Box>
                 <VStack spacing={0} align="flex-start">
                     <Text fontSize="8px" fontFamily="mono" color="gray.600" letterSpacing="0.1em" lineHeight={1} textTransform="uppercase">
-                        {t('speedChallenge.elapsed')}
+                        elapsed
                     </Text>
                     <Text
                         fontFamily="mono"
@@ -183,7 +181,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
 
                 <VStack spacing={0} align="flex-start">
                     <Text fontSize="8px" fontFamily="mono" color={timerColor} letterSpacing="0.1em" lineHeight={1} textTransform="uppercase" opacity={0.75}>
-                        {t('speedChallenge.remaining')}
+                        remaining
                     </Text>
                     <Text
                         fontFamily="mono"
@@ -249,7 +247,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
 
                 <VStack spacing={0} align="flex-start">
                     <Text fontSize={{ base: '12px', md: '12px' }} fontFamily="mono" color={timerColor} letterSpacing="0.08em" textTransform="uppercase" opacity={0.9}>
-                        {t('speedChallenge.remaining')}
+                        remaining
                     </Text>
                     <Text
                         fontFamily="mono"
@@ -261,7 +259,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                         {isExpired ? '00:00' : fmt(secondsLeft)}
                     </Text>
                     <Text fontSize={{ base: '11px', md: '12px' }} fontFamily="mono" color="gray.300">
-                        {t('speedChallenge.elapsedLabel')} {fmt(elapsedSeconds)}
+                        elapsed: {fmt(elapsedSeconds)}
                     </Text>
                 </VStack>
 
@@ -290,8 +288,8 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                     textAlign="center"
                 >
                     <VStack spacing={3}>
-                        <Text fontSize="lg" fontWeight="bold">{t('speedChallenge.tabHiddenTitle')}</Text>
-                        <Text fontSize="md">{t('speedChallenge.tabHiddenDesc')}</Text>
+                        <Text fontSize="lg" fontWeight="bold">Vous avez quitté l'onglet</Text>
+                        <Text fontSize="md">Le challenge est suspendu tant que vous n'êtes pas revenu.</Text>
                     </VStack>
                 </Box>
             )}

@@ -24,37 +24,28 @@ import {
     MenuDivider,
     Text,
     Tooltip,
-    Badge,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { HamburgerIcon } from '@chakra-ui/icons';
-import { MessageCircle } from 'lucide-react';
-import { LifeBuoy } from 'lucide-react';
 import Logo from '../assets/logo_algoarena.png';
 import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
-import LanguageSwitcher from './LanguageSwitcher';
-import { useChat } from '../features/chat';
-import { useSupport } from '../features/support';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
-    BRONZE: { color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
-    SILVER: { color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
-    GOLD: { color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
-    PLATINUM: { color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
-    DIAMOND: { color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
-    RUBY: { color: '#E0115F', bg: 'rgba(224,17,95,0.12)', border: 'rgba(224,17,95,0.3)' },
-    EMERALD: { color: '#50C878', bg: 'rgba(80,200,120,0.12)', border: 'rgba(80,200,120,0.3)' },
-    SAPPHIRE: { color: '#0F52BA', bg: 'rgba(15,82,186,0.12)', border: 'rgba(15,82,186,0.3)' },
-    OBSIDIAN: { color: '#3D3635', bg: 'rgba(61,54,53,0.18)', border: 'rgba(61,54,53,0.35)' },
-    'ALGOARENA CHAMPION': { color: '#D4AF37', bg: 'rgba(212,175,55,0.18)', border: 'rgba(212,175,55,0.35)' },
+    BRONZE: { title: 'Novice', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
+    SILVER: { title: 'Apprentice', color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
+    GOLD: { title: 'Coder', color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
+    PLATINUM: { title: 'Developer', color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
+    DIAMOND: { title: 'Engineer', color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
+    RUBY: { title: 'Architect', color: '#E0115F', bg: 'rgba(224,17,95,0.12)', border: 'rgba(224,17,95,0.3)' },
+    EMERALD: { title: 'Master', color: '#50C878', bg: 'rgba(80,200,120,0.12)', border: 'rgba(80,200,120,0.3)' },
+    SAPPHIRE: { title: 'Grandmaster', color: '#0F52BA', bg: 'rgba(15,82,186,0.12)', border: 'rgba(15,82,186,0.3)' },
+    OBSIDIAN: { title: 'Legend', color: '#3D3635', bg: 'rgba(61,54,53,0.18)', border: 'rgba(61,54,53,0.35)' },
+    'ALGOARENA CHAMPION': { title: 'Champion', color: '#D4AF37', bg: 'rgba(212,175,55,0.18)', border: 'rgba(212,175,55,0.35)' },
 };
-
-const rankI18nKey = (rank) => String(rank || '').toUpperCase().replace(/\s+/g, '_');
 
 const fmtXp = (xp) => {
     if (xp === null || xp === undefined) return null;
@@ -63,25 +54,13 @@ const fmtXp = (xp) => {
 
 /** Compact rank + XP badge displayed in the navbar */
 const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
-    const { t } = useTranslation();
     const key = String(rank || "").toUpperCase();
     const meta = RANK_META[key];
     if (!meta) return null;
 
-    const rk = rankI18nKey(key);
-    const title = rankDetails?.title || t(`rankTitles.${rk}`);
+    const title = rankDetails?.title || meta.title;
     const nextXp = nextRank?.xpRequired ?? null;
-    const xpPart = nextXp ? `${xp ?? 0} / ${nextXp}` : `${xp ?? 0}`;
-    const nextPart = nextRank
-        ? t('header.rankTooltipNext', { name: nextRank.name, title: nextRank.title })
-        : t('header.rankTooltipNextMax');
-    const tooltipLabel = t('header.rankTooltip', {
-        rank: key,
-        title,
-        xpPart,
-        progress: Number(progressPercent || 0),
-        nextPart,
-    });
+    const tooltipLabel = `Rank: ${key} - ${title} | XP: ${nextXp ? `${xp ?? 0} / ${nextXp}` : `${xp ?? 0}`} (${Number(progressPercent || 0)}%)${nextRank ? ` | Next rank: ${nextRank.name} - ${nextRank.title}` : " | Next rank: Max"}`;
 
     return (
         <Tooltip
@@ -125,7 +104,7 @@ const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
                     <>
                         <Box w="1px" h="10px" bg={meta.border} display={{ base: "none", lg: "block" }} />
                         <Text fontSize="10px" fontFamily="mono" color={meta.color} opacity={0.85} display={{ base: "none", lg: "block" }}>
-                            {nextXp ? t('header.xpSlash', { current: fmtXp(xp), next: fmtXp(nextXp) }) : t('header.xpOnly', { xp: fmtXp(xp) })}
+                            {nextXp ? `${fmtXp(xp)} / ${fmtXp(nextXp)} XP` : `${fmtXp(xp)} XP`}
                         </Text>
                     </>
                 )}
@@ -169,6 +148,15 @@ const LogoutIcon = (props) => (
     </Icon>
 );
 
+const navItems = [
+    { label: 'Home', to: '/' },
+    { label: 'Battles', to: '/battles' },
+    { label: 'Challenges', to: '/challenges' },
+    { label: 'Leaderboard', to: '/leaderboard' },
+    { label: 'Community', to: '/#community' },
+    { label: 'Dashboard', to: '/admin' },
+];
+
 const Header = () => {
     const [headerSpotlight, setHeaderSpotlight] = useState({ left: 0 });
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -179,25 +167,11 @@ const Header = () => {
     } = useDisclosure();
     const location = useLocation();
     const navigate = useNavigate();
-    const { t } = useTranslation();
     const { currentUser, isLoggedIn, logout } = useAuth();
-    const { toggleChat, unreadCount, isChatOpen } = useChat();
-    const { openHub } = useSupport();
 
-    const navItems = useMemo(
-        () => [
-            { label: t('navigation.home'), to: '/' },
-            { label: t('navigation.battles'), to: '/battles' },
-            { label: t('navigation.challenges'), to: '/challenges' },
-            { label: t('navigation.leaderboard'), to: '/leaderboard' },
-            { label: t('navigation.community'), to: '/#community' },
-            { label: t('navigation.dashboard'), to: '/admin' },
-        ],
-        [t],
-    );
-
+    // Filter out Dashboard for Player role or when not authenticated
     const filteredNavItems = navItems.filter(
-        (item) => !(item.to === '/admin' && (!isLoggedIn || currentUser?.role === 'Player')),
+        item => !(item.label === 'Dashboard' && (!isLoggedIn || currentUser?.role === 'Player'))
     );
 
     const handleMouseMove = (e) => {
@@ -254,7 +228,7 @@ const Header = () => {
                 <Flex h={16} alignItems="center" justifyContent="space-between">
                     {/* Logo */}
                     <Box display="flex" alignItems="center">
-                        <Image src={Logo} alt={t('header.logoAlt')} h="60px" objectFit="contain" />
+                        <Image src={Logo} alt="AlgoArena Logo" h="60px" objectFit="contain" />
                     </Box>
 
                     {/* Desktop Navigation */}
@@ -293,7 +267,6 @@ const Header = () => {
                     <HStack spacing={3}>
 
                         {/* Theme Switcher */}
-                        <LanguageSwitcher size="sm" compact />
                         <ThemeSwitcher size="md" />
 
                         {!isLoggedIn ? (
@@ -306,7 +279,7 @@ const Header = () => {
                                     variant="ghost"
                                     size="md"
                                 >
-                                    {t('header.login')}
+                                    Login
                                 </Button>
                                 <Button
                                     as={RouterLink}
@@ -316,47 +289,12 @@ const Header = () => {
                                     boxShadow="custom"
                                     display={{ base: 'none', sm: 'inline-flex' }}
                                 >
-                                    {t('header.createAccount')}
+                                    Create Account
                                 </Button>
                             </>
                         ) : (
                             /* ─── Logged IN: show rank badge + username + avatar dropdown ─── */
                             <HStack spacing={2} display={{ base: 'none', sm: 'flex' }}>
-                                <Tooltip label={t('support.title')} hasArrow placement="bottom">
-                                    <IconButton
-                                        aria-label={t('support.title')}
-                                        variant="ghost"
-                                        size="sm"
-                                        icon={<LifeBuoy size={16} />}
-                                        onClick={openHub}
-                                        color="var(--color-text-secondary)"
-                                    />
-                                </Tooltip>
-                                <Box position="relative">
-                                    <Tooltip label={t('chat.title')} hasArrow placement="bottom">
-                                        <IconButton
-                                            aria-label={t('chat.title')}
-                                            variant="ghost"
-                                            size="sm"
-                                            icon={<MessageCircle size={16} />}
-                                            onClick={toggleChat}
-                                            color={isChatOpen ? 'brand.400' : 'var(--color-text-secondary)'}
-                                        />
-                                    </Tooltip>
-                                    {!isChatOpen && unreadCount > 0 && (
-                                        <Badge
-                                            colorScheme="cyan"
-                                            position="absolute"
-                                            top="-1"
-                                            right="-1"
-                                            borderRadius="full"
-                                            px={1.5}
-                                            fontSize="10px"
-                                        >
-                                            {unreadCount > 10 ? '10+' : unreadCount}
-                                        </Badge>
-                                    )}
-                                </Box>
                                 {/* Rank + XP badge */}
                                 <RankBadge
                                     rank={currentUser?.rank}
@@ -378,7 +316,7 @@ const Header = () => {
                                 <Menu placement="bottom-end" isLazy>
                                     <MenuButton
                                         as={IconButton}
-                                        aria-label={t('header.userMenu')}
+                                        aria-label="User menu"
                                         variant="unstyled"
                                         display="flex"
                                         alignItems="center"
@@ -421,13 +359,11 @@ const Header = () => {
                                                         {currentUser.rank?.toUpperCase()}
                                                     </Text>
                                                     <Text fontSize="xs" color={RANK_META[currentUser.rank?.toUpperCase()]?.color || 'var(--color-text-muted)'}>
-                                                        {currentUser?.rankDetails?.title || t(`rankTitles.${rankI18nKey(currentUser.rank)}`)}
+                                                        {currentUser?.rankDetails?.title || RANK_META[currentUser.rank?.toUpperCase()]?.title}
                                                     </Text>
                                                     <Box w="1px" h="10px" bg="var(--color-border)" />
                                                     <Text fontSize="xs" fontFamily="mono" color="yellow.400">
-                                                        {currentUser?.nextRank?.xpRequired
-                                                            ? t('header.xpSlash', { current: fmtXp(currentUser?.xp) ?? '0', next: fmtXp(currentUser?.nextRank?.xpRequired) })
-                                                            : t('header.xpOnly', { xp: fmtXp(currentUser?.xp) ?? '0' })}
+                                                        {currentUser?.nextRank?.xpRequired ? `${fmtXp(currentUser?.xp) ?? '0'} / ${fmtXp(currentUser?.nextRank?.xpRequired)} XP` : `${fmtXp(currentUser?.xp) ?? '0'} XP`}
                                                     </Text>
                                                 </HStack>
                                             )}
@@ -443,7 +379,7 @@ const Header = () => {
                                             mx={2}
                                             onClick={() => navigate('/profile')}
                                         >
-                                            {t('header.viewProfile')}
+                                            View Profile
                                         </MenuItem>
                                         {/* <MenuItem
                                             bg="transparent"
@@ -471,7 +407,7 @@ const Header = () => {
                                                 navigate('/');
                                             }}
                                         >
-                                            {t('header.logout')}
+                                            Logout
                                         </MenuItem>
                                     </MenuList>
                                 </Menu>
@@ -496,7 +432,7 @@ const Header = () => {
 
                         {/* Hamburger – mobile only */}
                         <IconButton
-                            aria-label={t('header.openMenu')}
+                            aria-label="Open menu"
                             icon={<HamburgerIcon />}
                             variant="ghost"
                             color="var(--color-text-secondary)"
@@ -556,7 +492,7 @@ const Header = () => {
                                     gap={3}
                                 >
                                     <UserIcon w={5} h={5} />
-                                    {t('header.myProfile')}
+                                    My Profile
                                 </Link>
                             )}
 
@@ -578,7 +514,7 @@ const Header = () => {
                                 textAlign="left"
                             >
                                 <AccessibilityIcon w={5} h={5} />
-                                {t('header.accessibility')}
+                                Accessibility
                             </Box>
 
                             {/* Mobile CTA – conditional */}
@@ -594,7 +530,7 @@ const Header = () => {
                                                 w="full"
                                                 onClick={onClose}
                                             >
-                                                {t('header.login')}
+                                                Login
                                             </Button>
                                             <Button
                                                 as={RouterLink}
@@ -604,7 +540,7 @@ const Header = () => {
                                                 w="full"
                                                 onClick={onClose}
                                             >
-                                                {t('header.createAccount')}
+                                                Create Account
                                             </Button>
                                         </>
                                     ) : (
@@ -623,7 +559,7 @@ const Header = () => {
                                                 navigate('/');
                                             }}
                                         >
-                                            {t('header.logout')}
+                                            Logout
                                         </Button>
                                     )}
                                 </VStack>

@@ -3,7 +3,6 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import {
     Box,
     Flex,
@@ -64,7 +63,6 @@ const AUTOSAVE_DEBOUNCE_MS = 5000;
 const XP_REDUCTION_THRESHOLD_SECONDS = 3600;
 
 const ChallengePlayPage = () => {
-    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
@@ -187,8 +185,8 @@ const ChallengePlayPage = () => {
             if (started?.resumed && !resumeToastShownRef.current) {
                 resumeToastShownRef.current = true;
                 toast({
-                    title: t('challengePage.welcomeBack'),
-                    description: t('challengePage.progressSaved'),
+                    title: 'Welcome back!',
+                    description: 'Your progress has been saved. Pick up where you left off!',
                     status: 'success',
                     duration: 5000,
                     isClosable: true,
@@ -423,8 +421,8 @@ const ChallengePlayPage = () => {
         lastLockedToastRef.current = now;
         if (isChallengeSolved) return;
         toast({
-            title: t('challengePage.timerPaused'),
-            description: t('challengePage.resumeToContinue'),
+            title: 'Timer is paused',
+            description: 'Please resume to continue working on your solution.',
             status: 'warning',
             duration: 2200,
             isClosable: true,
@@ -433,8 +431,8 @@ const ChallengePlayPage = () => {
 
     const handlePasteBlocked = () => {
         toast({
-            title: t('challengePage.pasteDisabledTitle'),
-            description: t('challengePage.pasteDisabledDesc'),
+            title: 'Paste disabled',
+            description: 'Paste is disabled after reset. Please type your solution manually.',
             status: 'info',
             duration: 2000,
             isClosable: true,
@@ -445,21 +443,21 @@ const ChallengePlayPage = () => {
         if (saveState.status === 'saving') {
             return {
                 icon: <Spinner size="xs" color="blue.300" />,
-                label: t('challengePage.saving'),
+                label: 'Saving...',
                 color: 'blue.300',
             };
         }
         if (saveState.status === 'saved') {
             return {
                 icon: <Icon as={FiCheckCircle} color="green.300" boxSize={3.5} />,
-                label: saveState.savedAt ? t('challengePage.savedAt', { time: new Date(saveState.savedAt).toLocaleTimeString() }) : t('challengePage.saved'),
+                label: `Saved${saveState.savedAt ? ` • ${new Date(saveState.savedAt).toLocaleTimeString()}` : ''}`,
                 color: 'green.300',
             };
         }
         if (saveState.status === 'error') {
             return {
                 icon: <Icon as={FiSave} color="orange.300" boxSize={3.5} />,
-                label: t('challengePage.saveFailed'),
+                label: 'Save failed. Retrying automatically...',
                 color: 'orange.300',
             };
         }
@@ -491,13 +489,13 @@ const ChallengePlayPage = () => {
                     textAlign="center"
                 >
                     <Text fontFamily="heading" fontWeight="bold" fontSize="2xl" mb={3} color="var(--color-text-heading)">
-                        {t('challengePage.challengeAlreadyOpen')}
+                        Challenge Already Open
                     </Text>
                     <Text color="var(--color-text-secondary)" mb={6}>
-                        {t('challengePage.challengeAlreadyOpenDesc')}
+                        This challenge is already open in another tab. Please return to your existing session to continue.
                     </Text>
                     <Button colorScheme="cyan" onClick={useThisTabInstead}>
-                        {t('challengePage.useThisTab')}
+                        Use This Tab Instead
                     </Button>
                 </Box>
             </Box>
@@ -515,11 +513,11 @@ const ChallengePlayPage = () => {
             >
                 <Box textAlign="center">
                     <Text fontSize="2xl" fontWeight="bold" color={notFoundHeadingColor} mb={4}>
-                        {t('challengePage.challengeNotFound')}
+                        Challenge Not Found
                     </Text>
-                    <Text color={notFoundTextColor} mb={6}>{t('challengePage.challengeNotFoundDesc')}</Text>
+                    <Text color={notFoundTextColor} mb={6}>The requested challenge doesn't exist.</Text>
                     <Button variant="primary" onClick={() => navigate('/challenges')}>
-                        {t('challengePage.backToChallenges')}
+                        Back to Challenges
                     </Button>
                 </Box>
             </Box>
@@ -557,7 +555,7 @@ const ChallengePlayPage = () => {
                             leftIcon={<MenuIcon w={4} h={4} />}
                             onClick={onOpen}
                         >
-                            {t('challengePage.viewProblem')}
+                            View Problem
                         </Button>
                     </Box>
                 )}
@@ -619,13 +617,14 @@ const ChallengePlayPage = () => {
                             >
                                 <AlertIcon as={FiClock} color="orange.300" />
                                 <Box flex="1">
-                                    <AlertTitle color="orange.100" fontSize="sm">{t('challengePage.xpUpdate')}</AlertTitle>
+                                    <AlertTitle color="orange.100" fontSize="sm">XP update</AlertTitle>
                                     <AlertDescription color="orange.200" fontSize="sm">
-                                        {t('challengePage.xpReducedAlert', { reduced: Math.floor(Number(selectedChallenge?.xpReward || 0) * 0.5), full: Number(selectedChallenge?.xpReward || 0) })}
+                                        You&apos;ve spent over 1 hour on this challenge. XP reward is now 50%
+                                        ({Math.floor(Number(selectedChallenge?.xpReward || 0) * 0.5)} XP instead of {Number(selectedChallenge?.xpReward || 0)} XP).
                                     </AlertDescription>
                                 </Box>
                                 <IconButton
-                                    aria-label={t('challengePage.dismissXpInfo')}
+                                    aria-label="Dismiss XP info"
                                     icon={<FiX />}
                                     size="sm"
                                     variant="ghost"
@@ -638,7 +637,7 @@ const ChallengePlayPage = () => {
                         {!modeAwareOverHour && !isChallengeSolved && showFullXpHint && (
                             <Box px={3} py={2} bg="rgba(34, 211, 238, 0.1)" borderBottom="1px solid rgba(34, 211, 238, 0.24)">
                                 <Text fontSize="sm" color="cyan.200">
-                                    {t('challengePage.fullXpAvailable', { minutes: fullXpMinutesRemaining })}
+                                    Full XP available for {fullXpMinutesRemaining} more minute{fullXpMinutesRemaining === 1 ? '' : 's'}.
                                 </Text>
                             </Box>
                         )}
@@ -684,22 +683,22 @@ const ChallengePlayPage = () => {
                     <ModalHeader>
                         <HStack spacing={2}>
                             <Icon as={FiBookmark} color="amber.300" boxSize={6} />
-                            <Text>{t('challengePage.saveAndLeave')}</Text>
+                            <Text>Save &amp; Leave?</Text>
                         </HStack>
                     </ModalHeader>
                     <ModalBody color="var(--color-text-secondary)">
                         <VStack align="stretch" spacing={4}>
                             <Text>
-                                {t('challengePage.progressWillBeSaved')}
+                                Your progress will be saved automatically. You can return anytime to complete this challenge.
                             </Text>
                             <Flex align="center" gap={2.5} color="var(--color-text-muted)">
                                 <Icon as={FiClock} color="orange.300" />
-                                <Text>{t('challengePage.workingFor', { minutes: Math.max(1, Math.floor(elapsedSeconds / 60)) })}</Text>
+                                <Text>You&apos;ve been working on this for {Math.max(1, Math.floor(elapsedSeconds / 60))} minute(s).</Text>
                             </Flex>
                             <Alert status="info" variant="subtle" borderRadius="md">
                                 <AlertIcon />
                                 <Text fontSize="sm">
-                                    {t('challengePage.xpReductionNote')}
+                                    Note: If you take longer than 1 hour total to complete this challenge, the XP reward will be reduced to 50%.
                                 </Text>
                             </Alert>
                         </VStack>
@@ -707,14 +706,14 @@ const ChallengePlayPage = () => {
                     <ModalFooter>
                         <Stack direction={{ base: 'column', md: 'row' }} spacing={3} w="full">
                             <Button colorScheme="blue" leftIcon={<Icon as={FiPlay} />} px={6} py={3} onClick={leaveModal.onClose} w={{ base: 'full', md: 'auto' }}>
-                                {t('challengePage.continueCoding')}
+                                Continue Coding
                             </Button>
                             <Button variant="outline" colorScheme="orange" leftIcon={<Icon as={FiBookmark} />} px={6} py={3} onClick={handleLeaveConfirm} w={{ base: 'full', md: 'auto' }}>
-                                {t('challengePage.saveAndLeave')}
+                                Save &amp; Leave
                             </Button>
                             {code.trim().length > 0 && (
                                 <Button variant="ghost" colorScheme="green" leftIcon={<Icon as={FiCheckCircle} />} px={6} py={3} onClick={handleSubmitFromModal} w={{ base: 'full', md: 'auto' }}>
-                                    {t('challengePage.submitSolution')}
+                                    Submit Solution
                                 </Button>
                             )}
                         </Stack>
@@ -728,19 +727,19 @@ const ChallengePlayPage = () => {
                     <ModalHeader>
                         <VStack spacing={2}>
                             <Icon as={FiStar} boxSize={10} color={rankUpgradeEvent?.newRank?.badgeColor || '#facc15'} />
-                            <Text fontSize="3xl" fontWeight="black">{t('challengePage.rankUp')}</Text>
+                            <Text fontSize="3xl" fontWeight="black">RANK UP!</Text>
                             <Text fontSize="md" color="var(--color-text-secondary)">
-                                {t('challengePage.youAreNow', { rank: rankUpgradeEvent?.newRank?.name || '', title: rankUpgradeEvent?.newRank?.title || '' })}
+                                You are now {rankUpgradeEvent?.newRank?.name || ''} - {rankUpgradeEvent?.newRank?.title || ''}!
                             </Text>
                         </VStack>
                     </ModalHeader>
                     <ModalBody>
                         <Text color="var(--color-text-muted)">
-                            {t('challengePage.rankTransition', { prevRank: rankUpgradeEvent?.previousRank?.name || t('challengePage.previous'), prevTitle: rankUpgradeEvent?.previousRank?.title || '', newRank: rankUpgradeEvent?.newRank?.name || t('challengePage.new'), newTitle: rankUpgradeEvent?.newRank?.title || '' })}
+                            {rankUpgradeEvent?.previousRank?.name || 'Previous'} - {rankUpgradeEvent?.previousRank?.title || ''} {'->'} {rankUpgradeEvent?.newRank?.name || 'New'} - {rankUpgradeEvent?.newRank?.title || ''}
                         </Text>
                     </ModalBody>
                     <ModalFooter justifyContent="center">
-                        <Button colorScheme="yellow" onClick={dismissRankUpgrade}>{t('challengePage.continue')}</Button>
+                        <Button colorScheme="yellow" onClick={dismissRankUpgrade}>Continue</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

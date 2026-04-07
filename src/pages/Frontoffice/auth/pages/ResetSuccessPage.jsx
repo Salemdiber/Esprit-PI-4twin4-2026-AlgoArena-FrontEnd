@@ -5,7 +5,6 @@
  * Auto-redirects to login after 5 seconds.
  */
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Text, Icon, VStack } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
@@ -25,7 +24,6 @@ const CheckCircleIcon = (props) => (
 );
 
 const ResetSuccessPage = () => {
-    const { t } = useTranslation();
     const navigate = useNavigate();
     const [countdown, setCountdown] = useState(5);
 
@@ -55,13 +53,13 @@ const ResetSuccessPage = () => {
             </Box>
 
             <AuthHeader
-                title={t('auth.resetSuccess.title')}
-                subtitle={t('auth.resetSuccess.subtitle')}
+                title="Password Updated Successfully"
+                subtitle="Your password has been changed. You can now log in with your new password."
             />
 
             {/* Auto-redirect notice */}
             <Text textAlign="center" color="gray.500" fontSize="xs" mb={6}>
-                {t('auth.resetSuccess.redirecting', { countdown })}
+                Redirecting to login in {countdown}s...
             </Text>
 
             {/* Manual button */}
@@ -82,7 +80,7 @@ const ResetSuccessPage = () => {
                 transition="all 0.2s"
                 onClick={() => navigate('/signin')}
             >
-                {t('auth.resetSuccess.goToLogin')}
+                Go to Login
             </Button>
         </AuthCard>
     );

@@ -17,7 +17,6 @@ import {
     Tooltip,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 import { FiCalendar, FiCheckCircle, FiStar, FiZap } from 'react-icons/fi';
 import { FaTrophy } from 'react-icons/fa';
 import { useChallengeContext } from '../context/ChallengeContext';
@@ -130,7 +129,7 @@ const getStreakTheme = (streak) => {
     if (streak >= 5) return { accent: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', pulse: false };
     return { accent: '#fb923c', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.35)', pulse: false };
 };
-const StreakPanel = ({ streakDetails, t }) => {
+const StreakPanel = ({ streakDetails }) => {
     const currentStreak = Number(streakDetails?.currentStreak || 0);
     const longestStreak = Number(streakDetails?.longestStreak || 0);
     const recentActivity = Array.isArray(streakDetails?.recentActivity)
@@ -160,13 +159,13 @@ const StreakPanel = ({ streakDetails, t }) => {
                         opacity={theme.pulse && currentStreak > 3 ? 0.95 : 1}
                     />
                     <Text fontFamily='heading' fontWeight='black' color={theme.accent} fontSize='xl'>
-                        {currentStreak !== 1 ? t('challengePage.daysCount', { count: currentStreak }) : t('challengePage.dayCount', { count: currentStreak })}
+                        {currentStreak} day{currentStreak !== 1 ? 's' : ''}
                     </Text>
                 </HStack>
                 <Badge borderRadius='full' px={2.5} py={1} colorScheme='orange' variant='subtle'>
                     <HStack spacing={1}>
                         <Icon as={FiStar} boxSize={3} />
-                        <Text>{t('challengePage.streak')}</Text>
+                        <Text>Streak</Text>
                     </HStack>
                 </Badge>
             </HStack>
@@ -175,7 +174,7 @@ const StreakPanel = ({ streakDetails, t }) => {
             </Text>
             <HStack spacing={1.5} mb={1.5}>
                 {recentActivity.map((active, index) => (
-                    <Tooltip key={`${active}-${index}`} label={active ? t('challengePage.activeDay') : t('challengePage.missedDay')} hasArrow>
+                    <Tooltip key={`${active}-${index}`} label={active ? 'Active day' : 'Missed day'} hasArrow>
                         <Flex
                             w={5}
                             h={5}
@@ -194,14 +193,14 @@ const StreakPanel = ({ streakDetails, t }) => {
             <HStack spacing={1.5}>
                 <Icon as={FaTrophy} boxSize={3.5} color='yellow.300' />
                 <Text fontSize='xs' color='var(--color-text-muted)'>
-                    {longestStreak !== 1 ? t('challengePage.longestStreakPlural', { count: longestStreak }) : t('challengePage.longestStreak', { count: longestStreak })}
+                    Longest streak: {longestStreak} day{longestStreak !== 1 ? 's' : ''}
                 </Text>
             </HStack>
         </Box>
     );
 };
 
-const UnrankedBar = ({ xp, streakDetails, t }) => {
+const UnrankedBar = ({ xp, streakDetails }) => {
     const textSec = useColorModeValue('gray.500', 'gray.400');
     const textPrim = useColorModeValue('gray.800', 'gray.100');
     const mutedBg = useColorModeValue('gray.100', 'whiteAlpha.100');
@@ -227,12 +226,12 @@ const UnrankedBar = ({ xp, streakDetails, t }) => {
                 </Flex>
                 <Box>
                     <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">
-                        {t('challengePage.currentRank')}
+                        Current Rank
                     </Text>
                     <Text fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="black" color={textPrim} lineHeight="1.1">
-                        {t('challengePage.unranked')}
+                        Unranked
                     </Text>
-                    <Text fontSize="xs" color={textSec} mt={1}>{t('challengePage.earnXpToUnlock')}</Text>
+                    <Text fontSize="xs" color={textSec} mt={1}>Earn XP to unlock your first rank tier.</Text>
                 </Box>
             </Flex>
 
@@ -247,7 +246,7 @@ const UnrankedBar = ({ xp, streakDetails, t }) => {
             >
                 <Flex align="center" gap={1.5} mb={0.5}>
                     <XPIcon w={3.5} h={3.5} color="yellow.400" />
-                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">{t('challengePage.totalXp')}</Text>
+                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">Total XP</Text>
                 </Flex>
                 <Text fontFamily="heading" fontWeight="bold" fontSize="xl" color={textPrim}>
                     {(xp ?? 0).toLocaleString()}
@@ -257,7 +256,7 @@ const UnrankedBar = ({ xp, streakDetails, t }) => {
             <Box flex={1}>
                 <Flex justify="space-between" align="center" mb={2}>
                     <Text fontSize="sm" color={textSec} fontWeight="medium">
-                        {t('challengePage.progressToBronze', { xp: BRONZE_XP_TARGET.toLocaleString() })}
+                        Progress to Bronze ({BRONZE_XP_TARGET.toLocaleString()} XP)
                     </Text>
                     <Badge borderRadius="full" px={2.5} py={1} colorScheme="orange" variant="subtle">
                         {progressPercent}%
@@ -267,20 +266,19 @@ const UnrankedBar = ({ xp, streakDetails, t }) => {
                     value={animatedProgress}
                     accentStart="#d97706"
                     accentEnd="#f59e0b"
-                        label={t('challengePage.progressToBronze', { xp: BRONZE_XP_TARGET.toLocaleString() })}
+                    label="Progress to Bronze"
                 />
                 <Text fontSize="xs" color={textSec} mt={1.5}>
                     {(xp ?? 0).toLocaleString()} / {BRONZE_XP_TARGET.toLocaleString()} XP
                 </Text>
             </Box>
 
-            <StreakPanel streakDetails={streakDetails} t={t} />
+            <StreakPanel streakDetails={streakDetails} />
         </Flex>
     );
 };
 
 const UserRankStatsBar = () => {
-    const { t } = useTranslation();
     const { user, streakDetails, rankMeta, xpToNextRank, progressPercent, isLoadingStats } = useChallengeContext();
     const textSec = useColorModeValue('gray.500', 'gray.400');
     const textPrim = useColorModeValue('gray.800', 'gray.100');
@@ -288,7 +286,7 @@ const UserRankStatsBar = () => {
     const animatedProgress = useAnimatedProgress(progressPercent);
 
     if (isLoadingStats) return <RankStatsSkeleton />;
-    if (!user.rank || !rankMeta) return <UnrankedBar xp={user.xp} streakDetails={streakDetails} t={t} />;
+    if (!user.rank || !rankMeta) return <UnrankedBar xp={user.xp} streakDetails={streakDetails} />;
 
     const currentIdx = RANK_ORDER.indexOf(user.rank);
     const nextRankKey = currentIdx >= 0 && currentIdx < RANK_ORDER.length - 1
@@ -324,7 +322,7 @@ const UserRankStatsBar = () => {
                 </Flex>
                 <Box>
                     <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">
-                        {t('challengePage.currentRank')}
+                        Current Rank
                     </Text>
                     <Text fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="black" color={textPrim} lineHeight="1.1">
                         {rankMeta.label}
@@ -332,7 +330,7 @@ const UserRankStatsBar = () => {
                     <Text fontSize="sm" color={rankMeta.color || textSec} mt={1} fontWeight="medium">
                         {user?.rankDetails?.title || rankMeta.title}
                     </Text>
-                    <Badge mt={1.5} colorScheme="cyan" variant="subtle" borderRadius="full">{t('challengePage.competitiveTier')}</Badge>
+                    <Badge mt={1.5} colorScheme="cyan" variant="subtle" borderRadius="full">Competitive Tier</Badge>
                 </Box>
             </Flex>
 
@@ -347,7 +345,7 @@ const UserRankStatsBar = () => {
             >
                 <Flex align="center" gap={1.5} mb={0.5}>
                     <XPIcon w={3.5} h={3.5} color="yellow.400" />
-                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">{t('challengePage.currentXp')}</Text>
+                    <Text fontSize="xs" color={textSec} textTransform="uppercase" letterSpacing="wider">Current XP</Text>
                 </Flex>
                     <Text fontFamily="heading" fontWeight="bold" fontSize="xl" color={textPrim}>
                         {(user.totalXP ?? user.xp ?? 0).toLocaleString()}
@@ -358,7 +356,7 @@ const UserRankStatsBar = () => {
                 <Box flex={1}>
                     <Flex justify="space-between" align="center" mb={2}>
                         <Text fontSize="sm" color={textSec} fontWeight="medium">
-                            {t('challengePage.progressTo', { rank: nextRankLabel })}
+                            Progress to {nextRankLabel}
                         </Text>
                         <Badge borderRadius="full" px={2.5} py={1} colorScheme="cyan" variant="subtle">
                             {progressPercent}%
@@ -368,7 +366,7 @@ const UserRankStatsBar = () => {
                         value={animatedProgress}
                         accentStart={rankMeta.gradient[0]}
                         accentEnd={rankMeta.gradient[1]}
-                        label={t('challengePage.progressTo', { rank: nextRankLabel })}
+                        label={`Progress to ${nextRankLabel}`}
                     />
                     <Text fontSize="xs" color={textSec} mt={1.5}>
                         {(user.totalXP ?? user.xp ?? 0).toLocaleString()} / {(xpToNextRank ?? 0).toLocaleString()} XP
@@ -377,20 +375,20 @@ const UserRankStatsBar = () => {
             ) : (
                 <Box flex={1}>
                     <Flex justify="space-between" align="center" mb={2}>
-                        <Text fontSize="sm" color={textSec} fontWeight="medium">{t('challengePage.maxRankAchieved')}</Text>
+                        <Text fontSize="sm" color={textSec} fontWeight="medium">Maximum rank achieved</Text>
                         <Badge borderRadius="full" px={2.5} py={1} colorScheme="purple" variant="subtle">100%</Badge>
                     </Flex>
                     <ProgressTrack
                         value={100}
                         accentStart="#a855f7"
                         accentEnd="#7c3aed"
-                        label={t('challengePage.maxRankAchieved')}
+                        label="Maximum rank achieved"
                     />
-                    <Text fontSize="xs" color={textSec} mt={1.5}>{t('challengePage.maxRankChampion')}</Text>
+                    <Text fontSize="xs" color={textSec} mt={1.5}>Max Rank — Champion</Text>
                 </Box>
             )}
 
-            <StreakPanel streakDetails={streakDetails} t={t} />
+            <StreakPanel streakDetails={streakDetails} />
         </Flex>
     );
 };

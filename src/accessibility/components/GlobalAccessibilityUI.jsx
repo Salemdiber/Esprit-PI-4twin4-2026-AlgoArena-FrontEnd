@@ -2,7 +2,6 @@ import React from 'react';
 import { IconButton, useDisclosure, Icon } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import AccessibilityDrawer from './AccessibilityDrawer';
 
 const AccessibilityIcon = (props) => (
@@ -15,7 +14,6 @@ const AccessibilityIcon = (props) => (
 );
 
 const GlobalAccessibilityUI = () => {
-    const { t } = useTranslation();
     const { isOpen, onOpen, onClose } = useDisclosure();
 
 
@@ -43,7 +41,7 @@ const GlobalAccessibilityUI = () => {
                     width={{ base: '50px', md: '60px' }}
                     height={{ base: '50px', md: '60px' }}
                     icon={<AccessibilityIcon w={8} h={8} />}
-                    aria-label={t('accessibility.accessibilityOptions')}
+                    aria-label="Accessibility Options"
                     colorScheme="cyan"
                     bg="#22d3ee"
                     color="#0f172a"

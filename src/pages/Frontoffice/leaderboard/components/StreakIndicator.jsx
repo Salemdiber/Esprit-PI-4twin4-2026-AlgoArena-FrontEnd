@@ -8,7 +8,6 @@
 import React from 'react';
 import { Flex, Icon, Text } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 
 const MotionFlex = motion.create(Flex);
 
@@ -35,7 +34,6 @@ const flickerVariants = {
 };
 
 const StreakIndicator = ({ streak = 0, variant = 'full' }) => {
-    const { t } = useTranslation();
     if (streak <= 0) return null;
 
     const isHot = streak >= 10;
@@ -83,7 +81,7 @@ const StreakIndicator = ({ streak = 0, variant = 'full' }) => {
                 textTransform="uppercase"
                 letterSpacing="wider"
             >
-                {streak} {t('leaderboardPage.winStreak')}
+                {streak} Win Streak
             </Text>
         </MotionFlex>
     );

@@ -11,12 +11,10 @@
 import React from 'react';
 import { Box, Flex, Text } from '@chakra-ui/react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 
 const MotionBox = motion.create(Box);
 
 const PasswordStrengthMeter = ({ score, label, color, glowColor, percent }) => {
-    const { t } = useTranslation();
     const prefersReducedMotion = useReducedMotion();
 
     if (score === 0) return null;
@@ -25,7 +23,7 @@ const PasswordStrengthMeter = ({ score, label, color, glowColor, percent }) => {
         <Box mt={3}>
             <Flex justify="space-between" mb={2}>
                 <Text fontSize="xs" color="gray.400">
-                    {t('profilePage.passwordStrength')}
+                    Password Strength
                 </Text>
                 <Text fontSize="xs" fontWeight="600" color={color}>
                     {label}

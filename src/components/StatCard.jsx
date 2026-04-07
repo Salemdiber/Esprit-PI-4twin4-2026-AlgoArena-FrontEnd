@@ -1,8 +1,6 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
 const StatCard = ({ title, value, label, trend, trendUp, icon, color = 'cyan', isLive = false }) => {
-    const { t } = useTranslation();
     const colors = {
         cyan: {
             text: 'text-cyan-400',
@@ -63,14 +61,14 @@ const StatCard = ({ title, value, label, trend, trendUp, icon, color = 'cyan', i
                 {isLive ? (
                     <>
                         <span className="status-dot status-online" />
-                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{t('statCard.realTime')}</span>
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Real-time</span>
                     </>
                 ) : trend ? (
                     <>
                         <span className={`text-xs font-medium ${trendUp ? current.trend : 'text-red-400'}`}>
                             {trend}
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{t('statCard.vsLastMonth')}</span>
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>vs last month</span>
                     </>
                 ) : null}
             </div>

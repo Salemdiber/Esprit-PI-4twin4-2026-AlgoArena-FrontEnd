@@ -7,20 +7,19 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { ChallengeUserStatus } from '../data/mockChallenges';
-import i18n from '../../../../i18n';
+
+const SORT_OPTIONS = [
+    { value: 'recommended', label: 'Recommended' },
+    { value: 'newest', label: 'Newest' },
+    { value: 'difficulty', label: 'Difficulty' },
+    { value: 'acceptance', label: 'Acceptance Rate' },
+    { value: 'xp', label: 'XP Reward' },
+    { value: 'popularity', label: 'Popularity' },
+];
 
 const DIFFICULTY_ORDER = { EASY: 0, Easy: 0, MEDIUM: 1, Medium: 1, HARD: 2, Hard: 2, EXPERT: 3, Expert: 3 };
 
 export default function useChallenges() {
-    const SORT_OPTIONS = [
-        { value: 'recommended', label: i18n.t('challengePage.sortRecommended') },
-        { value: 'newest', label: i18n.t('challengePage.sortNewest') },
-        { value: 'difficulty', label: i18n.t('challengePage.sortDifficulty') },
-        { value: 'acceptance', label: i18n.t('challengePage.sortAcceptance') },
-        { value: 'xp', label: i18n.t('challengePage.sortXp') },
-        { value: 'popularity', label: i18n.t('challengePage.sortPopularity') },
-    ];
-
     const {
         challenges,
         userProgress,

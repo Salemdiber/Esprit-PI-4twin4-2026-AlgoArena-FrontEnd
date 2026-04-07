@@ -6,13 +6,11 @@
  * Step 3 → Confirm & create
  */
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
 import { BattleMode, Difficulty } from '../types/battle.types';
 import { settingsService } from '../../../../services/settingsService';
 
 const CreateBattleModal = () => {
-    const { t } = useTranslation();
     const {
         createModal,
         closeCreateModal,
@@ -45,7 +43,7 @@ const CreateBattleModal = () => {
         return Array.from(set);
     }, [challenges]);
 
-    const assignedChallenges = React.useMemo(() => {
+    const availableChallenges = React.useMemo(() => {
         const pool = challengeType
             ? challenges.filter((challenge) => (
                 challenge?.type === challengeType
@@ -53,14 +51,20 @@ const CreateBattleModal = () => {
                 || challenge?.difficulty === challengeType
             ))
             : challenges;
+        return Array.isArray(pool) ? pool : [];
+    }, [challengeType, challenges]);
 
-        if (!pool.length) return [];
-        return Array.from({ length: totalRounds }, (_, idx) => pool[idx % pool.length]);
-    }, [challengeType, challenges, totalRounds]);
+    const assignedChallenges = React.useMemo(() => {
+        if (!availableChallenges.length) return [];
+        // Do NOT cycle challenges: if not enough, surface it as insufficient.
+        return availableChallenges.slice(0, Math.max(0, Number(totalRounds || 0)));
+    }, [availableChallenges, totalRounds]);
+
+    const hasEnoughChallenges = availableChallenges.length >= Number(totalRounds || 0);
 
     const canGoNext = () => {
         if (step === 1) return mode !== null;
-        if (step === 2) return totalRounds >= 1 && totalRounds <= 10 && assignedChallenges.length > 0;
+        if (step === 2) return totalRounds >= 1 && totalRounds <= 10 && assignedChallenges.length === totalRounds && hasEnoughChallenges;
         return true;
     };
 
@@ -79,6 +83,7 @@ const CreateBattleModal = () => {
         confirmCreateBattle();
     };
 
+    // Step circle helper
     const stepCircleClass = (s) => {
         if (s < step) return 'battle-step-circle battle-step-circle--done';
         if (s === step) return 'battle-step-circle battle-step-circle--active';
@@ -88,14 +93,14 @@ const CreateBattleModal = () => {
     const stepLineClass = (s) =>
         s < step ? 'battle-step-line battle-step-line--active' : 'battle-step-line';
 
-    const stepLabels = [t('battles.mode'), t('battles.configure'), t('battles.confirm')];
+    const stepLabels = ['Mode', 'Configure', 'Confirm'];
 
     return (
         <div className="battle-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) closeCreateModal(); }}>
             <div className="battle-modal">
                 {/* Header */}
                 <div className="battle-flex-between battle-mb-lg">
-                    <h2 className="battle-text-2xl battle-font-bold">{t('battles.createNewBattle')}</h2>
+                    <h2 className="battle-text-2xl battle-font-bold">Create New Battle</h2>
                     <button
                         onClick={closeCreateModal}
                         style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '1.5rem' }}
@@ -138,6 +143,8 @@ const CreateBattleModal = () => {
                         challengeType={challengeType}
                         typeOptions={typeOptions}
                         assignedChallenges={assignedChallenges}
+                        availableCount={availableChallenges.length}
+                        hasEnoughChallenges={hasEnoughChallenges}
                         setCreateConfig={setCreateConfig}
                     />
                 )}
@@ -155,9 +162,9 @@ const CreateBattleModal = () => {
                 {/* Footer Actions */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', marginTop: '1.5rem' }}>
                     {step > 1 ? (
-                        <button className="battle-btn battle-btn--secondary" onClick={handleBack}>{t('battles.back')}</button>
+                        <button className="battle-btn battle-btn--secondary" onClick={handleBack}>← Back</button>
                     ) : (
-                        <button className="battle-btn battle-btn--secondary" onClick={closeCreateModal}>{t('battles.cancel')}</button>
+                        <button className="battle-btn battle-btn--secondary" onClick={closeCreateModal}>Cancel</button>
                     )}
 
                     {step < 3 ? (
@@ -167,11 +174,11 @@ const CreateBattleModal = () => {
                             disabled={!canGoNext()}
                             style={{ opacity: canGoNext() ? 1 : 0.5 }}
                         >
-                            {t('battles.nextStep')}
+                            Next Step →
                         </button>
                     ) : (
                         <button className="battle-btn battle-btn--primary" onClick={handleConfirm}>
-                            {t('battles.createBattleAction')}
+                            ⚔️ Create Battle
                         </button>
                     )}
                 </div>
@@ -182,54 +189,50 @@ const CreateBattleModal = () => {
 
 /* ── Step 1: Choose Mode ────────────────────────────── */
 
-const StepMode = ({ mode, setCreateMode, aiBattlesEnabled }) => {
-    const { t } = useTranslation();
+const StepMode = ({ mode, setCreateMode, aiBattlesEnabled }) => (
+    <div>
+        <h3 className="battle-text-lg battle-font-semibold battle-mb-md">Choose Battle Mode</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+            <div
+                className={`battle-mode-card ${mode === BattleMode.ONE_VS_ONE ? 'battle-mode-card--selected' : ''}`}
+                onClick={() => setCreateMode(BattleMode.ONE_VS_ONE)}
+            >
+                <div className="battle-mode-icon battle-mode-icon--pvp">👥</div>
+                <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>1vs1 Battle</h4>
+                <p className="battle-text-sm battle-text-muted">Compete against another player in real-time</p>
+            </div>
 
-    return (
-        <div>
-            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">{t('battles.chooseBattleMode')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                <div
-                    className={`battle-mode-card ${mode === BattleMode.ONE_VS_ONE ? 'battle-mode-card--selected' : ''}`}
-                    onClick={() => setCreateMode(BattleMode.ONE_VS_ONE)}
-                >
-                    <div className="battle-mode-icon battle-mode-icon--pvp">👥</div>
-                    <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>{t('battles.oneVsOneBattle')}</h4>
-                    <p className="battle-text-sm battle-text-muted">{t('battles.oneVsOneDesc')}</p>
-                </div>
-
-                <div
-                    className={`battle-mode-card ${mode === BattleMode.ONE_VS_AI ? 'battle-mode-card--selected' : ''} ${!aiBattlesEnabled ? 'battle-mode-card--disabled' : ''}`}
-                    onClick={() => aiBattlesEnabled && setCreateMode(BattleMode.ONE_VS_AI)}
-                    style={!aiBattlesEnabled ? { opacity: 0.45, cursor: 'not-allowed', position: 'relative' } : {}}
-                >
-                    <div className="battle-mode-icon battle-mode-icon--ai">AI</div>
-                    <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>{t('battles.oneVsAIBattle')}</h4>
-                    <p className="battle-text-sm battle-text-muted">
-                        {aiBattlesEnabled
-                            ? t('battles.oneVsAIDesc')
-                            : t('battles.aiBattlesDisabledByAdmin')}
-                    </p>
-                    {!aiBattlesEnabled && (
-                        <span style={{
-                            display: 'inline-block',
-                            marginTop: '0.5rem',
-                            padding: '0.2rem 0.6rem',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            borderRadius: '9999px',
-                            background: 'var(--color-error-bg)',
-                            color: 'var(--color-red-500)',
-                            border: '1px solid var(--color-red-500)',
-                        }}>{t('battles.disabled')}</span>
-                    )}
-                </div>
+            <div
+                className={`battle-mode-card ${mode === BattleMode.ONE_VS_AI ? 'battle-mode-card--selected' : ''} ${!aiBattlesEnabled ? 'battle-mode-card--disabled' : ''}`}
+                onClick={() => aiBattlesEnabled && setCreateMode(BattleMode.ONE_VS_AI)}
+                style={!aiBattlesEnabled ? { opacity: 0.45, cursor: 'not-allowed', position: 'relative' } : {}}
+            >
+                <div className="battle-mode-icon battle-mode-icon--ai">AI</div>
+                <h4 className="battle-font-bold battle-mb-sm" style={{ fontSize: '1.1rem' }}>1vsAI Battle</h4>
+                <p className="battle-text-sm battle-text-muted">
+                    {aiBattlesEnabled
+                        ? 'Challenge our AI opponent at various difficulty levels'
+                        : 'AI Battles are currently disabled by admin'}
+                </p>
+                {!aiBattlesEnabled && (
+                    <span style={{
+                        display: 'inline-block',
+                        marginTop: '0.5rem',
+                        padding: '0.2rem 0.6rem',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        borderRadius: '9999px',
+                        background: 'var(--color-error-bg)',
+                        color: 'var(--color-red-500)',
+                        border: '1px solid var(--color-red-500)',
+                    }}>Disabled</span>
+                )}
             </div>
         </div>
-    );
-};
+    </div>
+);
 
 /* ── Step 2: Configure ──────────────────────────────── */
 
@@ -240,151 +243,163 @@ const StepConfigure = ({
     challengeType,
     typeOptions,
     assignedChallenges,
+    availableCount,
+    hasEnoughChallenges,
     setCreateConfig,
-}) => {
-    const { t } = useTranslation();
-
-    return (
-        <div>
-            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">{t('battles.configureSettings')}</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* Rounds */}
-                <div>
-                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        {t('battles.numberOfRounds')}
-                    </label>
-                    <select
-                        className="battle-select"
-                        value={totalRounds}
-                        onChange={(e) => setCreateConfig({ totalRounds: parseInt(e.target.value) })}
+}) => (
+    <div>
+        <h3 className="battle-text-lg battle-font-semibold battle-mb-md">Configure Settings</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Rounds */}
+            <div>
+                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Number of Rounds
+                </label>
+                <select
+                    className="battle-select"
+                    value={totalRounds}
+                    onChange={(e) => setCreateConfig({ totalRounds: parseInt(e.target.value) })}
+                >
+                    {[1, 3, 5, 7, 10].map(n => (
+                        <option key={n} value={n}>Best of {n}</option>
+                    ))}
+                </select>
+                {!hasEnoughChallenges && (
+                    <div
+                        style={{
+                            marginTop: '0.75rem',
+                            padding: '0.75rem 0.9rem',
+                            borderRadius: '12px',
+                            border: '1px solid var(--color-red-500)',
+                            background: 'var(--color-error-bg)',
+                            color: 'var(--color-red-500)',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                        }}
                     >
-                        {[1, 3, 5, 7, 10].map(n => (
-                            <option key={n} value={n}>{t('battles.bestOf', { n })}</option>
-                        ))}
-                    </select>
-                </div>
+                        Not enough challenges for Best of {totalRounds}. Available: {availableCount}. Reduce rounds.
+                    </div>
+                )}
+            </div>
 
-                {/* Difficulty */}
-                <div>
-                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        {t('battles.difficulty')}
-                    </label>
-                    <select
-                        className="battle-select"
-                        value={difficulty}
-                        onChange={(e) => setCreateConfig({ difficulty: e.target.value })}
-                    >
-                        <option value={Difficulty.EASY}>{t('battles.easy')}</option>
-                        <option value={Difficulty.MEDIUM}>{t('battles.medium')}</option>
-                        <option value={Difficulty.HARD}>{t('battles.hard')}</option>
-                    </select>
-                </div>
+            {/* Difficulty */}
+            <div>
+                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Difficulty
+                </label>
+                <select
+                    className="battle-select"
+                    value={difficulty}
+                    onChange={(e) => setCreateConfig({ difficulty: e.target.value })}
+                >
+                    <option value={Difficulty.EASY}>Easy</option>
+                    <option value={Difficulty.MEDIUM}>Medium</option>
+                    <option value={Difficulty.HARD}>Hard</option>
+                </select>
+            </div>
 
-                {/* Challenge Type */}
-                <div>
-                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        {t('battles.challengeType')}
-                    </label>
-                    <select
-                        className="battle-select"
-                        value={challengeType}
-                        onChange={(e) => setCreateConfig({ challengeType: e.target.value })}
-                    >
-                        <option value="">{t('battles.allTypes')}</option>
-                        {typeOptions.map((type) => (
-                            <option key={type} value={type}>{type}</option>
-                        ))}
-                    </select>
-                </div>
+            {/* Challenge Type */}
+            <div>
+                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Challenge Type
+                </label>
+                <select
+                    className="battle-select"
+                    value={challengeType}
+                    onChange={(e) => setCreateConfig({ challengeType: e.target.value })}
+                >
+                    <option value="">All Types</option>
+                    {typeOptions.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                    ))}
+                </select>
+            </div>
 
-                {/* Assigned Challenges */}
-                <div>
-                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        {t('battles.challengesByRound')}
-                    </label>
-                    <div className="battle-card" style={{ border: '1px solid var(--color-border)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {assignedChallenges.length === 0 ? (
-                                <span className="battle-text-sm battle-text-muted">{t('battles.noChallengesAvailable')}</span>
-                            ) : (
-                                assignedChallenges.map((challenge, idx) => (
-                                    <span key={`round-${idx}`} className="battle-text-sm">
-                                        {t('battles.roundN', { n: idx + 1 })}: {challenge?.title || '—'}
-                                    </span>
-                                ))
-                            )}
-                        </div>
+            {/* Assigned Challenges */}
+            <div>
+                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Challenges by Round
+                </label>
+                <div className="battle-card" style={{ border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {assignedChallenges.length === 0 ? (
+                            <span className="battle-text-sm battle-text-muted">No challenges available.</span>
+                        ) : (
+                            assignedChallenges.map((challenge, idx) => (
+                                <span key={`round-${idx}`} className="battle-text-sm">
+                                    Round {idx + 1}: {challenge?.title || '—'}
+                                </span>
+                            ))
+                        )}
                     </div>
                 </div>
+            </div>
 
-                {/* Time Limit */}
-                <div>
-                    <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                        {t('battles.timeLimitPerRound')}
-                    </label>
-                    <select
-                        className="battle-select"
-                        value={timeLimit}
-                        onChange={(e) => setCreateConfig({ timeLimit: parseInt(e.target.value) })}
-                    >
-                        <option value={300}>{t('battles.nMinutes', { n: 5 })}</option>
-                        <option value={600}>{t('battles.nMinutes', { n: 10 })}</option>
-                        <option value={900}>{t('battles.nMinutes', { n: 15 })}</option>
-                        <option value={1200}>{t('battles.nMinutes', { n: 20 })}</option>
-                        <option value={1800}>{t('battles.nMinutes', { n: 30 })}</option>
-                    </select>
-                </div>
+            {/* Time Limit */}
+            <div>
+                <label className="battle-text-sm battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Time Limit per Round
+                </label>
+                <select
+                    className="battle-select"
+                    value={timeLimit}
+                    onChange={(e) => setCreateConfig({ timeLimit: parseInt(e.target.value) })}
+                >
+                    <option value={300}>5 minutes</option>
+                    <option value={600}>10 minutes</option>
+                    <option value={900}>15 minutes</option>
+                    <option value={1200}>20 minutes</option>
+                    <option value={1800}>30 minutes</option>
+                </select>
             </div>
         </div>
-    );
-};
+    </div>
+);
 
 /* ── Step 3: Confirm ────────────────────────────────── */
 
 const StepConfirm = ({ mode, totalRounds, difficulty, timeLimit, challengeType, assignedChallenges }) => {
-    const { t } = useTranslation();
-    const modeLabel = mode === BattleMode.ONE_VS_ONE ? t('battles.oneVsOneBattle') : t('battles.oneVsAIBattle');
+    const modeLabel = mode === BattleMode.ONE_VS_ONE ? '1vs1 Battle' : '1vsAI Battle';
     const timeMins = Math.floor(timeLimit / 60);
-    const difficultyLabel = { EASY: t('battles.easy'), MEDIUM: t('battles.medium'), HARD: t('battles.hard') }[difficulty] || difficulty;
 
     return (
         <div>
-            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">{t('battles.confirmBattle')}</h3>
+            <h3 className="battle-text-lg battle-font-semibold battle-mb-md">Confirm Battle</h3>
             <div className="battle-card" style={{ border: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">{t('battles.mode')}</span>
+                        <span className="battle-text-muted">Mode</span>
                         <span className="battle-font-semibold">{modeLabel}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">{t('battles.rounds')}</span>
-                        <span className="battle-font-semibold">{t('battles.bestOf', { n: totalRounds })}</span>
+                        <span className="battle-text-muted">Rounds</span>
+                        <span className="battle-font-semibold">Best of {totalRounds}</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">{t('battles.difficulty')}</span>
+                        <span className="battle-text-muted">Difficulty</span>
                         <span className="battle-font-semibold" style={{ color: difficulty === 'HARD' ? 'var(--color-red-500)' : difficulty === 'EASY' ? 'var(--color-green-500)' : 'var(--color-yellow-500)' }}>
-                            {difficultyLabel}
+                            {difficulty}
                         </span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">{t('battles.timePerRound')}</span>
-                        <span className="battle-font-semibold">{t('battles.nMinutes', { n: timeMins })}</span>
+                        <span className="battle-text-muted">Time per Round</span>
+                        <span className="battle-font-semibold">{timeMins} minutes</span>
                     </div>
                     <div className="battle-flex-between">
-                        <span className="battle-text-muted">{t('battles.challengeType')}</span>
-                        <span className="battle-font-semibold">{challengeType || t('battles.allTypes')}</span>
+                        <span className="battle-text-muted">Challenge Type</span>
+                        <span className="battle-font-semibold">{challengeType || 'All Types'}</span>
                     </div>
                     <div>
                         <span className="battle-text-muted" style={{ display: 'block', marginBottom: '0.5rem' }}>
-                            {t('battles.challengesByRound')}
+                            Challenges by Round
                         </span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                             {assignedChallenges.length === 0 ? (
-                                <span className="battle-text-sm battle-text-muted">{t('battles.noChallengesAvailable')}</span>
+                                <span className="battle-text-sm battle-text-muted">No challenges available.</span>
                             ) : (
                                 assignedChallenges.map((challenge, idx) => (
                                     <span key={`confirm-round-${idx}`} className="battle-text-sm">
-                                        {t('battles.roundN', { n: idx + 1 })}: {challenge?.title || '—'}
+                                        Round {idx + 1}: {challenge?.title || '—'}
                                     </span>
                                 ))
                             )}
@@ -396,8 +411,8 @@ const StepConfirm = ({ mode, totalRounds, difficulty, timeLimit, challengeType, 
             <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'var(--color-info-bg)', borderRadius: '12px', border: '1px solid var(--color-glass-border-strong)' }}>
                 <p className="battle-text-sm battle-text-cyan">
                     {mode === BattleMode.ONE_VS_AI
-                        ? t('battles.immediateAIBattle')
-                        : t('battles.waitingBattleCreated')
+                        ? 'You will immediately enter the battle against the AI.'
+                        : '⏳ Your battle will be created with WAITING status until an opponent joins.'
                     }
                 </p>
             </div>

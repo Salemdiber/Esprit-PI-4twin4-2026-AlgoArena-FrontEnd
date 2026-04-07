@@ -4,7 +4,6 @@
  * Computes metrics dynamically from round data.
  */
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
 const clampPercent = (value) => Math.max(0, Math.min(100, Math.round(value || 0)));
 
@@ -21,8 +20,6 @@ const formatMsAsTime = (ms) => {
 };
 
 const PerformanceAnalytics = ({ battle }) => {
-    const { t } = useTranslation();
-
     const roundsWithResults = battle.rounds.filter((round) =>
         round.playerResult || round.opponentResult
     );
@@ -66,6 +63,7 @@ const PerformanceAnalytics = ({ battle }) => {
     const playerQuality = clampPercent(computeAverage(playerPassRates));
     const oppQuality = clampPercent(computeAverage(opponentPassRates));
 
+    // Convert time string to percentage (higher is worse, so invert for display)
     const timeToPercent = (timeStr) => {
         const parts = timeStr.split(':');
         const secs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
@@ -74,24 +72,24 @@ const PerformanceAnalytics = ({ battle }) => {
 
     const metrics = [
         {
-            title: t('battles.timeComparison'),
+            title: 'Time Comparison',
             bars: [
-                { label: t('battles.yourAvg'), value: playerAvgTime, percent: timeToPercent(playerAvgTime), color: '#22d3ee', gradient: true },
-                { label: t('battles.opponentAvg'), value: opponentAvgTime, percent: timeToPercent(opponentAvgTime), color: '#64748b', gradient: false },
+                { label: 'Your Avg', value: playerAvgTime, percent: timeToPercent(playerAvgTime), color: '#22d3ee', gradient: true },
+                { label: 'Opponent Avg', value: opponentAvgTime, percent: timeToPercent(opponentAvgTime), color: '#64748b', gradient: false },
             ],
         },
         {
-            title: t('battles.codeQualityTitle'),
+            title: 'Code Quality',
             bars: [
-                { label: t('battles.yourQuality'), value: `${playerQuality}%`, percent: playerQuality, color: '#22c55e', gradient: true },
-                { label: t('battles.opponentQuality'), value: `${oppQuality}%`, percent: oppQuality, color: '#64748b', gradient: false },
+                { label: 'Your Quality', value: `${playerQuality}%`, percent: playerQuality, color: '#22c55e', gradient: true },
+                { label: 'Opponent Quality', value: `${oppQuality}%`, percent: oppQuality, color: '#64748b', gradient: false },
             ],
         },
         {
-            title: t('battles.efficiencyScore'),
+            title: 'Efficiency Score',
             bars: [
-                { label: t('battles.yourEfficiency'), value: `${playerEfficiency}%`, percent: playerEfficiency, color: '#22d3ee', gradient: true },
-                { label: t('battles.opponentEfficiency'), value: `${oppEfficiency}%`, percent: oppEfficiency, color: '#64748b', gradient: false },
+                { label: 'Your Efficiency', value: `${playerEfficiency}%`, percent: playerEfficiency, color: '#22d3ee', gradient: true },
+                { label: 'Opponent Efficiency', value: `${oppEfficiency}%`, percent: oppEfficiency, color: '#64748b', gradient: false },
             ],
         },
     ];

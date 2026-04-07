@@ -11,7 +11,6 @@ import {
     Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { useTranslation } from 'react-i18next';
 
 ChartJS.register(
     CategoryScale,
@@ -72,23 +71,22 @@ const options = {
     },
 };
 
-const chartValues = [120, 145, 168, 152, 189, 210, 184, 195, 220, 235, 248, 260, 275, 290, 305, 320, 335, 350, 365, 380, 395, 410, 425, 440, 455, 470, 485, 500, 515, 530];
+const labels = Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`);
+
+const data = {
+    labels,
+    datasets: [
+        {
+            label: 'New Users',
+            data: [120, 145, 168, 152, 189, 210, 184, 195, 220, 235, 248, 260, 275, 290, 305, 320, 335, 350, 365, 380, 395, 410, 425, 440, 455, 470, 485, 500, 515, 530],
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.1)',
+            fill: true,
+        },
+    ],
+};
 
 const UserGrowthChart = () => {
-    const { t } = useTranslation();
-    const labels = Array.from({ length: 30 }, (_, i) => t('charts.day', { n: i + 1 }));
-    const data = {
-        labels,
-        datasets: [
-            {
-                label: t('charts.newUsers'),
-                data: chartValues,
-                borderColor: '#22d3ee',
-                backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                fill: true,
-            },
-        ],
-    };
     return <Line options={options} data={data} />;
 };
 

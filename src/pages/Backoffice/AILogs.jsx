@@ -1,40 +1,38 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
 const AILogs = () => {
-    const { t } = useTranslation();
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.aiLogs.pageTitle')}</h1>
-                <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.aiLogs.pageSubtitle')}</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">AI Evaluation Logs</h1>
+                <p style={{ color: 'var(--color-text-muted)' }} className="">Monitor AI code evaluation activity and performance</p>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <StatBox label={t('admin.aiLogs.totalEvaluations')} value="8,924" color="purple" />
-                <StatBox label={t('admin.aiLogs.successful')} value="7,234" color="green" icon="check" />
-                <StatBox label={t('admin.aiLogs.failed')} value="1,690" color="red" icon="x" />
-                <StatBox label={t('admin.aiLogs.avgRuntime')} value="247ms" color="cyan" icon="clock" />
+                <StatBox label="Total Evaluations" value="8,924" color="purple" />
+                <StatBox label="Successful" value="7,234" color="green" icon="check" />
+                <StatBox label="Failed" value="1,690" color="red" icon="x" />
+                <StatBox label="Avg Runtime" value="247ms" color="cyan" icon="clock" />
             </div>
 
             {/* Filter Bar */}
             <div className="glass-panel rounded-2xl p-4 mb-6 shadow-custom">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative search-wrapper w-full">
-                        <input type="text" placeholder={t('admin.aiLogs.searchPlaceholder')} className="search-input w-full" />
+                        <input type="text" placeholder="Search by user, challenge, or evaluation ID..." className="search-input w-full" />
                         <svg className="w-5 h-5 search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
                     <select className="form-select w-full md:w-48 bg-(--color-bg-input)">
-                        <option>{t('admin.aiLogs.allStatus')}</option>
-                        <option>{t('admin.aiLogs.statusSuccess')}</option>
-                        <option>{t('admin.aiLogs.statusFailed')}</option>
-                        <option>{t('admin.aiLogs.statusTimeout')}</option>
+                        <option>All Status</option>
+                        <option>Success</option>
+                        <option>Failed</option>
+                        <option>Timeout</option>
                     </select>
                     <select className="form-select w-full md:w-48 bg-(--color-bg-input)">
-                        <option>{t('admin.aiLogs.allComplexity')}</option>
+                        <option>All Complexity</option>
                         <option>O(1)</option>
                         <option>O(n)</option>
                         <option>O(n log n)</option>
@@ -132,17 +130,10 @@ const StatBox = ({ label, value, color, icon }) => {
 };
 
 const LogItem = ({ status, title, user, time, runtime, complexity, complexityColor, runtimeColor = "cyan" }) => {
-    const { t } = useTranslation();
     const statusColors = {
         Success: "bg-green-500/10 text-green-400 border-green-500/20",
         Failed: "bg-red-500/10 text-red-400 border-red-500/20",
         Warning: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-    };
-
-    const statusKeys = {
-        Success: t('admin.aiLogs.statusSuccess'),
-        Failed: t('admin.aiLogs.statusFailed'),
-        Warning: t('admin.aiLogs.statusWarning')
     };
 
     const textColors = {
@@ -161,21 +152,21 @@ const LogItem = ({ status, title, user, time, runtime, complexity, complexityCol
         <div className="flex items-center gap-4 p-4 spotlight-hover transition-all group table-row-hover">
             <div className="flex-shrink-0">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statusColors[status]}`}>
-                    {statusKeys[status] || status}
+                    {status}
                 </span>
             </div>
             <div className="flex-1 min-w-0">
                 <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm font-medium  truncate group-hover:text-cyan-400 transition-colors">{title}</p>
-                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mt-1">{t('admin.aiLogs.evaluatedBy', { user, time })}</p>
+                <p style={{ color: 'var(--color-text-muted)' }} className="text-xs  mt-1">Evaluated by {user} • {time}</p>
             </div>
 
             <div className="hidden md:flex items-center gap-6">
                 <div className="text-right">
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">{t('admin.aiLogs.runtime')}</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">Runtime</p>
                     <p className={`text-sm font-mono ${textColors[runtimeColor]}`}>{runtime}</p>
                 </div>
                 <div className="text-right">
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">{t('admin.aiLogs.complexity')}</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-xs ">Complexity</p>
                     <p className={`text-sm font-mono ${textColors[complexityColor]}`}>{complexity}</p>
                 </div>
                 <div className="w-24 h-8">
@@ -190,7 +181,7 @@ const LogItem = ({ status, title, user, time, runtime, complexity, complexityCol
                 </div>
             </div>
 
-            <button title={t('admin.aiLogs.viewDetails')} className="action-btn action-btn-view opacity-0 group-hover:opacity-100">
+            <button title="View Details" className="action-btn action-btn-view opacity-0 group-hover:opacity-100">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>

@@ -13,7 +13,6 @@ import {
     Progress,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
 // Fix for deprecated motion() usage
@@ -133,7 +132,6 @@ const PixelGrid = () => {
 };
 
 const Hero = () => {
-    const { t } = useTranslation();
     const spotlightRef = useRef(null);
     const [progress, setProgress] = useState(0);
     const [gridCubes, setGridCubes] = useState([]);
@@ -267,23 +265,23 @@ const Hero = () => {
                         fontWeight="bold"
                         color={headingColor}
                     >
-                        {t('landing.hero.title')}
+                        Turn Algorithms Into Action.
                     </Heading>
 
                     <Text fontSize={{ base: 'lg', sm: 'xl' }} color={subTextColor} maxW="3xl">
-                        {t('landing.hero.subtitle')}
+                        Write code. Run simulations. Compete in real-time. Watch your logic shape dynamic game worlds.
                     </Text>
 
                     {/* CTA Buttons */}
                     <HStack spacing={4} flexWrap="wrap" justify="center">
                         <Button variant="primary" size="lg" boxShadow="custom">
-                            {t('landing.hero.ctaAi')}
+                            Start 1 vs AI
                         </Button>
                         <Button variant="secondary" size="lg">
-                            {t('landing.hero.ctaPlayer')}
+                            Challenge a Player
                         </Button>
                         <Button variant="ghost" size="lg">
-                            {t('landing.hero.ctaDemo')}
+                            View Demo
                         </Button>
                     </HStack>
 
@@ -305,10 +303,10 @@ const Hero = () => {
                                 <Box bg={codeBg} borderRadius="8px" p={4}>
                                     <HStack justify="space-between" mb={3}>
                                         <Text fontSize="xs" color={mutedColor} fontFamily="mono">
-                                            {t('landing.hero.fileLabel')}
+                                            solution.js
                                         </Text>
                                         <Text fontSize="xs" color="green.400">
-                                            {t('landing.hero.running')}
+                                            ● Running
                                         </Text>
                                     </HStack>
                                     <Code
@@ -336,7 +334,7 @@ const Hero = () => {
                             <GridItem>
                                 <Box bg={codeBg} borderRadius="8px" p={4}>
                                     <Text fontSize="xs" color={mutedColor} mb={3}>
-                                        {t('landing.hero.gameSimulation')}
+                                        Game Simulation
                                     </Text>
                                     <Grid templateColumns="repeat(4, 1fr)" gap={1} mb={4}>
                                         {gridCubes.map((cube) => (
@@ -353,7 +351,7 @@ const Hero = () => {
                                     </Grid>
                                     <VStack spacing={2}>
                                         <HStack justify="space-between" width="100%" fontSize="xs" color={mutedColor}>
-                                            <Text>{t('landing.hero.progress')}</Text>
+                                            <Text>Progress</Text>
                                             <Text>{progress}%</Text>
                                         </HStack>
                                         <Progress

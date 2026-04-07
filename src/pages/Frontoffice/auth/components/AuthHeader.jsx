@@ -8,10 +8,8 @@
  */
 import React from 'react';
 import { Box, Heading, Text, HStack, useColorModeValue } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 
 const AuthHeader = ({ icon, title, subtitle }) => {
-    const { t } = useTranslation();
     const headingColor = useColorModeValue('gray.800', 'gray.100');
     const subtitleColor = useColorModeValue('gray.500', 'gray.400');
     return (
@@ -25,7 +23,7 @@ const AuthHeader = ({ icon, title, subtitle }) => {
                     fontWeight="bold"
                     letterSpacing="-0.02em"
                 >
-                    {t('common.algoArena')}
+                    AlgoArena
                 </Text>
             </Box>
 

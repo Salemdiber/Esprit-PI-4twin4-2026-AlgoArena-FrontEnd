@@ -9,7 +9,6 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import { useTranslation } from 'react-i18next';
 
 ChartJS.register(
     CategoryScale,
@@ -74,9 +73,7 @@ const defaultColors = [
     'rgba(244, 63, 94, 0.8)',
 ];
 
-const GamesChart = ({ labels = defaultLabels, values = defaultValues, datasetLabel: datasetLabelProp }) => {
-    const { t } = useTranslation();
-    const datasetLabel = datasetLabelProp || t('charts.plays');
+const GamesChart = ({ labels = defaultLabels, values = defaultValues, datasetLabel = 'Plays' }) => {
     const data = {
         labels,
         datasets: [

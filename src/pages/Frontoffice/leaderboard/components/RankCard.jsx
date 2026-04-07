@@ -10,7 +10,6 @@
 import React from 'react';
 import { Box, Flex, Text, Image, Grid, Badge } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import RankBadge from './RankBadge';
 import EnergyBar from './EnergyBar';
 import StreakIndicator from './StreakIndicator';
@@ -46,7 +45,6 @@ const stageBoxShadow = {
 
 /* ──────── STAGE variant (vertical card for #2 & #3) ──────── */
 const StageCard = ({ player }) => {
-    const { t } = useTranslation();
     const rank = player.rankPosition;
     const colors = rankBorderColors[rank] || rankBorderColors[2];
 
@@ -118,7 +116,7 @@ const StageCard = ({ player }) => {
                 {/* Power Level */}
                 <Box textAlign="center" mb={4}>
                     <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>
-                        {t('leaderboardPage.powerLevel')}
+                        Power Level
                     </Text>
                     <MotionFlex
                         justify="center"
@@ -150,7 +148,7 @@ const StageCard = ({ player }) => {
                             {player.wins}
                         </Text>
                         <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-                            {t('leaderboardPage.victories')}
+                            Victories
                         </Text>
                     </Box>
                     <Box textAlign="center" p={3} borderRadius="6px" bg="var(--color-bg-elevated)">
@@ -158,7 +156,7 @@ const StageCard = ({ player }) => {
                             {player.winRate}%
                         </Text>
                         <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-                            {t('leaderboardPage.winRate')}
+                            Win Rate
                         </Text>
                     </Box>
                 </Grid>
@@ -174,7 +172,6 @@ const StageCard = ({ player }) => {
 
 /* ──────── COMPACT variant (horizontal row for ranks 4–10) ──────── */
 const CompactCard = ({ player }) => {
-    const { t } = useTranslation();
     const isUser = player.isCurrentUser;
 
     return (
@@ -255,7 +252,7 @@ const CompactCard = ({ player }) => {
                                 bg="var(--color-cyan-400)"
                                 color="#ffffff"
                             >
-                                {t('leaderboardPage.yourRankBadge')}
+                                YOUR RANK
                             </Badge>
                         )}
                         <RankBadge tier={player.tier} size="sm" />
@@ -270,7 +267,7 @@ const CompactCard = ({ player }) => {
                                 color="var(--color-text-primary)"
                                 bg="linear-gradient(135deg, #10b981 0%, #22d3ee 100%)"
                             >
-                                {t('leaderboardPage.rising')}
+                                RISING
                             </Badge>
                         )}
                         {player.tag === 'HOT' && (
@@ -284,7 +281,7 @@ const CompactCard = ({ player }) => {
                                 color="var(--color-text-primary)"
                                 bg="linear-gradient(135deg, #ef4444 0%, #f97316 100%)"
                             >
-                                {t('leaderboardPage.hot')}
+                                HOT
                             </Badge>
                         )}
                     </Flex>
@@ -305,7 +302,7 @@ const CompactCard = ({ player }) => {
                 >
                     <Box textAlign="center">
                         <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>
-                            {t('leaderboardPage.power')}
+                            Power
                         </Text>
                         <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color="#22d3ee">
                             {player.xp.toLocaleString()}
@@ -313,7 +310,7 @@ const CompactCard = ({ player }) => {
                     </Box>
                     <Box textAlign="center">
                         <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>
-                            {t('leaderboardPage.wins')}
+                            Wins
                         </Text>
                         <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color="var(--color-text-primary)">
                             {player.wins}
@@ -321,7 +318,7 @@ const CompactCard = ({ player }) => {
                     </Box>
                     <Box textAlign="center">
                         <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>
-                            {t('leaderboardPage.rate')}
+                            Rate
                         </Text>
                         <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color="#10b981">
                             {player.winRate}%

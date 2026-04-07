@@ -1,7 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { useToast } from '@chakra-ui/react';
-import i18n from '../../../../i18n';
 
 export default function useChallengeExecution() {
     const {
@@ -34,8 +33,8 @@ export default function useChallengeExecution() {
             const result = await submitSolution('run');
             if (result?.reason === 'paused') {
                 toast({
-                    title: i18n.t('challengePage.timerPaused'),
-                    description: i18n.t('challengePage.resumeToContinue'),
+                    title: 'Timer is paused',
+                    description: 'Please resume to continue working on your solution.',
                     status: 'warning',
                     duration: 2500,
                     isClosable: true,
@@ -59,16 +58,16 @@ export default function useChallengeExecution() {
             const result = await submitSolution('submit');
             if (result?.reason === 'paused') {
                 toast({
-                    title: i18n.t('challengePage.timerPaused'),
-                    description: i18n.t('challengePage.resumeBeforeSubmit'),
+                    title: 'Timer is paused',
+                    description: 'Please resume before submitting your solution.',
                     status: 'warning',
                     duration: 2500,
                     isClosable: true,
                 });
             } else if (result?.reason === 'solved') {
                 toast({
-                    title: i18n.t('challengePage.challengeAlreadySolvedToast'),
-                    description: i18n.t('challengePage.resubmissionDisabled'),
+                    title: 'Challenge already solved',
+                    description: 'Resubmission is disabled for this challenge.',
                     status: 'info',
                     duration: 2500,
                     isClosable: true,

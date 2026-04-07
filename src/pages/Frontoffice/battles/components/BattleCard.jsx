@@ -2,7 +2,6 @@
  * BattleCard – single battle item in the battle list grid
  */
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import {
     BattleStatus,
     BattleMode,
@@ -13,9 +12,7 @@ import {
     getProgressPercent,
 } from '../types/battle.types';
 
-const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled = true }) => {
-    const { t } = useTranslation();
-
+const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled = true, resumeAvailable = false }) => {
     const isLive = battle.status === BattleStatus.LIVE;
     const isActive = battle.status === BattleStatus.ACTIVE;
     const isWaiting = battle.status === BattleStatus.WAITING;
@@ -30,15 +27,6 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
     const isAI = battle.mode === BattleMode.ONE_VS_AI;
     const isAIDisabled = isAI && !aiBattlesEnabled;
 
-    const modeLabel = battle.mode === BattleMode.ONE_VS_ONE ? t('battles.mode1vs1') : t('battles.mode1vsAI');
-    const statusLabel = {
-        [BattleStatus.ACTIVE]: t('battles.statusActive'),
-        [BattleStatus.LIVE]: t('battles.live'),
-        [BattleStatus.WAITING]: t('battles.statusWaiting'),
-        [BattleStatus.COMPLETED]: t('battles.statusCompleted'),
-        [BattleStatus.CANCELLED]: t('battles.cancelled'),
-    }[battle.status] || statusBadge.label;
-
     const cardClass = [
         'battle-card',
         isLive ? 'battle-card--live' : '',
@@ -51,12 +39,14 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
         isCompleted ? 'battle-progress__fill--green' : '',
     ].filter(Boolean).join(' ');
 
+    // Determine current round text
     const roundText = battle.currentRoundIndex >= 0
-        ? t('battles.roundOf', { current: battle.currentRoundIndex + 1, total: battle.totalRounds })
-        : t('battles.bestOf', { n: battle.totalRounds });
+        ? `Round ${battle.currentRoundIndex + 1} of ${battle.totalRounds}`
+        : `Best of ${battle.totalRounds}`;
 
+    // Result text for completed
     const resultText = isCompleted
-        ? playerScore > opponentScore ? t('battles.victory') : playerScore < opponentScore ? t('battles.defeat') : t('battles.draw')
+        ? playerScore > opponentScore ? 'Victory' : playerScore < opponentScore ? 'Defeat' : 'Draw'
         : null;
 
     return (
@@ -69,17 +59,17 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                     padding: '0.75rem 1.25rem', textAlign: 'center', border: '1px solid var(--color-error-bg)',
                     pointerEvents: 'auto',
                 }}>
-                    <p style={{ color: 'var(--color-red-500)', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.25rem' }}>{t('battles.aiBattlesDisabled')}</p>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{t('battles.maintenance')}</p>
+                    <p style={{ color: 'var(--color-red-500)', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.25rem' }}>AI Battles Disabled</p>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>Maintenance</p>
                 </div>
             )}
             {/* Header: Mode + Status */}
             <div className="battle-flex-between battle-mb-md">
                 <span className={`battle-badge battle-badge--${modeBadge.color}`}>
-                    {modeLabel}
+                    {modeBadge.label}
                 </span>
                 <span className={`battle-badge battle-badge--${statusBadge.color}`}>
-                    {statusLabel}
+                    {statusBadge.label}
                 </span>
             </div>
 
@@ -92,7 +82,7 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                 ) : (
                     <img
                         src={battle.opponent?.avatar || ''}
-                        alt={battle.opponent?.name || t('battles.opponent')}
+                        alt={battle.opponent?.name || 'Opponent'}
                         style={{
                             width: '3rem', height: '3rem', borderRadius: '50%',
                             border: isLive ? '2px solid var(--color-cyan-400)' : '2px solid var(--color-border-hover)',
@@ -102,7 +92,7 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                 )}
                 <div style={{ flex: 1 }}>
                     <p className="battle-font-semibold">
-                        {isWaiting ? t('battles.waitingForOpponent') : t('battles.vsOpponent', { name: battle.opponent?.name })}
+                        {isWaiting ? 'Waiting for opponent...' : `vs ${battle.opponent?.name}`}
                     </p>
                     <p className="battle-text-sm battle-text-muted">{roundText}</p>
                 </div>
@@ -111,14 +101,14 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
             {/* Progress / Waiting / Completed */}
             {isWaiting ? (
                 <div style={{ padding: '2rem 0', textAlign: 'center' }}>
-                    <p className="battle-text-muted battle-text-sm">🔍 {t('battles.searchingOpponent')}</p>
+                    <p className="battle-text-muted battle-text-sm">🔍 Searching for opponent...</p>
                 </div>
             ) : (
                 <>
                     <div className="battle-mb-md">
                         <div className="battle-flex-between battle-text-sm battle-text-muted battle-mb-sm">
-                            <span>{isCompleted ? t('battles.finalScore') : t('battles.progress')}</span>
-                            <span style={{ color: resultText === t('battles.victory') ? 'var(--color-green-500)' : resultText === t('battles.defeat') ? 'var(--color-red-500)' : 'var(--color-cyan-400)', fontWeight: 600 }}>
+                            <span>{isCompleted ? 'Final Score' : 'Progress'}</span>
+                            <span style={{ color: resultText === 'Victory' ? 'var(--color-green-500)' : resultText === 'Defeat' ? 'var(--color-red-500)' : 'var(--color-cyan-400)', fontWeight: 600 }}>
                                 {resultText || `${progress}%`}
                             </span>
                         </div>
@@ -136,12 +126,12 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                             <p className={`battle-score-value ${isCompleted && playerScore > opponentScore ? 'battle-score-value--winner' : 'battle-score-value--player'}`}>
                                 {playerScore}
                             </p>
-                            <p className="battle-score-label">{t('battles.yourScore')}</p>
+                            <p className="battle-score-label">Your Score</p>
                         </div>
                         <div style={{ fontSize: '1.5rem', color: 'var(--color-text-muted)' }}>:</div>
                         <div className="battle-text-center">
                             <p className="battle-score-value battle-score-value--opponent">{opponentScore}</p>
-                            <p className="battle-score-label">{isAI ? t('battles.aiScore') : t('battles.opponent')}</p>
+                            <p className="battle-score-label">{isAI ? 'AI Score' : 'Opponent'}</p>
                         </div>
                     </div>
                 </>
@@ -150,28 +140,28 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
             {/* Action Button */}
             {isCancelled ? (
                 <button className="battle-btn battle-btn--secondary battle-btn--full" disabled>
-                    {t('battles.cancelled')}
+                    Cancelled
                 </button>
             ) : isWaiting ? (
                 <button
                     className="battle-btn battle-btn--secondary battle-btn--full"
                     onClick={() => onCancel?.(battle.id)}
                 >
-                    {t('battles.cancelBattle')}
+                    Cancel Battle
                 </button>
             ) : isCompleted ? (
                 <button
                     className="battle-btn battle-btn--secondary battle-btn--full"
                     onClick={() => onViewSummary?.(battle.id)}
                 >
-                    {t('battles.viewSummary')}
+                    View Summary
                 </button>
             ) : (
                 <button
                     className="battle-btn battle-btn--primary battle-btn--full"
                     onClick={() => onEnter?.(battle.id)}
                 >
-                    {t('battles.startBattle')}
+                    {resumeAvailable ? 'Resume Battle' : 'Start Battle'}
                 </button>
             )}
         </div>

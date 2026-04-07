@@ -8,7 +8,6 @@
  */
 import React from 'react';
 import { Select, Icon, HStack, Text } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 
 const CodeIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -18,19 +17,17 @@ const CodeIcon = (props) => (
     </Icon>
 );
 
+const DEFAULT_LANGUAGES = [
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'python', label: 'Python' },
+    { value: 'cpp', label: 'C++' },
+];
+
 const LanguageSelector = ({
     language,
     setLanguage,
-    languages: languagesProp,
-}) => {
-    const { t } = useTranslation();
-    const defaultLanguages = [
-        { value: 'javascript', label: t('editor.javascript') },
-        { value: 'python', label: t('editor.python') },
-        { value: 'cpp', label: t('editor.cpp') },
-    ];
-    const languages = languagesProp || defaultLanguages;
-    return (
+    languages = DEFAULT_LANGUAGES,
+}) => (
     <HStack spacing={2}>
         <CodeIcon w={4} h={4} color="gray.500" />
         <Select
@@ -60,7 +57,6 @@ const LanguageSelector = ({
             ))}
         </Select>
     </HStack>
-    );
-};
+);
 
 export default LanguageSelector;

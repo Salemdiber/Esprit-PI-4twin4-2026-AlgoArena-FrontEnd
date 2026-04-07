@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { userService } from '../../services/userService';
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
@@ -7,7 +6,6 @@ import autoTable from 'jspdf-autotable';
 
 // ── Edit Modal ──────────────────────────────────────────────────────────
 const EditUserModal = ({ user, onClose, onSave }) => {
-    const { t } = useTranslation();
     const [form, setForm] = useState({
         username: user.username || '',
         email: user.email || '',
@@ -55,7 +53,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
             }
             onSave();
         } catch (err) {
-            setError(err?.message || t('admin.users.failedToUpdate'));
+            setError(err?.message || 'Failed to update user');
         } finally {
             setSaving(false);
         }
@@ -66,7 +64,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
             <div className="glass-panel rounded-2xl p-6 w-full max-w-lg shadow-custom animate-fade-in-up max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <h2 style={{ color: 'var(--color-text-heading)' }} className="text-xl font-bold mb-4">{t('admin.users.editUser')}</h2>
+                <h2 style={{ color: 'var(--color-text-heading)' }} className="text-xl font-bold mb-4">Edit User</h2>
                 {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Avatar */}
@@ -90,38 +88,38 @@ const EditUserModal = ({ user, onClose, onSave }) => {
                             </div>
                         </div>
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{t('admin.users.clickAvatarToChange')}</p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Click avatar to change</p>
                     </div>
 
                     {/* Username */}
                     <div>
-                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">{t('admin.users.username')}</label>
+                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">Username</label>
                         <input type="text" name="username" value={form.username} onChange={handleChange} className="form-input w-full" required />
                     </div>
                     {/* Email */}
                     <div>
-                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">{t('admin.users.email')}</label>
+                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">Email</label>
                         <input type="email" name="email" value={form.email} onChange={handleChange} className="form-input w-full" required />
                     </div>
                     {/* Role */}
                     <div>
-                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">{t('admin.users.role')}</label>
+                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">Role</label>
                         <select name="role" value={form.role} onChange={handleChange} className="form-select w-full">
-                            <option value="Player">{t('admin.users.player')}</option>
-                            <option value="Admin">{t('admin.users.admin')}</option>
-                            <option value="Premium">{t('admin.users.premium')}</option>
+                            <option value="Player">Player</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Premium">Premium</option>
                         </select>
                     </div>
                     {/* Bio */}
                     <div>
-                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">{t('admin.users.bio')}</label>
+                        <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-medium mb-1">Bio</label>
                         <textarea name="bio" value={form.bio} onChange={handleChange} rows={3} className="form-input w-full resize-none" />
                     </div>
 
                     <div className="flex justify-end gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="btn-secondary px-4 py-2 text-sm">{t('admin.users.cancel')}</button>
+                        <button type="button" onClick={onClose} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
                         <button type="submit" className="btn-primary px-4 py-2 text-sm" disabled={saving}>
-                            {saving ? t('admin.users.saving') : t('admin.users.saveChanges')}
+                            {saving ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 </form>
@@ -131,49 +129,46 @@ const EditUserModal = ({ user, onClose, onSave }) => {
 };
 
 // ── Confirm Disable / Reactivate Modal ──────────────────────────────────
-const ConfirmToggleModal = ({ user, isCurrentlyActive, onClose, onConfirm, processing }) => {
-    const { t } = useTranslation();
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-fade-in-up text-center" onClick={(e) => e.stopPropagation()}>
-                <div className={`mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center ${isCurrentlyActive ? 'bg-amber-500/10' : 'bg-green-500/10'}`}>
-                    {isCurrentlyActive ? (
-                        <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    ) : (
-                        <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    )}
-                </div>
-                <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>
-                    {isCurrentlyActive ? t('admin.users.disableAccount') : t('admin.users.reactivateAccount')}
-                </h2>
-                <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>
-                    {isCurrentlyActive ? (
-                        <>{t('admin.users.disableConfirmBefore')}<span className="text-cyan-400 font-semibold">@{user.username}</span>{t('admin.users.disableConfirmAfter')}</>
-                    ) : (
-                        <>{t('admin.users.reactivateConfirmBefore')}<span className="text-cyan-400 font-semibold">@{user.username}</span>{t('admin.users.reactivateConfirmAfter')}</>
-                    )}
-                </p>
-                <div className="flex justify-center gap-3">
-                    <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm">{t('admin.users.cancel')}</button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onConfirm(); }}
-                        disabled={processing}
-                        className={`px-4 py-2 text-sm rounded-lg font-semibold transition-colors disabled:opacity-50 ${isCurrentlyActive
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
-                            : 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
-                            }`}
-                    >
-                        {processing ? t('admin.users.processing') : isCurrentlyActive ? t('admin.users.disableAccount') : t('admin.users.reactivateAccount')}
-                    </button>
-                </div>
+const ConfirmToggleModal = ({ user, isCurrentlyActive, onClose, onConfirm, processing }) => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div className="glass-panel rounded-2xl p-6 w-full max-w-sm shadow-custom animate-fade-in-up text-center" onClick={(e) => e.stopPropagation()}>
+            <div className={`mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center ${isCurrentlyActive ? 'bg-amber-500/10' : 'bg-green-500/10'}`}>
+                {isCurrentlyActive ? (
+                    <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                ) : (
+                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                )}
+            </div>
+            <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>
+                {isCurrentlyActive ? 'Disable Account' : 'Reactivate Account'}
+            </h2>
+            <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>
+                {isCurrentlyActive ? (
+                    <>Are you sure you want to disable <span className="text-cyan-400 font-semibold">@{user.username}</span>? They will be unable to log in. All user data and audit history will be preserved.</>
+                ) : (
+                    <>Reactivate <span className="text-cyan-400 font-semibold">@{user.username}</span>? They will regain access to their account and be able to log in again.</>
+                )}
+            </p>
+            <div className="flex justify-center gap-3">
+                <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+                    disabled={processing}
+                    className={`px-4 py-2 text-sm rounded-lg font-semibold transition-colors disabled:opacity-50 ${isCurrentlyActive
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
+                        : 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                        }`}
+                >
+                    {processing ? 'Processing...' : isCurrentlyActive ? 'Disable Account' : 'Reactivate Account'}
+                </button>
             </div>
         </div>
-    );
-};
+    </div>
+);
 
 // ── Rank palette ────────────────────────────────────────────────────────
 const RANK_STYLE = {
@@ -186,10 +181,9 @@ const RANK_STYLE = {
 
 // ── User Row ────────────────────────────────────────────────────────────
 const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, createdAt, onEdit, onToggleStatus }) => {
-    const { t } = useTranslation();
     const firstLetter = username ? username.charAt(0).toUpperCase() : 'U';
     const isActive = !!status;
-    const displayStatus = isActive ? t('admin.users.active') : t('admin.users.disabled');
+    const displayStatus = isActive ? 'Active' : 'Disabled';
     const rankKey = String(rank || '').toUpperCase();
     const rankMeta = RANK_STYLE[rankKey];
 
@@ -220,7 +214,7 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                     role === 'Premium' ? 'bg-amber-500/10  text-amber-400  border border-amber-500/20' :
                         'bg-cyan-500/10   text-cyan-400   border border-cyan-500/20'
                     }`}>
-                    {role === 'Admin' ? t('admin.users.admin') : role === 'Premium' ? t('admin.users.premium') : t('admin.users.player')}
+                    {role || 'Player'}
                 </span>
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
@@ -256,7 +250,7 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
             <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <div className="flex items-center gap-2">
                     {/* Edit */}
-                    <button title={t('admin.users.editUser')} className="action-btn action-btn-edit"
+                    <button title="Edit User" className="action-btn action-btn-edit"
                         onClick={() => onEdit({ _id, username, email, role, bio, avatar, status })}>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -264,7 +258,7 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                     </button>
                     {/* Disable / Reactivate toggle */}
                     <button
-                        title={isActive ? t('admin.users.disableAccount') : t('admin.users.reactivateAccount')}
+                        title={isActive ? 'Disable Account' : 'Reactivate Account'}
                         className={`action-btn ${isActive
                             ? 'text-amber-400 hover:bg-amber-500/10 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                             : 'text-green-400 hover:bg-green-500/10 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)]'
@@ -272,10 +266,12 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                         onClick={() => onToggleStatus({ _id, username, status })}
                     >
                         {isActive ? (
+                            /* Ban/disable icon — circle with line */
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                             </svg>
                         ) : (
+                            /* Checkmark in circle — reactivate icon */
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -291,10 +287,9 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
 const ITEMS_PER_PAGE = 10;
 
 const Users = () => {
-    const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
-    const [toggleUser, setToggleUser] = useState(null);
+    const [toggleUser, setToggleUser] = useState(null);   // user whose status is being toggled
     const [isProcessing, setIsProcessing] = useState(false);
 
     // ── Filters ─────────────────────────────────────────────────────────
@@ -354,6 +349,7 @@ const Users = () => {
         if (!toggleUser) return;
         setIsProcessing(true);
         try {
+            // Flip the status: active → disabled, disabled → active
             await userService.updateStatusByAdmin(toggleUser._id, !toggleUser.status);
             setToggleUser(null);
             fetchUsers();
@@ -373,15 +369,15 @@ const Users = () => {
     // ── Excel Export ────────────────────────────────────────────────────
     const handleExportExcel = async () => {
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet(t('admin.users.excelSheetName'));
+        const sheet = workbook.addWorksheet('AlgoArena Users');
 
         sheet.columns = [
-            { header: t('admin.users.excelUsername'), key: 'username', width: 25 },
-            { header: t('admin.users.excelEmail'), key: 'email', width: 35 },
-            { header: t('admin.users.excelRole'), key: 'role', width: 15 },
-            { header: t('admin.users.excelRank'), key: 'rank', width: 18 },
-            { header: t('admin.users.excelXp'), key: 'xp', width: 15 },
-            { header: t('admin.users.excelStatus'), key: 'status', width: 15 },
+            { header: 'Username', key: 'username', width: 25 },
+            { header: 'Email', key: 'email', width: 35 },
+            { header: 'Role', key: 'role', width: 15 },
+            { header: 'Rank', key: 'rank', width: 18 },
+            { header: 'XP', key: 'xp', width: 15 },
+            { header: 'Status', key: 'status', width: 15 },
         ];
 
         sheet.getRow(1).eachCell((cell) => {
@@ -399,7 +395,7 @@ const Users = () => {
                 role: u.role || 'Player',
                 rank: u.rank || '—',
                 xp: u.xp ?? 0,
-                status: u.status ? t('admin.users.active') : t('admin.users.disabled'),
+                status: u.status ? 'Active' : 'Disabled',
             });
         });
 
@@ -446,25 +442,22 @@ const Users = () => {
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
-            doc.text(t('admin.users.pdfTitle'), 14, 16);
+            doc.text('AlgoArena — Users Report', 14, 16);
 
             // Metadata
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(180, 200, 220);
-            doc.text(t('admin.users.pdfGenerated', { date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), time: now.toLocaleTimeString() }), 14, 24);
-            doc.text(t('admin.users.pdfTotalUsers', { count: filteredUsers.length }), 14, 30);
+            doc.text(`Generated: ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${now.toLocaleTimeString()}`, 14, 24);
+            doc.text(`Total Users: ${filteredUsers.length}`, 14, 30);
             // Badges
             doc.setFontSize(8);
             doc.setTextColor(100, 120, 140);
-            doc.text(t('admin.users.pdfOfficialReport'), pageW - 14, 24, { align: 'right' });
-            doc.text(t('admin.users.pdfConfidential'), pageW - 14, 30, { align: 'right' });
+            doc.text('OFFICIAL PLATFORM REPORT', pageW - 14, 24, { align: 'right' });
+            doc.text('CONFIDENTIAL', pageW - 14, 30, { align: 'right' });
 
             // ── Table ─────────────────────────────────────────────────
-            const columns = ['#', t('admin.users.excelUsername'), t('admin.users.excelEmail'), t('admin.users.excelRole'), t('admin.users.excelRank'), t('admin.users.excelXp'), t('admin.users.excelStatus'), t('admin.users.pdfRegistered')];
-            const activeLabel = t('admin.users.active');
-            const disabledLabel = t('admin.users.disabled');
-            const adminLabel = t('admin.users.admin');
+            const columns = ['#', 'Username', 'Email', 'Role', 'Rank', 'XP', 'Status', 'Registered'];
             const rows = filteredUsers.map((u, i) => [
                 String(i + 1),
                 u.username || '—',
@@ -472,7 +465,7 @@ const Users = () => {
                 u.role || 'Player',
                 u.rank || '—',
                 String(u.xp ?? 0),
-                u.status ? activeLabel : disabledLabel,
+                u.status ? 'Active' : 'Disabled',
                 u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—',
             ]);
 
@@ -522,9 +515,9 @@ const Users = () => {
                     // Footer text
                     doc.setFontSize(7);
                     doc.setTextColor(...lightGray);
-                    doc.text(t('admin.users.pdfPlatform'), 14, pageH - 9);
-                    doc.text(t('admin.users.pdfPage', { n: pn }), pageW / 2, pageH - 9, { align: 'center' });
-                    doc.text(t('admin.users.pdfCopyright', { year: now.getFullYear() }), pageW - 14, pageH - 9, { align: 'right' });
+                    doc.text('AlgoArena Platform', 14, pageH - 9);
+                    doc.text(`Page ${pn}`, pageW / 2, pageH - 9, { align: 'center' });
+                    doc.text(`\u00A9 ${now.getFullYear()} AlgoArena`, pageW - 14, pageH - 9, { align: 'right' });
 
                     // Continuation header on pages 2+
                     if (pn > 1) {
@@ -535,22 +528,24 @@ const Users = () => {
                         doc.setTextColor(255, 255, 255);
                         doc.setFontSize(9);
                         doc.setFont('helvetica', 'bold');
-                        doc.text(t('admin.users.pdfTitleContinued'), 14, 8);
+                        doc.text('AlgoArena — Users Report (continued)', 14, 8);
                     }
                 },
                 didParseCell: (data) => {
+                    // Color-code Status column (index 6)
                     if (data.section === 'body' && data.column.index === 6) {
-                        if (data.cell.raw === activeLabel) {
-                            data.cell.styles.textColor = [16, 185, 129];
+                        if (data.cell.raw === 'Active') {
+                            data.cell.styles.textColor = [16, 185, 129]; // green
                             data.cell.styles.fontStyle = 'bold';
                         } else {
-                            data.cell.styles.textColor = [239, 68, 68];
+                            data.cell.styles.textColor = [239, 68, 68]; // red
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
+                    // Color-code Role column (index 3) for Admins
                     if (data.section === 'body' && data.column.index === 3) {
                         if (data.cell.raw === 'Admin') {
-                            data.cell.styles.textColor = [139, 92, 246];
+                            data.cell.styles.textColor = [139, 92, 246]; // purple
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
@@ -560,7 +555,7 @@ const Users = () => {
             doc.save(`AlgoArena_Users_Report_${now.toISOString().slice(0, 10)}.pdf`);
         } catch (err) {
             console.error('PDF export failed:', err);
-            alert(t('admin.users.pdfExportFailed'));
+            alert('Failed to generate PDF. Please try again.');
         }
     };
 
@@ -569,8 +564,8 @@ const Users = () => {
         <div className="space-y-6 animate-fade-in-up">
             {/* Page header */}
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold mb-2">{t('admin.users.title')}</h1>
-                <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.users.subtitle')}</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold mb-2">User Management</h1>
+                <p style={{ color: 'var(--color-text-muted)' }}>Manage platform users and their permissions</p>
             </div>
 
             {/* Filters + Export */}
@@ -579,7 +574,7 @@ const Users = () => {
                     <div className="flex-1 relative search-wrapper w-full">
                         <input
                             type="text"
-                            placeholder={t('admin.users.searchPlaceholder')}
+                            placeholder="Search users by name, email, or username..."
                             className="search-input w-full"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -589,28 +584,28 @@ const Users = () => {
                         </svg>
                     </div>
                     <select className="form-select w-full md:w-40 bg-(--color-bg-input)" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-                        <option value="All">{t('admin.users.allRoles')}</option>
-                        <option value="Admin">{t('admin.users.admin')}</option>
-                        <option value="Player">{t('admin.users.player')}</option>
-                        <option value="Premium">{t('admin.users.premium')}</option>
+                        <option value="All">All Roles</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Player">Player</option>
+                        <option value="Premium">Premium</option>
                     </select>
                     <select className="form-select w-full md:w-40 bg-(--color-bg-input)" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                        <option value="All">{t('admin.users.allStatus')}</option>
-                        <option value="Active">{t('admin.users.active')}</option>
-                        <option value="Disabled">{t('admin.users.disabled')}</option>
+                        <option value="All">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Disabled">Disabled</option>
                     </select>
                     <div className="flex items-center gap-2 w-full md:w-auto">
-                        <button className="btn-primary flex-1 md:flex-none whitespace-nowrap !px-4" onClick={handleExportExcel} title={t('admin.users.exportExcelTitle')}>
+                        <button className="btn-primary flex-1 md:flex-none whitespace-nowrap !px-4" onClick={handleExportExcel} title="Export to Excel">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            {t('admin.users.excel')}
+                            Excel
                         </button>
-                        <button className="btn-secondary flex-1 md:flex-none whitespace-nowrap !px-4" onClick={handleExportPDF} title={t('admin.users.exportPdfTitle')}>
+                        <button className="btn-secondary flex-1 md:flex-none whitespace-nowrap !px-4" onClick={handleExportPDF} title="Export as PDF">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            {t('admin.users.pdf')}
+                            PDF
                         </button>
                     </div>
                 </div>
@@ -622,20 +617,20 @@ const Users = () => {
                     <table className="w-full">
                         <thead className="bg-(--color-bg-sidebar)/50 border-b">
                             <tr>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.userHeader')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.emailHeader')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.roleHeader')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.rankHeader')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.scoreHeader')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.statusHeader')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.users.actionsHeader')}</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">User</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Email</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Role</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Rank</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Score</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
+                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800/50">
                             {paginatedUsers.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-                                        {t('admin.users.noUsersFound')}
+                                        No users found.
                                     </td>
                                 </tr>
                             ) : (
@@ -656,12 +651,12 @@ const Users = () => {
                 <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t gap-4">
                     <p style={{ color: 'var(--color-text-muted)' }} className="text-sm">
                         {filteredUsers.length === 0
-                            ? t('admin.users.noResults')
-                            : t('admin.users.showingUsers', { start: startIndex, end: endIndex, total: filteredUsers.length })}
+                            ? 'No results'
+                            : `Showing ${startIndex} to ${endIndex} of ${filteredUsers.length} users`}
                     </p>
                     <div className="flex items-center gap-2">
                         <button className="btn-secondary px-3 py-1.5 text-sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-                            {t('admin.users.previous')}
+                            Previous
                         </button>
                         {pageNumbers.map((n) => (
                             <button key={n} className={`${n === currentPage ? 'btn-primary' : 'btn-secondary hover:text-cyan-400'} px-3 py-1.5 text-sm`} onClick={() => setCurrentPage(n)}>
@@ -669,7 +664,7 @@ const Users = () => {
                             </button>
                         ))}
                         <button className="btn-secondary px-3 py-1.5 text-sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
-                            {t('admin.users.next')}
+                            Next
                         </button>
                     </div>
                 </div>

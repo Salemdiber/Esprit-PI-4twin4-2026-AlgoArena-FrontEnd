@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 
 const MaintenancePage = () => {
     const [dots, setDots] = useState('');
-    const { t } = useTranslation();
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -50,22 +48,23 @@ const MaintenancePage = () => {
 
                 {/* Title */}
                 <h1 className="text-4xl md:text-5xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-br from-cyan-400 to-blue-500 mb-4 drop-shadow-2xl">
-                    {t('maintenance.title')}
+                    Under Maintenance
                 </h1>
 
                 {/* Glass card */}
                 <div className="glass-panel p-8 rounded-2xl border border-gray-700/50 backdrop-blur-xl mb-8 shadow-2xl">
                     <div className="flex items-center justify-center gap-2 mb-5">
                         <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                        <span className="text-sm font-medium text-amber-400 uppercase tracking-wider">{t('maintenance.scheduled')}</span>
+                        <span className="text-sm font-medium text-amber-400 uppercase tracking-wider">Scheduled Maintenance</span>
                     </div>
 
                     <h2 className="text-xl md:text-2xl font-bold text-white mb-4">
-                        {t('maintenance.backShortly')}
+                        We&apos;ll be back shortly
                     </h2>
 
                     <p className="text-gray-400 leading-relaxed mb-6">
-                        {t('maintenance.body')}
+                        AlgoArena is currently undergoing scheduled maintenance to improve your experience.
+                        We&apos;re upgrading our systems and will be back online soon. Thank you for your patience!
                     </p>
 
                     {/* Progress bar animation */}
@@ -74,20 +73,20 @@ const MaintenancePage = () => {
                     </div>
 
                     <p className="text-gray-500 text-sm font-mono">
-                        {t('maintenance.performingUpgrades')}{dots}
+                        Performing system upgrades{dots}
                     </p>
                 </div>
 
                 {/* Status info */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <StatusCard icon="server" label={t('maintenance.servers')} status={t('maintenance.updating')} />
-                    <StatusCard icon="database" label={t('maintenance.database')} status={t('maintenance.migrating')} />
-                    <StatusCard icon="shield" label={t('maintenance.security')} status={t('maintenance.patching')} />
+                    <StatusCard icon="server" label="Servers" status="Updating" />
+                    <StatusCard icon="database" label="Database" status="Migrating" />
+                    <StatusCard icon="shield" label="Security" status="Patching" />
                 </div>
 
                 {/* Contact */}
                 <p className="text-gray-500 text-sm">
-                    {t('maintenance.needHelp')}
+                    Need help? Contact us at{' '}
                     <a href="mailto:support@algoarena.com" className="text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-2">
                         support@algoarena.com
                     </a>

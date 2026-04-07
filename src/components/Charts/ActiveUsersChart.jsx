@@ -11,7 +11,6 @@ import {
     Legend,
     Filler,
 } from 'chart.js';
-import { useTranslation } from 'react-i18next';
 
 ChartJS.register(
     CategoryScale,
@@ -74,12 +73,10 @@ const options = {
     },
 };
 
+const defaultLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const defaultValues = [120, 190, 150, 220, 180, 250, 310];
 
-const ActiveUsersChart = ({ labels: labelsProp, values = defaultValues, label: labelProp }) => {
-    const { t } = useTranslation();
-    const labels = labelsProp || [t('charts.mon'), t('charts.tue'), t('charts.wed'), t('charts.thu'), t('charts.fri'), t('charts.sat'), t('charts.sun')];
-    const label = labelProp || t('charts.activeUsers');
+const ActiveUsersChart = ({ labels = defaultLabels, values = defaultValues, label = 'Active Users' }) => {
     const data = {
         labels,
         datasets: [

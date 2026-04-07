@@ -1,5 +1,4 @@
 import React from 'react';
-import i18n from '../i18n';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -19,10 +18,10 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '20px', textAlign: 'center', marginTop: '50px' }}>
-          <h1>{i18n.t('errorBoundary.title')}</h1>
-          <p>{this.state.error?.message || i18n.t('errorBoundary.fallback')}</p>
+          <h1>Something went wrong</h1>
+          <p>{this.state.error?.message || 'An unexpected error occurred'}</p>
           <button onClick={() => window.location.reload()}>
-            {i18n.t('errorBoundary.reload')}
+            Reload Page
           </button>
         </div>
       );

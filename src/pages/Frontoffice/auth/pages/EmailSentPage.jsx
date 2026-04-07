@@ -5,7 +5,6 @@
  * Includes a countdown timer for the "Resend" button.
  */
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import {
     Box,
@@ -55,9 +54,8 @@ const ArrowLeftIcon = (props) => (
 );
 
 const EmailSentPage = () => {
-    const { t } = useTranslation();
     const location = useLocation();
-    const email = location.state?.email || t('auth.emailSent.fallbackEmail');
+    const email = location.state?.email || 'your email';
     const [countdown, setCountdown] = useState(60);
 
     useEffect(() => {
@@ -89,8 +87,8 @@ const EmailSentPage = () => {
             </Box>
 
             <AuthHeader
-                title={t('auth.emailSent.title')}
-                subtitle={t('auth.emailSent.subtitle', { email })}
+                title="Check Your Email"
+                subtitle={`If an account exists for ${email}, a reset link has been sent.`}
             />
 
             {/* Security Notice */}
@@ -106,7 +104,7 @@ const EmailSentPage = () => {
                     <Box display="flex" gap={3}>
                         <InfoIcon w={4} h={4} color="#22d3ee" mt={0.5} flexShrink={0} />
                         <Text color="gray.300" fontSize="xs" lineHeight="relaxed">
-                            {t('auth.emailSent.securityNotice')}
+                            For security, we don't confirm whether an email is registered except via the email itself.
                         </Text>
                     </Box>
                 </VStack>
@@ -133,7 +131,7 @@ const EmailSentPage = () => {
                 onClick={handleResend}
                 mb={6}
             >
-                {countdown > 0 ? t('auth.emailSent.resendIn', { countdown }) : t('auth.emailSent.resendEmail')}
+                {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Email'}
             </Button>
 
             <Divider borderColor="var(--color-border)" my={6} />
@@ -151,7 +149,7 @@ const EmailSentPage = () => {
                     gap={1}
                 >
                     <ArrowLeftIcon w={4} h={4} />
-                    {t('auth.emailSent.backToLogin')}
+                    Back to Login
                 </Link>
             </Box>
         </AuthCard>

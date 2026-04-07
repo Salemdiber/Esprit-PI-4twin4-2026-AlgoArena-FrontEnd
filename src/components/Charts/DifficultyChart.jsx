@@ -1,7 +1,6 @@
 import React from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { useTranslation } from 'react-i18next';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -34,10 +33,8 @@ const options = {
 const defaultDistribution = { Easy: 45, Medium: 35, Hard: 20, Expert: 0 };
 
 const DifficultyChart = ({ distribution = defaultDistribution }) => {
-    const { t } = useTranslation();
-    const keys = ['Easy', 'Medium', 'Hard', 'Expert'];
-    const labels = [t('charts.easy'), t('charts.medium'), t('charts.hard'), t('charts.expert')];
-    const values = keys.map((key) => Number(distribution?.[key] || 0));
+    const labels = ['Easy', 'Medium', 'Hard', 'Expert'];
+    const values = labels.map((key) => Number(distribution?.[key] || 0));
     const data = {
         labels,
         datasets: [
