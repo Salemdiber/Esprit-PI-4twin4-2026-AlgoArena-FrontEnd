@@ -46,7 +46,15 @@ const ChatMessageInput = ({
   };
 
   return (
-    <VStack spacing={2} align="stretch" p={2} borderTop="1px solid" borderColor="whiteAlpha.200">
+    <VStack
+      spacing={2}
+      align="stretch"
+      p={2}
+      pb={{ base: 'calc(8px + env(safe-area-inset-bottom))', sm: 2 }}
+      borderTop="1px solid"
+      borderColor="whiteAlpha.200"
+      bg="rgba(2,6,23,0.96)"
+    >
       {replyTarget && <ChatReplyPreview target={replyTarget} onCancel={() => setReplyTarget(null)} />}
       {editingMessage && <ChatReplyPreview target={editingMessage} onCancel={() => setEditingMessage(null)} isEditing />}
       <HStack align="end">

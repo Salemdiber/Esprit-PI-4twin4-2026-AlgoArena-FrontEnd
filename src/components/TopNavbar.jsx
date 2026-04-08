@@ -9,6 +9,34 @@ import { auditLogService } from '../services/auditLogService';
 const NOTIFICATION_STORAGE_KEY = 'algoarena-admin-read-notifications';
 const NOTIFICATION_LIMIT = 5;
 
+const readStoredNotificationIds = () => {
+    try {
+        const stored = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+        if (!stored) return new Set();
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed)) return new Set();
+        return new Set(parsed.filter(Boolean));
+    } catch {
+        return new Set();
+    }
+};
+
+const persistReadNotificationIds = (ids) => {
+    try {
+        window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(Array.from(ids)));
+    } catch {
+        // Ignore storage failures.
+    }
+};
+
+const setsEqual = (a, b) => {
+    if (a.size !== b.size) return false;
+    for (const value of a) {
+        if (!b.has(value)) return false;
+    }
+    return true;
+};
+
 const getRelativeTime = (dateValue) => {
     if (!dateValue) return 'Just now';
 
@@ -70,7 +98,7 @@ const mapNotification = (log, readIds) => ({
     message: formatNotificationMessage(log),
     time: getRelativeTime(log?.createdAt),
     tone: getNotificationTone(log),
-    unread: !readIds.has(log?._id),
+    unread: !readIds.has(log?._id) && !(log?.read === true || log?.isRead === true),
 });
 
 const TopNavbar = ({ onToggleSidebar }) => {
@@ -83,6 +111,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
     const [notifError, setNotifError] = useState('');
     const dropdownRef = useRef(null);
     const notifRef = useRef(null);
+    const readIdsRef = useRef(new Set());
     const navigate = useNavigate();
     const { currentUser, logout } = useAuth();
 
@@ -105,17 +134,20 @@ const TopNavbar = ({ onToggleSidebar }) => {
     }, []);
 
     useEffect(() => {
-        try {
-            const stored = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) {
-                    setReadNotificationIds(new Set(parsed.filter(Boolean)));
-                }
-            }
-        } catch {
-            setReadNotificationIds(new Set());
-        }
+        setReadNotificationIds(readStoredNotificationIds());
+    }, []);
+
+    useEffect(() => {
+        readIdsRef.current = readNotificationIds;
+    }, [readNotificationIds]);
+
+    useEffect(() => {
+        const onStorage = (event) => {
+            if (event.key !== NOTIFICATION_STORAGE_KEY) return;
+            setReadNotificationIds(readStoredNotificationIds());
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
     }, []);
 
     useEffect(() => {
@@ -124,7 +156,29 @@ const TopNavbar = ({ onToggleSidebar }) => {
             try {
                 const result = await auditLogService.getLogs({ page: 1, limit: NOTIFICATION_LIMIT });
                 const rows = Array.isArray(result?.data) ? result.data : [];
-                setNotifications(rows.map((log) => mapNotification(log, readNotificationIds)).filter((item) => item.id));
+
+                const currentIds = rows.map((log) => log?._id).filter(Boolean);
+                const currentIdSet = new Set(currentIds);
+                const nextReadIds = new Set();
+
+                // Keep only reads for notifications that are still in the current feed.
+                for (const id of readIdsRef.current) {
+                    if (currentIdSet.has(id)) nextReadIds.add(id);
+                }
+
+                // Respect potential backend read flags when available.
+                rows.forEach((log) => {
+                    if ((log?.read === true || log?.isRead === true) && log?._id) {
+                        nextReadIds.add(log._id);
+                    }
+                });
+
+                if (!setsEqual(nextReadIds, readIdsRef.current)) {
+                    setReadNotificationIds(nextReadIds);
+                    persistReadNotificationIds(nextReadIds);
+                }
+
+                setNotifications(rows.map((log) => mapNotification(log, nextReadIds)).filter((item) => item.id));
                 setNotifError('');
             } catch (error) {
                 console.error('Failed to load admin notifications', error);
@@ -141,7 +195,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
         return () => {
             window.clearInterval(intervalId);
         };
-    }, [readNotificationIds, t]);
+    }, [t]);
 
     const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
 
@@ -151,11 +205,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
         setReadNotificationIds((current) => {
             const next = new Set(current);
             ids.forEach((id) => next.add(id));
-            try {
-                window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(Array.from(next)));
-            } catch {
-                // Ignore storage failures.
-            }
+            persistReadNotificationIds(next);
             return next;
         });
 

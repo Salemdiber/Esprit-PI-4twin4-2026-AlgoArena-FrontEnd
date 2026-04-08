@@ -66,8 +66,7 @@ export const redirectBasedOnRole = (user) => {
 
 export const hasCompletedSpeedChallenge = (user) => {
     if (!user) return false;
-    const rank = String(user.rank || user.level || '').trim();
-    return user.speedChallengeCompleted === true || rank.length > 0;
+    return user.speedChallengeCompleted === true;
 };
 
 const DEFAULT_AVATAR =

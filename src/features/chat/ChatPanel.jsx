@@ -27,7 +27,7 @@ const ChatPanel = () => {
           bottom={{ base: 0, sm: '24px' }}
           top={{ base: '60px', sm: 'auto' }}
           w={{ base: '100%', sm: '380px' }}
-          h={{ base: 'auto', sm: chat.isPanelMinimized ? 'auto' : '520px' }}
+          h={{ base: 'calc(100vh - 60px)', sm: chat.isPanelMinimized ? 'auto' : '520px' }}
           maxH={{ base: 'calc(100vh - 60px)', sm: '520px' }}
           borderRadius={{ base: 0, sm: '16px' }}
           bg="rgba(2,6,23,0.95)"
@@ -45,7 +45,7 @@ const ChatPanel = () => {
             isConnected={chat.isConnected}
           />
           {!chat.isPanelMinimized && (
-            <VStack flex={1} spacing={0} align="stretch">
+            <VStack flex={1} minH={0} spacing={0} align="stretch">
               {chat.connectionError && (
                 <Alert status="warning" py={1.5}>
                   <AlertIcon />

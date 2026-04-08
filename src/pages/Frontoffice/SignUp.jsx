@@ -5,7 +5,7 @@ import { Box, Heading, Text, Button, VStack, HStack, Input, Link, Flex, InputGro
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
-import { useAuth } from './auth/context/AuthContext';
+import { useAuth, hasCompletedSpeedChallenge } from './auth/context/AuthContext';
 import { authService } from '../../services/authService';
 import FormFeedbackAlert from './auth/components/FormFeedbackAlert';
 import { useTranslation } from 'react-i18next';
@@ -205,7 +205,11 @@ const SignUp = () => {
         try {
             // Obtenir le token reCAPTCHA v3 dynamiquement
             const token = await getReCaptchaV3Token(RECAPTCHA_SITE_KEY, 'signup');
-            await signup(username, email, password, token, avatarUrl);
+            const user = await signup(username, email, password, token, avatarUrl);
+            if (!hasCompletedSpeedChallenge(user)) {
+                navigate('/speed-challenge', { replace: true });
+                return;
+            }
             navigate('/', { replace: true });
         } catch {
             // error handled by toast in AuthContext
