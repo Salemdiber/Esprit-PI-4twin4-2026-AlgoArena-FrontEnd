@@ -390,7 +390,7 @@ const Dashboard = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 className="font-heading text-3xl font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.title')}</h1>
+                <h1 className="font-heading text-3xl font-bold mb-2 truncate" style={{ color: 'var(--color-text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{t('admin.dashboard.title')}</h1>
                 <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.dashboard.subtitle')}</p>
             </div>
 
