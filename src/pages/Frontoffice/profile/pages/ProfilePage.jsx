@@ -15,6 +15,7 @@ import React, { useRef, useState } from 'react';
 import { Box, Text, Button, VStack, Flex, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, Input, useToast , useColorModeValue } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 import AvatarSection from '../components/AvatarSection';
 import ProfileInfoSection from '../components/ProfileInfoSection';
@@ -27,6 +28,7 @@ import { useAuth } from '../../auth/context/AuthContext';
 const MotionBox = motion.create(Box);
 
 const ProfilePage = () => {
+    const { t } = useTranslation();
     const prefersReducedMotion = useReducedMotion();
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = useRef();
@@ -37,15 +39,15 @@ const ProfilePage = () => {
     const toast = useToast();
 
     const handleDeleteAccount = async () => {
-        if (!deletePassword) return toast({ title: 'Password required', status: 'error', duration: 3000 });
+        if (!deletePassword) return toast({ title: t('profilePage.passwordRequired'), status: 'error', duration: 3000 });
         setIsDeleting(true);
         try {
             await userService.deleteAccount(deletePassword);
             logout(); // Clears context and cookies
-            toast({ title: 'Account deleted', status: 'success', duration: 3000 });
+            toast({ title: t('profilePage.accountDeleted'), status: 'success', duration: 3000 });
             navigate('/');
         } catch (error) {
-            toast({ title: 'Failed to delete account', description: error.message, status: 'error', duration: 3000 });
+            toast({ title: t('profilePage.deleteAccountFailed'), description: error.message, status: 'error', duration: 3000 });
         } finally {
             setIsDeleting(false);
             onClose();
@@ -78,10 +80,10 @@ const ProfilePage = () => {
                         color={useColorModeValue("gray.800","gray.100")}
                         mb={2}
                     >
-                        Account Settings
+                        {t('profilePage.accountSettings')}
                     </Text>
                     <Text color={useColorModeValue("gray.500","gray.400")} fontSize={{ base: 'sm', md: 'md' }}>
-                        Manage your profile, security, and authentication
+                        {t('profilePage.accountSubtitle')}
                     </Text>
                 </Box>
 
@@ -105,10 +107,10 @@ const ProfilePage = () => {
                         mt={4}
                     >
                         <Text fontFamily="heading" color="#ef4444" fontWeight="600" fontSize="lg" mb={2}>
-                            Danger Zone
+                            {t('profilePage.dangerZone')}
                         </Text>
                         <Text color={useColorModeValue("gray.500","gray.400")} fontSize="sm" mb={6}>
-                            Once you delete your account, there is no going back. Please be certain.
+                            {t('profilePage.dangerZoneDesc')}
                         </Text>
                         <Button
                             variant="outline"
@@ -121,7 +123,7 @@ const ProfilePage = () => {
                             transition="all 0.2s"
                             onClick={onOpen}
                         >
-                            Delete Account
+                            {t('profilePage.deleteAccount')}
                         </Button>
                     </MotionBox>
                 </VStack>
@@ -136,18 +138,17 @@ const ProfilePage = () => {
                 <AlertDialogOverlay>
                     <AlertDialogContent bg="var(--color-bg-secondary)" color={useColorModeValue("gray.800","gray.100")} border="1px solid" borderColor="var(--color-border)">
                         <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                            Delete Account
+                            {t('profilePage.deleteAccount')}
                         </AlertDialogHeader>
 
                         <AlertDialogBody>
-                            Are you sure? You can't undo this action afterwards.
-                            Please enter your password to confirm.
+                            {t('profilePage.deleteConfirmText')}
                             <Input
                                 type="password"
                                 mt={4}
                                 value={deletePassword}
                                 onChange={(e) => setDeletePassword(e.target.value)}
-                                placeholder="Enter password"
+                                placeholder={t('profilePage.enterPassword')}
                                 bg="var(--color-bg-primary)"
                                 borderColor="var(--color-border)"
                                 _focus={{ borderColor: '#ef4444', boxShadow: '0 0 0 1px #ef4444' }}
@@ -156,10 +157,10 @@ const ProfilePage = () => {
 
                         <AlertDialogFooter>
                             <Button ref={cancelRef} onClick={onClose} bg="gray.600" _hover={{ bg: 'gray.500' }}>
-                                Cancel
+                                {t('profilePage.cancel')}
                             </Button>
                             <Button colorScheme="red" onClick={handleDeleteAccount} ml={3} isLoading={isDeleting}>
-                                Delete
+                                {t('profilePage.delete')}
                             </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>

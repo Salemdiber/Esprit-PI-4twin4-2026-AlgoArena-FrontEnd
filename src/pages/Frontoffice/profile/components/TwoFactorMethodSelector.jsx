@@ -8,6 +8,7 @@
 import React from 'react';
 import { SimpleGrid, Box, VStack, Text, Icon, useColorModeValue } from '@chakra-ui/react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const MotionBox = motion.create(Box);
 
@@ -30,18 +31,15 @@ const METHODS = [
     {
         id: 'authenticator',
         icon: SmartphoneIcon,
-        title: 'Mobile Authenticator',
-        desc: 'Use an app like Google Authenticator or Authy',
     },
     {
         id: 'email',
         icon: MailIcon,
-        title: 'Email Verification',
-        desc: 'Receive a code via your registered email',
     },
 ];
 
 const TwoFactorMethodSelector = ({ selectedMethod, onSelect }) => {
+    const { t } = useTranslation();
     const prefersReducedMotion = useReducedMotion();
 
     const cardBgHover = useColorModeValue('rgba(34, 211, 238, 0.05)', 'rgba(34, 211, 238, 0.05)');
@@ -88,10 +86,10 @@ const TwoFactorMethodSelector = ({ selectedMethod, onSelect }) => {
                                 <m.icon w={6} h={6} color={isSelected ? textTitleSelected : iconColorUnselected} />
                             </Box>
                             <Text fontFamily="heading" fontWeight="600" color={isSelected ? textTitleSelected : textTitleUnselected}>
-                                {m.title}
+                                {t(`profilePage.twoFactorMethod_${m.id}_title`)}
                             </Text>
                             <Text fontSize="xs" fontWeight="500" color={textDesc}>
-                                {m.desc}
+                                {t(`profilePage.twoFactorMethod_${m.id}_desc`)}
                             </Text>
                         </VStack>
                     </MotionBox>

@@ -9,8 +9,10 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const CTA = () => {
+    const { t } = useTranslation();
     const headingColor = useColorModeValue('gray.800', 'gray.100');
     const textColor = useColorModeValue('gray.600', 'gray.300');
     const bgGradient = useColorModeValue(
@@ -51,19 +53,19 @@ const CTA = () => {
                         fontWeight="bold"
                         color={headingColor}
                     >
-                        Enter the Arena.
+                        {t('landing.cta.title')}
                     </Heading>
 
                     <Text fontSize={{ base: 'xl', sm: '2xl' }} color={textColor} maxW="2xl">
-                        Master algorithms. Compete globally. Build elegant code.
+                        {t('landing.cta.subtitle')}
                     </Text>
 
                     <HStack spacing={4} flexWrap="wrap" justify="center">
                         <Button as={RouterLink} to="/signup" variant="primary" size="lg" px={8} py={8} fontSize="lg">
-                            Create Free Account
+                            {t('landing.cta.createAccount')}
                         </Button>
-                        <Button variant="secondary" size="lg" px={8} py={8} fontSize="lg">
-                            View Leaderboard
+                        <Button as={RouterLink} to="/leaderboard" variant="secondary" size="lg" px={8} py={8} fontSize="lg">
+                            {t('landing.cta.viewLeaderboard')}
                         </Button>
                     </HStack>
                 </VStack>

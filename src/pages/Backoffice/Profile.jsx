@@ -5,6 +5,7 @@ import {
     AlertDialogBody, AlertDialogFooter, AlertDialogHeader,
     AlertDialogContent, AlertDialogOverlay, useDisclosure
 , useColorModeValue } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../Frontoffice/auth/context/AuthContext';
 import { userService } from '../../services/userService';
 import TwoFactorSection from '../Frontoffice/profile/components/TwoFactorSection';
@@ -12,6 +13,7 @@ import TwoFactorSection from '../Frontoffice/profile/components/TwoFactorSection
 const Profile = () => {
     const { currentUser, updateCurrentUser, logout } = useAuth();
     const toast = useToast();
+    const { t } = useTranslation();
 
     // Profile Edit State
     const [draft, setDraft] = useState({ username: '', email: '', bio: '' });
@@ -53,9 +55,9 @@ const Profile = () => {
             const res = await userService.uploadAvatar(formData);
             const newAvatarUrl = res?.avatarUrl || URL.createObjectURL(file);
             updateCurrentUser({ avatar: newAvatarUrl });
-            toast({ title: 'Avatar updated correctly', status: 'success', duration: 3000 });
+            toast({ title: t('admin.profile.toastAvatarUpdated'), status: 'success', duration: 3000 });
         } catch (error) {
-            toast({ title: 'Failed to update avatar', description: error.message, status: 'error', duration: 3000 });
+            toast({ title: t('admin.profile.toastAvatarFailed'), description: error.message, status: 'error', duration: 3000 });
         } finally {
             setIsUpdatingAvatar(false);
         }
@@ -74,10 +76,10 @@ const Profile = () => {
             if (Object.keys(patch).length > 0) {
                 await userService.updateProfile(patch);
                 updateCurrentUser(patch);
-                toast({ title: 'Profile updated successfully', status: 'success', duration: 3000 });
+                toast({ title: t('admin.profile.toastProfileUpdated'), status: 'success', duration: 3000 });
             }
         } catch (error) {
-            toast({ title: 'Failed to update profile', description: error.message, status: 'error', duration: 3000 });
+            toast({ title: t('admin.profile.toastProfileFailed'), description: error.message, status: 'error', duration: 3000 });
         } finally {
             setIsUpdatingProfile(false);
         }
@@ -86,7 +88,7 @@ const Profile = () => {
     const handlePasswordChange = async (e) => {
         e.preventDefault();
         if (passwords.newPassword !== passwords.confirmPassword) {
-            return toast({ title: 'Passwords do not match', status: 'error', duration: 3000 });
+            return toast({ title: t('admin.profile.toastPasswordMismatch'), status: 'error', duration: 3000 });
         }
         setIsUpdatingPassword(true);
         try {
@@ -95,25 +97,25 @@ const Profile = () => {
                 newPassword: passwords.newPassword,
                 confirmPassword: passwords.confirmPassword
             });
-            toast({ title: 'Password changed successfully', status: 'success', duration: 3000 });
+            toast({ title: t('admin.profile.toastPasswordChanged'), status: 'success', duration: 3000 });
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (error) {
-            toast({ title: 'Failed to change password', description: error.message, status: 'error', duration: 3000 });
+            toast({ title: t('admin.profile.toastPasswordFailed'), description: error.message, status: 'error', duration: 3000 });
         } finally {
             setIsUpdatingPassword(false);
         }
     };
 
     const handleDeleteAccount = async () => {
-        if (!deletePassword) return toast({ title: 'Password required', status: 'error', duration: 3000 });
+        if (!deletePassword) return toast({ title: t('admin.profile.toastPasswordRequired'), status: 'error', duration: 3000 });
         setIsDeleting(true);
         try {
             await userService.deleteAccount(deletePassword);
             logout();
-            toast({ title: 'Account deleted', status: 'success', duration: 3000 });
+            toast({ title: t('admin.profile.toastAccountDeleted'), status: 'success', duration: 3000 });
             window.location.href = '/signin';
         } catch (error) {
-            toast({ title: 'Failed to delete account', description: error.message, status: 'error', duration: 3000 });
+            toast({ title: t('admin.profile.toastDeleteFailed'), description: error.message, status: 'error', duration: 3000 });
         } finally {
             setIsDeleting(false);
             onDeleteClose();
@@ -125,7 +127,7 @@ const Profile = () => {
         return (
             <Flex w="100%" h="50vh" align="center" justify="center" direction="column" gap={4}>
                 <Spinner size="xl" color="cyan.400" />
-                <Text color={useColorModeValue("gray.500","gray.400")}>Loading admin profile...</Text>
+                <Text color={useColorModeValue("gray.500","gray.400")}>{t('admin.profile.loading')}</Text>
             </Flex>
         );
     }
@@ -133,8 +135,8 @@ const Profile = () => {
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
-                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">My Profile</h1>
-                <p style={{ color: 'var(--color-text-muted)' }} className="">Manage your account settings and preferences</p>
+                <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.profile.title')}</h1>
+                <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.profile.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -188,10 +190,10 @@ const Profile = () => {
 
                     {/* Profile Information */}
                     <div className="glass-panel rounded-2xl p-6 shadow-custom">
-                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">Profile Information</h2>
+                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">{t('admin.profile.profileInfo')}</h2>
                         <form onSubmit={handleProfileSave} className="space-y-4">
                             <FormControl>
-                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>Username</FormLabel>
+                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>{t('admin.profile.username')}</FormLabel>
                                 <Input
                                     bg="var(--color-bg-primary)" borderColor={useColorModeValue("gray.200","gray.700")} color={useColorModeValue("gray.800","gray.100")}
                                     value={draft.username}
@@ -199,7 +201,7 @@ const Profile = () => {
                                 />
                             </FormControl>
                             <FormControl>
-                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>Email Address</FormLabel>
+                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>{t('admin.profile.emailAddress')}</FormLabel>
                                 <Input
                                     type="email"
                                     bg="var(--color-bg-primary)" borderColor={useColorModeValue("gray.200","gray.700")} color={useColorModeValue("gray.800","gray.100")}
@@ -208,7 +210,7 @@ const Profile = () => {
                                 />
                             </FormControl>
                             <FormControl>
-                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>Bio</FormLabel>
+                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>{t('admin.profile.bio')}</FormLabel>
                                 <Textarea
                                     bg="var(--color-bg-primary)" borderColor={useColorModeValue("gray.200","gray.700")} color={useColorModeValue("gray.800","gray.100")} rows={4}
                                     value={draft.bio}
@@ -216,17 +218,17 @@ const Profile = () => {
                                 />
                             </FormControl>
                             <Button type="submit" colorScheme="cyan" isLoading={isUpdatingProfile} mt={4} color="gray.900" fontWeight="bold">
-                                Save Profile
+                                {t('admin.profile.saveProfile')}
                             </Button>
                         </form>
                     </div>
 
                     {/* Change Password */}
                     <div className="glass-panel rounded-2xl p-6 shadow-custom">
-                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">Security (Change Password)</h2>
+                        <h2 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-xl font-bold  mb-6">{t('admin.profile.security')}</h2>
                         <form onSubmit={handlePasswordChange} className="space-y-4">
                             <FormControl isRequired>
-                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>Current Password</FormLabel>
+                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>{t('admin.profile.currentPassword')}</FormLabel>
                                 <Input
                                     type="password" bg="var(--color-bg-primary)" borderColor={useColorModeValue("gray.200","gray.700")} color={useColorModeValue("gray.800","gray.100")}
                                     value={passwords.currentPassword}
@@ -234,7 +236,7 @@ const Profile = () => {
                                 />
                             </FormControl>
                             <FormControl isRequired>
-                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>New Password</FormLabel>
+                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>{t('admin.profile.newPassword')}</FormLabel>
                                 <Input
                                     type="password" bg="var(--color-bg-primary)" borderColor={useColorModeValue("gray.200","gray.700")} color={useColorModeValue("gray.800","gray.100")}
                                     value={passwords.newPassword}
@@ -242,7 +244,7 @@ const Profile = () => {
                                 />
                             </FormControl>
                             <FormControl isRequired>
-                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>Confirm New Password</FormLabel>
+                                <FormLabel color={useColorModeValue("gray.600","gray.300")}>{t('admin.profile.confirmNewPassword')}</FormLabel>
                                 <Input
                                     type="password" bg="var(--color-bg-primary)" borderColor={useColorModeValue("gray.200","gray.700")} color={useColorModeValue("gray.800","gray.100")}
                                     value={passwords.confirmPassword}
@@ -250,7 +252,7 @@ const Profile = () => {
                                 />
                             </FormControl>
                             <Button type="submit" colorScheme="cyan" isLoading={isUpdatingPassword} mt={4} color="gray.900" fontWeight="bold">
-                                Update Password
+                                {t('admin.profile.updatePassword')}
                             </Button>
                         </form>
                     </div>
@@ -259,10 +261,10 @@ const Profile = () => {
 
                     {/* Danger Zone */}
                     <div className="glass-panel rounded-2xl p-6 shadow-custom border border-red-900/50">
-                        <h2 className="font-heading text-xl font-bold text-red-500 mb-2">Danger Zone</h2>
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  mb-4">Once you delete your account, there is no going back. Please be certain.</p>
+                        <h2 className="font-heading text-xl font-bold text-red-500 mb-2">{t('admin.profile.dangerZone')}</h2>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  mb-4">{t('admin.profile.dangerZoneDesc')}</p>
                         <Button colorScheme="red" variant="outline" onClick={onDeleteOpen} _hover={{ bg: 'red.500', color: 'white' }}>
-                            Delete Account
+                            {t('admin.profile.deleteAccount')}
                         </Button>
                     </div>
                 </div>
@@ -274,14 +276,14 @@ const Profile = () => {
                 <AlertDialogOverlay>
                     <AlertDialogContent bg="var(--color-bg-secondary)" color={useColorModeValue("gray.800","gray.100")} border="1px solid" borderColor="var(--color-border)">
                         <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                            Delete Account
+                            {t('admin.profile.deleteAccount')}
                         </AlertDialogHeader>
 
                         <AlertDialogBody>
-                            <Text mb={4}>Are you sure? You can't undo this action afterwards. Please enter your password to confirm.</Text>
+                            <Text mb={4}>{t('admin.profile.deleteConfirmText')}</Text>
                             <Input
                                 type="password"
-                                placeholder="Enter your password"
+                                placeholder={t('admin.profile.deletePasswordPlaceholder')}
                                 bg="var(--color-bg-primary)" borderColor="var(--color-border)" color={useColorModeValue("gray.800","gray.100")}
                                 value={deletePassword}
                                 onChange={(e) => setDeletePassword(e.target.value)}
@@ -290,10 +292,10 @@ const Profile = () => {
 
                         <AlertDialogFooter>
                             <Button ref={cancelRef} onClick={onDeleteClose} variant="ghost" _hover={{ bg: 'gray.700' }}>
-                                Cancel
+                                {t('admin.profile.cancel')}
                             </Button>
                             <Button colorScheme="red" onClick={handleDeleteAccount} ml={3} isLoading={isDeleting}>
-                                Delete
+                                {t('admin.profile.delete')}
                             </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>

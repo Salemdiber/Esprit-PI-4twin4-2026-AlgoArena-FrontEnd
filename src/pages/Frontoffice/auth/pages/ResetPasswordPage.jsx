@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -52,6 +53,7 @@ const ArrowLeftIcon = (props) => (
 );
 
 const ResetPasswordPage = () => {
+    const { t } = useTranslation();
     const { token } = useParams();
     const navigate = useNavigate();
 
@@ -76,7 +78,7 @@ const ResetPasswordPage = () => {
         e.preventDefault();
         setCodeError('');
         if (!email || !code) {
-            setCodeError('Please enter your email and the 6-digit code.');
+            setCodeError(t('auth.reset.enterEmailAndCode'));
             return;
         }
         setIsLoading(true);
@@ -84,7 +86,7 @@ const ResetPasswordPage = () => {
             await authService.verifyResetCode(email, code);
             setStep(2);
         } catch (err) {
-            setCodeError(err?.message || 'Invalid or expired code.');
+            setCodeError(err?.message || t('auth.reset.invalidCode'));
         } finally {
             setIsLoading(false);
         }
@@ -94,11 +96,11 @@ const ResetPasswordPage = () => {
         e.preventDefault();
         setError('');
         if (password !== confirmPassword) {
-            setError('Passwords do not match');
+            setError(t('auth.reset.passwordsNoMatch'));
             return;
         }
         if (score < 2) {
-            setError('Password is too weak');
+            setError(t('auth.reset.passwordTooWeak'));
             return;
         }
         setIsLoading(true);
@@ -109,7 +111,7 @@ const ResetPasswordPage = () => {
             if (err?.message && err.message.toLowerCase().includes('expired')) {
                 navigate('/reset-expired');
             } else {
-                setError(err?.message || 'Failed to reset password');
+                setError(err?.message || t('auth.reset.resetFailed'));
             }
         } finally {
             setIsLoading(false);
@@ -136,38 +138,38 @@ const ResetPasswordPage = () => {
                 <>
                     <AuthHeader
                         icon={<LockIcon w={5} h={5} color="#22d3ee" />}
-                        title="Enter Confirmation Code"
-                        subtitle="Check your email for the 6-digit code and enter it below."
+                        title={t('auth.reset.enterCode')}
+                        subtitle={t('auth.reset.codeSubtitle')}
                     />
 
                     <form onSubmit={handleCodeSubmit}>
                         <FormControl mb={4} isRequired>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">Email</FormLabel>
-                            <Input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} {...inputStyles} />
+                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.email')}</FormLabel>
+                            <Input type="email" placeholder={t('auth.reset.emailPlaceholder')} value={email} onChange={(e) => setEmail(e.target.value)} {...inputStyles} />
                         </FormControl>
 
                         <FormControl mb={6} isRequired isInvalid={!!codeError}>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">Confirmation Code</FormLabel>
-                            <Input type="text" placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} {...inputStyles} />
+                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.codeLabel')}</FormLabel>
+                            <Input type="text" placeholder={t('auth.reset.codePlaceholder')} value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} {...inputStyles} />
                             <FormErrorMessage fontSize="xs" mt={2}>{codeError}</FormErrorMessage>
                         </FormControl>
 
-                        <Button type="submit" w="100%" h="48px" bg="#22d3ee" color="#0f172a" fontWeight="semibold" borderRadius="8px" boxShadow="0 4px 16px rgba(34, 211, 238, 0.2)" isLoading={isLoading} loadingText="Verifying..." isDisabled={email.length === 0 || code.length !== 6} _hover={{ bg: '#06b6d4', transform: 'translateY(-1px)', boxShadow: '0 6px 24px rgba(34, 211, 238, 0.35)' }} _active={{ transform: 'translateY(0)' }} transition="all 0.2s" mb={6}>
-                            Verify Code
+                        <Button type="submit" w="100%" h="48px" bg="#22d3ee" color="#0f172a" fontWeight="semibold" borderRadius="8px" boxShadow="0 4px 16px rgba(34, 211, 238, 0.2)" isLoading={isLoading} loadingText={t('auth.reset.verifying')} isDisabled={email.length === 0 || code.length !== 6} _hover={{ bg: '#06b6d4', transform: 'translateY(-1px)', boxShadow: '0 6px 24px rgba(34, 211, 238, 0.35)' }} _active={{ transform: 'translateY(0)' }} transition="all 0.2s" mb={6}>
+                            {t('auth.reset.verifyCode')}
                         </Button>
                     </form>
                 </>
             ) : (
                 <>
-                    <AuthHeader icon={<LockIcon w={5} h={5} color="#22d3ee" />} title="Create New Password" subtitle="Choose a strong password to secure your account." />
+                    <AuthHeader icon={<LockIcon w={5} h={5} color="#22d3ee" />} title={t('auth.reset.createNewPassword')} subtitle={t('auth.reset.createSubtitle')} />
 
                     <form onSubmit={handleSubmit}>
                         <FormControl mb={4} isInvalid={!!error && error.includes('weak')}>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">New Password</FormLabel>
+                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.newPassword')}</FormLabel>
                             <InputGroup>
-                                <Input type={showPassword ? 'text' : 'password'} placeholder="Enter new password" value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} />
+                                <Input type={showPassword ? 'text' : 'password'} placeholder={t('auth.reset.newPasswordPlaceholder')} value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} />
                                 <InputRightElement h="100%">
-                                    <IconButton variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)} icon={showPassword ? <EyeOffIcon /> : <EyeIcon />} color="gray.500" _hover={{ bg: 'transparent', color: 'gray.300' }} aria-label={showPassword ? 'Hide password' : 'Show password'} />
+                                    <IconButton variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)} icon={showPassword ? <EyeOffIcon /> : <EyeIcon />} color="gray.500" _hover={{ bg: 'transparent', color: 'gray.300' }} aria-label={showPassword ? t('auth.reset.hidePassword') : t('auth.reset.showPassword')} />
                                 </InputRightElement>
                             </InputGroup>
                         </FormControl>
@@ -179,13 +181,13 @@ const ResetPasswordPage = () => {
                         </Box>
 
                         <FormControl mb={6} isInvalid={!!error}>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">Confirm Password</FormLabel>
-                            <Input type="password" placeholder="Re-enter new password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} {...inputStyles} />
+                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.confirmPassword')}</FormLabel>
+                            <Input type="password" placeholder={t('auth.reset.confirmPlaceholder')} value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} {...inputStyles} />
                             <FormErrorMessage fontSize="xs" mt={2}>{error}</FormErrorMessage>
                         </FormControl>
 
-                        <Button type="submit" w="100%" h="48px" bg="#22d3ee" color="#0f172a" fontWeight="semibold" borderRadius="8px" boxShadow="0 4px 16px rgba(34, 211, 238, 0.2)" isLoading={isLoading} loadingText="Updating..." isDisabled={password.length === 0 || confirmPassword.length === 0} _hover={{ bg: '#06b6d4', transform: 'translateY(-1px)', boxShadow: '0 6px 24px rgba(34, 211, 238, 0.35)' }} _active={{ transform: 'translateY(0)' }} transition="all 0.2s" mb={6}>
-                            Update Password
+                        <Button type="submit" w="100%" h="48px" bg="#22d3ee" color="#0f172a" fontWeight="semibold" borderRadius="8px" boxShadow="0 4px 16px rgba(34, 211, 238, 0.2)" isLoading={isLoading} loadingText={t('auth.reset.updating')} isDisabled={password.length === 0 || confirmPassword.length === 0} _hover={{ bg: '#06b6d4', transform: 'translateY(-1px)', boxShadow: '0 6px 24px rgba(34, 211, 238, 0.35)' }} _active={{ transform: 'translateY(0)' }} transition="all 0.2s" mb={6}>
+                            {t('auth.reset.updatePassword')}
                         </Button>
                     </form>
                 </>
@@ -196,7 +198,7 @@ const ResetPasswordPage = () => {
             <Box textAlign="center">
                 <Link as={RouterLink} to="/signin" color="#22d3ee" fontSize="sm" _hover={{ textDecoration: 'underline' }} display="inline-flex" alignItems="center" gap={1}>
                     <ArrowLeftIcon w={4} h={4} />
-                    Back to Login
+                    {t('auth.reset.backToLogin')}
                 </Link>
             </Box>
         </AuthCard>

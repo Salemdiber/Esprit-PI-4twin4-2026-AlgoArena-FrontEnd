@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getToken } from '../../../../services/cookieUtils';
 
 const OAuthCallbackPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { reload } = useAuth();
 
@@ -48,11 +50,11 @@ const OAuthCallbackPage = () => {
         </div>
 
         <h2 className="text-2xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 mt-4">
-          Authenticating
+          {t('auth.oauth.authenticating')}
         </h2>
 
         <p className="text-(--color-text-muted) text-sm font-medium text-center animate-pulse">
-          Establishing secure connection to cognitive cores...
+          {t('auth.oauth.connecting')}
         </p>
       </div>
     </div>

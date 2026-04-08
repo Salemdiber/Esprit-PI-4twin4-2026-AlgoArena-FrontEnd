@@ -7,6 +7,7 @@
  */
 import React, { useRef, useEffect } from 'react';
 import { Box, Flex, Text, Icon, keyframes } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 
 const blink = keyframes`
     0%, 50% { opacity: 1; }
@@ -29,6 +30,7 @@ const COLOR_MAP = {
 };
 
 const OutputTerminal = ({ output = [], isRunning = false }) => {
+    const { t } = useTranslation();
     const scrollRef = useRef(null);
 
     useEffect(() => {
@@ -58,7 +60,7 @@ const OutputTerminal = ({ output = [], isRunning = false }) => {
             >
                 <TerminalIcon w={3.5} h={3.5} color="var(--color-text-muted)" />
                 <Text fontSize="xs" fontWeight="semibold" color="var(--color-text-muted)" textTransform="uppercase" letterSpacing="wider">
-                    Output
+                    {t('editor.output')}
                 </Text>
                 {/* Decorative dots */}
                 <Flex ml="auto" gap={1.5}>
@@ -87,7 +89,7 @@ const OutputTerminal = ({ output = [], isRunning = false }) => {
             >
                 {output.length === 0 && !isRunning && (
                     <Text color="var(--color-text-muted)" fontStyle="italic" fontSize="sm">
-                        Click "Run Code" to execute and see results here…
+                        {t('editor.idleMessage')}
                     </Text>
                 )}
 

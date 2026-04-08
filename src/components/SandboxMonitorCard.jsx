@@ -11,6 +11,7 @@ import {
     Tooltip,
     keyframes,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import {
     Activity,
     AlertTriangle,
@@ -54,8 +55,8 @@ const shimmerSlide = keyframes`
 `;
 
 /* ─── Formatting helpers (pure display logic — unchanged) ─── */
-const formatDuration = (ms) => {
-    if (ms == null || Number.isNaN(Number(ms))) return 'No executions yet';
+const formatDuration = (ms, fallback) => {
+    if (ms == null || Number.isNaN(Number(ms))) return fallback;
     const value = Math.max(0, Number(ms));
     if (value < 1000) return `${value}ms`;
     if (value < 60000) return `${(value / 1000).toFixed(1)}s`;
@@ -64,33 +65,26 @@ const formatDuration = (ms) => {
     return `${minutes}m ${seconds}s`;
 };
 
-const formatPercent = (value, fallback = 'No data yet') =>
+const formatPercent = (value, fallback) =>
     value == null || Number.isNaN(Number(value)) ? fallback : `${Number(value).toFixed(1)}%`;
 
-const formatMb = (value, fallback = 'No data yet') =>
+const formatMb = (value, fallback) =>
     value == null || Number.isNaN(Number(value)) ? fallback : `${Number(value).toFixed(1)} MB`;
 
-const relativeTime = (value) => {
-    if (!value) return 'No executions yet';
+const relativeTime = (value, tl) => {
+    if (!value) return tl.noData;
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'No executions yet';
+    if (Number.isNaN(date.getTime())) return tl.noData;
     const diff = Date.now() - date.getTime();
-    if (diff < 10000) return 'Just now';
+    if (diff < 10000) return tl.justNow;
     const sec = Math.floor(diff / 1000);
-    if (sec < 60) return `${sec}s ago`;
+    if (sec < 60) return tl.secAgo(sec);
     const min = Math.floor(sec / 60);
-    if (min < 60) return `${min}m ago`;
+    if (min < 60) return tl.minAgo(min);
     const hours = Math.floor(min / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return tl.hourAgo(hours);
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-};
-
-const statusConfig = (status) => {
-    if (status === 'executing') return { label: 'EXECUTING', color: '#f59e0b', pulse: true };
-    if (status === 'running') return { label: 'RUNNING', color: '#22c55e', pulse: true };
-    if (status === 'starting') return { label: 'STARTING', color: '#f59e0b', pulse: true };
-    return { label: 'IDLE', color: '#ef4444', pulse: false };
+    return tl.dayAgo(days);
 };
 
 const getCpuColor = (value) => {
@@ -133,8 +127,8 @@ const metricColors = {
 };
 
 /* ─── Glassmorphism Metric Card ─── */
-const MetricCard = ({ label, value, icon, tooltip, valueColor, index }) => {
-    const palette = metricColors[label] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)' };
+const MetricCard = ({ metricKey, label, value, icon, tooltip, valueColor, index }) => {
+    const palette = metricColors[metricKey] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)' };
     return (
         <Tooltip label={tooltip} hasArrow placement="top" openDelay={250}>
             <Box
@@ -215,6 +209,31 @@ const MetricCard = ({ label, value, icon, tooltip, valueColor, index }) => {
 
 /* ─── Main Component ─── */
 const SandboxMonitorCard = ({ status, loading, error }) => {
+    const { t } = useTranslation();
+
+    const statusLabels = {
+        executing: t('sandbox.executing'),
+        running: t('sandbox.running'),
+        starting: t('sandbox.starting'),
+        idle: t('sandbox.idle'),
+    };
+    const statusConfig = (s) => {
+        if (s === 'executing') return { label: statusLabels.executing, color: '#f59e0b', pulse: true };
+        if (s === 'running') return { label: statusLabels.running, color: '#22c55e', pulse: true };
+        if (s === 'starting') return { label: statusLabels.starting, color: '#f59e0b', pulse: true };
+        return { label: statusLabels.idle, color: '#ef4444', pulse: false };
+    };
+
+    const tl = {
+        noData: t('sandbox.noExecutionsYet'),
+        justNow: t('sandbox.justNow'),
+        secAgo: (n) => t('sandbox.secsAgo', { n }),
+        minAgo: (n) => t('sandbox.minsAgo', { n }),
+        hourAgo: (n) => t('sandbox.hoursAgo', { n }),
+        dayAgo: (n) => t('sandbox.daysAgo', { n }),
+    };
+    const noDataFallback = t('sandbox.noDataYet');
+
     const tone = statusConfig(status?.status);
     const health = status?.health || 'no_data';
     const healthValue = useMemo(() => {
@@ -233,16 +252,16 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                 : 'linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.08))';
 
     const metrics = [
-        { label: 'Container ID', value: status?.containerId || 'Idle', icon: Fingerprint, tooltip: 'Most recent container short ID.' },
-        { label: 'Last Uptime', value: formatDuration(status?.lastUptimeMs), icon: Activity, tooltip: 'Execution duration of the last run.' },
-        { label: 'Avg CPU', value: formatPercent(status?.avgCpuPercent), icon: Cpu, tooltip: 'Average peak CPU over recent runs.', valueColor: getCpuColor(status?.avgCpuPercent) },
-        { label: 'Peak CPU', value: formatPercent(status?.peakCpuPercent), icon: Flame, tooltip: 'Highest CPU peak recorded.', valueColor: getCpuColor(status?.peakCpuPercent) },
-        { label: 'Avg Memory', value: formatMb(status?.avgMemoryMb), icon: HardDrive, tooltip: 'Average peak memory over recent runs.', valueColor: getMemoryColor(status?.avgMemoryMb) },
-        { label: 'Peak Memory', value: formatMb(status?.peakMemoryMb), icon: AlertTriangle, tooltip: 'Highest memory peak recorded.', valueColor: getMemoryColor(status?.peakMemoryMb) },
-        { label: 'Total Runs', value: String(status?.totalExecutions ?? 0), icon: PlayCircle, tooltip: 'All recorded executions.' },
-        { label: 'Success Rate', value: formatPercent(status?.successRate), icon: CheckCircle2, tooltip: 'Successful executions / total executions.', valueColor: getSuccessColor(status?.successRate) },
-        { label: 'Failed Runs', value: String(status?.failedExecutions ?? 0), icon: XCircle, tooltip: 'Failed execution count.' },
-        { label: 'Last Run', value: relativeTime(status?.lastExecutionAt || null), icon: CalendarClock, tooltip: 'Relative time since latest run.' },
+        { metricKey: 'Container ID', label: t('sandbox.containerId'), value: status?.containerId || t('sandbox.idleValue'), icon: Fingerprint, tooltip: t('sandbox.containerIdTooltip') },
+        { metricKey: 'Last Uptime', label: t('sandbox.lastUptime'), value: formatDuration(status?.lastUptimeMs, tl.noData), icon: Activity, tooltip: t('sandbox.lastUptimeTooltip') },
+        { metricKey: 'Avg CPU', label: t('sandbox.avgCpu'), value: formatPercent(status?.avgCpuPercent, noDataFallback), icon: Cpu, tooltip: t('sandbox.avgCpuTooltip'), valueColor: getCpuColor(status?.avgCpuPercent) },
+        { metricKey: 'Peak CPU', label: t('sandbox.peakCpu'), value: formatPercent(status?.peakCpuPercent, noDataFallback), icon: Flame, tooltip: t('sandbox.peakCpuTooltip'), valueColor: getCpuColor(status?.peakCpuPercent) },
+        { metricKey: 'Avg Memory', label: t('sandbox.avgMemory'), value: formatMb(status?.avgMemoryMb, noDataFallback), icon: HardDrive, tooltip: t('sandbox.avgMemoryTooltip'), valueColor: getMemoryColor(status?.avgMemoryMb) },
+        { metricKey: 'Peak Memory', label: t('sandbox.peakMemory'), value: formatMb(status?.peakMemoryMb, noDataFallback), icon: AlertTriangle, tooltip: t('sandbox.peakMemoryTooltip'), valueColor: getMemoryColor(status?.peakMemoryMb) },
+        { metricKey: 'Total Runs', label: t('sandbox.totalRuns'), value: String(status?.totalExecutions ?? 0), icon: PlayCircle, tooltip: t('sandbox.totalRunsTooltip') },
+        { metricKey: 'Success Rate', label: t('sandbox.successRate'), value: formatPercent(status?.successRate, noDataFallback), icon: CheckCircle2, tooltip: t('sandbox.successRateTooltip'), valueColor: getSuccessColor(status?.successRate) },
+        { metricKey: 'Failed Runs', label: t('sandbox.failedRuns'), value: String(status?.failedExecutions ?? 0), icon: XCircle, tooltip: t('sandbox.failedRunsTooltip') },
+        { metricKey: 'Last Run', label: t('sandbox.lastRun'), value: relativeTime(status?.lastExecutionAt || null, tl), icon: CalendarClock, tooltip: t('sandbox.lastRunTooltip') },
     ];
 
     return (
@@ -285,7 +304,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                                 letterSpacing="0.04em"
                                 textTransform="uppercase"
                             >
-                                AlgoArenaSandbox
+                                {t('sandbox.algoArenaSandbox')}
                             </Text>
                             <Text
                                 fontSize="xs"
@@ -293,7 +312,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                                 fontFamily="var(--font-mono)"
                                 mt={0.5}
                             >
-                                {status?.image || 'No executions yet'}
+                                {status?.image || t('sandbox.noExecutionsYet')}
                             </Text>
                         </Box>
                     </HStack>
@@ -334,7 +353,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                 {loading ? (
                     <Flex align="center" gap={3} color="var(--color-text-muted)" py={8} justify="center">
                         <Spinner size="sm" color="cyan.300" />
-                        <Text fontSize="sm">Refreshing sandbox telemetry...</Text>
+                        <Text fontSize="sm">{t('sandbox.refreshing')}</Text>
                     </Flex>
                 ) : error ? (
                     <Text color="red.300" fontSize="sm" py={8} textAlign="center">{error}</Text>
@@ -342,8 +361,9 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                     <SimpleGrid columns={{ base: 2, md: 3, lg: 4, xl: 5 }} spacing={3}>
                         {metrics.map((metric, i) => (
                             <MetricCard
-                                key={metric.label}
+                                key={metric.metricKey}
                                 index={i}
+                                metricKey={metric.metricKey}
                                 label={metric.label}
                                 value={metric.value}
                                 icon={metric.icon}
@@ -370,7 +390,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                             color="var(--color-text-muted)"
                             fontWeight="600"
                         >
-                            System Health
+                            {t('sandbox.systemHealth')}
                         </Text>
                         <Text
                             fontSize="xs"
@@ -384,7 +404,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                             textTransform="uppercase"
                             letterSpacing="0.04em"
                         >
-                            {status?.healthLabel || 'No Data'}
+                            {status?.healthLabel || t('sandbox.noHealthData')}
                         </Text>
                     </Flex>
 
@@ -409,7 +429,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                     <Flex align="center" justify="space-between" mt={3}>
                         <HStack spacing={2}>
                             <Text fontSize="xs" color="var(--color-text-muted)">
-                                Last synced: {relativeTime(status?.lastUpdatedAt || null)}
+                                {t('sandbox.lastSynced')} {relativeTime(status?.lastUpdatedAt || null, tl)}
                             </Text>
                             {loading && (
                                 <Icon
@@ -430,7 +450,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
                             color="var(--color-text-muted)"
                             fontFamily="var(--font-mono)"
                         >
-                            AlgoArenaSandbox
+                            {t('sandbox.algoArenaSandbox')}
                         </Text>
                     </Flex>
                 </Box>

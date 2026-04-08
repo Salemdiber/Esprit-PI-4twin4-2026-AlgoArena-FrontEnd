@@ -20,6 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiClock, FiEdit3, FiPauseCircle } from 'react-icons/fi';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META, ChallengeUserStatus } from '../data/mockChallenges';
@@ -45,21 +46,22 @@ const CheckIcon = (props) => (
     </Icon>
 );
 
-const formatRelative = (isoValue) => {
-    if (!isoValue) return 'recently';
-    const ms = Date.now() - new Date(isoValue).getTime();
-    if (!Number.isFinite(ms) || ms < 0) return 'recently';
-    const minutes = Math.floor(ms / 60000);
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-    const days = Math.floor(hours / 24);
-    return `${days} day${days === 1 ? '' : 's'} ago`;
-};
-
 const ChallengeCard = ({ challenge }) => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
+
+    const formatRelative = (isoValue) => {
+        if (!isoValue) return t('challengePage.recently');
+        const ms = Date.now() - new Date(isoValue).getTime();
+        if (!Number.isFinite(ms) || ms < 0) return t('challengePage.recently');
+        const minutes = Math.floor(ms / 60000);
+        if (minutes < 1) return t('challengePage.justNow');
+        if (minutes < 60) return minutes === 1 ? t('challengePage.minuteAgo', { count: minutes }) : t('challengePage.minutesAgo', { count: minutes });
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return hours === 1 ? t('challengePage.hourAgo', { count: hours }) : t('challengePage.hoursAgo', { count: hours });
+        const days = Math.floor(hours / 24);
+        return days === 1 ? t('challengePage.dayAgo', { count: days }) : t('challengePage.daysAgo', { count: days });
+    };
     const { getUserProgress, isRecommended, selectChallenge } = useChallengeContext();
 
     const progress = getUserProgress(challenge.id);
@@ -116,7 +118,7 @@ const ChallengeCard = ({ challenge }) => {
                                 py={1}
                                 borderRadius="8px"
                             >
-                                RECOMMENDED
+                                {t('challengePage.recommended')}
                             </Badge>
                         )}
 
@@ -134,7 +136,7 @@ const ChallengeCard = ({ challenge }) => {
                                 gap={1}
                             >
                                 <CheckIcon w={3} h={3} />
-                                SOLVED
+                                {t('challengePage.solved')}
                             </Badge>
                         )}
 
@@ -152,7 +154,7 @@ const ChallengeCard = ({ challenge }) => {
                                 gap={1}
                             >
                                 <Icon as={FiEdit3} boxSize={3} />
-                                In Progress
+                                {t('challengePage.inProgress')}
                             </Badge>
                         )}
                         {!isSolved && userStatus === 'abandoned' && (
@@ -169,7 +171,7 @@ const ChallengeCard = ({ challenge }) => {
                                 gap={1}
                             >
                                 <Icon as={FiPauseCircle} boxSize={3} />
-                                Abandoned
+                                {t('challengePage.abandoned')}
                             </Badge>
                         )}
                     </HStack>
@@ -203,32 +205,32 @@ const ChallengeCard = ({ challenge }) => {
                     {/* Meta row */}
                     {isSolved && progress ? (
                         <HStack spacing={6} fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
-                            <Text>Your time: <Text as="strong" color="green.400">{progress.bestRuntime}ms</Text></Text>
-                            <Text>Score: <Text as="strong" color="green.400">{progress.earnedXp}/{challenge.xpReward}</Text></Text>
-                            <Text>Solved in: <Text as="strong" color="green.400">{Math.max(1, Math.round(Number(progress?.solveTimeSeconds || 0) / 60))} min</Text></Text>
+                            <Text>{t('challengePage.yourTime')} <Text as="strong" color="green.400">{progress.bestRuntime}ms</Text></Text>
+                            <Text>{t('challengePage.scoreLabel')} <Text as="strong" color="green.400">{progress.earnedXp}/{challenge.xpReward}</Text></Text>
+                            <Text>{t('challengePage.solvedIn')} <Text as="strong" color="green.400">{Math.max(1, Math.round(Number(progress?.solveTimeSeconds || 0) / 60))} {t('challengePage.min')}</Text></Text>
                         </HStack>
                     ) : (
                         <HStack spacing={6} fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
                             <Flex align="center" gap={2}>
                                 <ClockIcon w={4} h={4} />
-                                <Text>~{challenge.estimatedTime} min</Text>
+                                <Text>{t('challengePage.estimatedTime', { time: challenge.estimatedTime })}</Text>
                             </Flex>
                             <Flex align="center" gap={2}>
                                 <StarIcon w={4} h={4} color="yellow.400" />
-                                <Text>+{challenge.xpReward} XP</Text>
+                                <Text>{t('challengePage.xpReward', { xp: challenge.xpReward })}</Text>
                             </Flex>
                             <Text>
-                                Acceptance: <Text as="strong" color={useColorModeValue("gray.800", "gray.100")}>{challenge.acceptanceRate}%</Text>
+                                {t('challengePage.acceptance')} <Text as="strong" color={useColorModeValue("gray.800", "gray.100")}>{challenge.acceptanceRate}%</Text>
                             </Text>
                             {userStatus === 'in_progress' && (
                                 <Text color="orange.300" display="inline-flex" alignItems="center" gap={1.5}>
                                     <Icon as={FiClock} boxSize={3.5} />
-                                    Last worked on {formatRelative(progress?.lastActiveAt || progress?.lastAttemptAt)}
+                                    {t('challengePage.lastWorkedOn', { time: formatRelative(progress?.lastActiveAt || progress?.lastAttemptAt) })}
                                 </Text>
                             )}
                             {userStatus === 'abandoned' && (
                                 <Text color="orange.300">
-                                    {incompleteAttempts || 1} incomplete attempt{(incompleteAttempts || 1) !== 1 ? 's' : ''}
+                                    {(incompleteAttempts || 1) !== 1 ? t('challengePage.incompleteAttempts', { count: incompleteAttempts || 1 }) : t('challengePage.incompleteAttempt', { count: incompleteAttempts || 1 })}
                                 </Text>
                             )}
                         </HStack>
@@ -250,10 +252,10 @@ const ChallengeCard = ({ challenge }) => {
                         }}
                         whiteSpace="nowrap"
                     >
-                        {isSolved ? 'View Solution' : userStatus === 'in_progress' ? 'Resume Challenge' : 'Start Challenge'}
+                        {isSolved ? t('challengePage.viewSolution') : userStatus === 'in_progress' ? t('challengePage.resumeChallenge') : t('challengePage.startChallenge')}
                     </Button>
                     <Text fontSize="xs" color={isSolved ? 'green.400' : 'gray.500'}>
-                        {isSolved ? `XP earned: +${progress.earnedXp}` : `Solved by ${(challenge.solvedCount || 0).toLocaleString()} users`}
+                        {isSolved ? t('challengePage.xpEarned', { xp: progress.earnedXp }) : t('challengePage.solvedByUsers', { count: (challenge.solvedCount || 0).toLocaleString() })}
                     </Text>
                 </Flex>
             </Flex>

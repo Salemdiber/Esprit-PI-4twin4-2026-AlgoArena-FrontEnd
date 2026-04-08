@@ -29,6 +29,7 @@ import {
     ListItem,
 } from '@chakra-ui/react';
 import { TimeIcon, InfoIcon } from '@chakra-ui/icons';
+import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META } from '../data/mockChallenges';
 import { CodeEditor } from '../../../../editor';
@@ -39,46 +40,46 @@ const StarIcon = (props) => (
     </Icon>
 );
 
-const SubmissionMetrics = ({ submission }) => {
+const SubmissionMetrics = ({ submission, t }) => {
     const detectColor = submission.aiDetection === 'AI_SUSPECTED' ? 'orange' : 'green';
     return (
         <VStack align="stretch" spacing={4}>
             <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={3}>
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel><HStack spacing={1}><TimeIcon /><Text>Execution Time</Text></HStack></StatLabel>
+                    <StatLabel><HStack spacing={1}><TimeIcon /><Text>{t('challengePage.executionTime')}</Text></HStack></StatLabel>
                     <StatNumber fontSize="lg">{submission.executionTime || '0ms'}</StatNumber>
                 </Stat>
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel><HStack spacing={1}><InfoIcon /><Text>Memory</Text></HStack></StatLabel>
-                    <StatNumber fontSize="lg">{submission.memoryAllocated || 'Not available'}</StatNumber>
+                    <StatLabel><HStack spacing={1}><InfoIcon /><Text>{t('challengePage.memory')}</Text></HStack></StatLabel>
+                    <StatNumber fontSize="lg">{submission.memoryAllocated || t('challengePage.notAvailable')}</StatNumber>
                 </Stat>
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel><HStack spacing={1}><TimeIcon /><Text>Load Time</Text></HStack></StatLabel>
+                    <StatLabel><HStack spacing={1}><TimeIcon /><Text>{t('challengePage.loadTime')}</Text></HStack></StatLabel>
                     <StatNumber fontSize="lg">{submission.loadTime || '0ms'}</StatNumber>
                 </Stat>
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel>Time Complexity</StatLabel>
-                    <StatNumber fontSize="lg">{submission.timeComplexity || 'Unknown'}</StatNumber>
+                    <StatLabel>{t('challengePage.timeComplexity')}</StatLabel>
+                    <StatNumber fontSize="lg">{submission.timeComplexity || t('challengePage.unknown')}</StatNumber>
                 </Stat>
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel>Space Complexity</StatLabel>
-                    <StatNumber fontSize="lg">{submission.spaceComplexity || 'Unknown'}</StatNumber>
+                    <StatLabel>{t('challengePage.spaceComplexity')}</StatLabel>
+                    <StatNumber fontSize="lg">{submission.spaceComplexity || t('challengePage.unknown')}</StatNumber>
                 </Stat>
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel>Solve Time</StatLabel>
-                    <StatNumber fontSize="lg">{submission.solveTimeSeconds != null ? `${submission.solveTimeSeconds}s` : 'N/A'}</StatNumber>
+                    <StatLabel>{t('challengePage.solveTime')}</StatLabel>
+                    <StatNumber fontSize="lg">{submission.solveTimeSeconds != null ? `${submission.solveTimeSeconds}s` : t('challengePage.na')}</StatNumber>
                 </Stat>
             </SimpleGrid>
 
             <HStack spacing={2}>
                 <Badge colorScheme={submission.passed ? 'green' : 'red'} px={2} py={1} borderRadius="md">
-                    {submission.passed ? 'Accepted' : 'Failed'}
+                    {submission.passed ? t('challengePage.accepted') : t('challengePage.failed')}
                 </Badge>
                 <Badge colorScheme={detectColor} px={2} py={1} borderRadius="md">
-                    {submission.aiDetection === 'AI_SUSPECTED' ? 'AI Suspected' : 'Manual'}
+                    {submission.aiDetection === 'AI_SUSPECTED' ? t('challengePage.aiSuspected') : t('challengePage.manual')}
                 </Badge>
                 <Badge colorScheme="blue" px={2} py={1} borderRadius="md">
-                    {submission.passedCount}/{submission.total} Tests
+                    {t('challengePage.testsCountBadge', { passed: submission.passedCount, total: submission.total })}
                 </Badge>
             </HStack>
         </VStack>
@@ -86,6 +87,7 @@ const SubmissionMetrics = ({ submission }) => {
 };
 
 const ProblemDescription = () => {
+    const { t } = useTranslation();
     const {
         selectedChallenge,
         selectedChallengeId,
@@ -122,7 +124,7 @@ const ProblemDescription = () => {
             <VStack align="stretch" spacing={4}>
                 {!latestSubmission ? (
                     <Text color={gray500_400} fontStyle="italic">
-                        Your submission details will appear here after you submit a solution.
+                        {t('challengePage.submissionPlaceholder')}
                     </Text>
                 ) : (
                     <Card bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)">
@@ -130,24 +132,24 @@ const ProblemDescription = () => {
                             <VStack align="stretch" spacing={5}>
                                 <Flex justify="space-between" align={{ base: 'flex-start', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={3}>
                                     <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color={gray800_100}>
-                                        Latest Submission
+                                        {t('challengePage.latestSubmission')}
                                     </Text>
                                     <HStack spacing={2}>
                                         <Tag colorScheme="cyan" size="sm">{latestSubmission.language}</Tag>
                                         <Tooltip label="AI-generated detection verdict from judge">
                                             <Tag colorScheme={latestSubmission.aiDetection === 'AI_SUSPECTED' ? 'orange' : 'green'} size="sm">
-                                                {latestSubmission.aiDetection === 'AI_SUSPECTED' ? 'AI Suspected' : 'Manual'}
+                                                {latestSubmission.aiDetection === 'AI_SUSPECTED' ? t('challengePage.aiSuspected') : t('challengePage.manual')}
                                             </Tag>
                                         </Tooltip>
                                     </HStack>
                                 </Flex>
 
-                                <SubmissionMetrics submission={latestSubmission} />
+                                <SubmissionMetrics submission={latestSubmission} t={t} />
 
                                 <Divider borderColor={gray200_700} />
 
                                 <Box>
-                                    <Text mb={2} fontWeight="semibold" color={gray800_100}>Submitted Code</Text>
+                                    <Text mb={2} fontWeight="semibold" color={gray800_100}>{t('challengePage.submittedCode')}</Text>
                                     <Box border="1px solid" borderColor="var(--color-border)" borderRadius="lg" overflow="hidden" h="320px">
                                         <CodeEditor
                                             code={latestSubmission.code || ''}
@@ -161,7 +163,7 @@ const ProblemDescription = () => {
 
                                 {Array.isArray(latestSubmission.recommendations) && latestSubmission.recommendations.length > 0 && (
                                     <Box>
-                                        <Text fontWeight="semibold" mb={2} color={gray800_100}>AI Recommendations</Text>
+                                        <Text fontWeight="semibold" mb={2} color={gray800_100}>{t('challengePage.aiRecommendations')}</Text>
                                         <List spacing={2}>
                                             {latestSubmission.recommendations.map((item, index) => (
                                                 <ListItem key={`${item}-${index}`} fontSize="sm" color={gray600_300}>
@@ -185,7 +187,7 @@ const ProblemDescription = () => {
                 <Card bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)">
                     <CardBody>
                         <Text fontFamily="heading" fontSize="2xl" fontWeight="bold" color={gray800_100} mb={4}>
-                            AI Judge Analysis
+                            {t('challengePage.aiJudgeAnalysis')}
                         </Text>
                         {latestSubmission?.aiAnalysis || judgeAnalysis ? (
                             <Text whiteSpace="pre-wrap" fontSize="sm" lineHeight="1.8" color={gray600_300}>
@@ -193,7 +195,7 @@ const ProblemDescription = () => {
                             </Text>
                         ) : (
                             <Text color={gray500_400} fontStyle="italic">
-                                AI analysis will appear here after submission.
+                                {t('challengePage.aiAnalysisPlaceholder')}
                             </Text>
                         )}
                     </CardBody>
@@ -202,13 +204,13 @@ const ProblemDescription = () => {
                 {latestSubmission && (
                     <Card bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)">
                         <CardBody>
-                            <Text fontWeight="semibold" mb={3} color={gray800_100}>AI Detection & Complexity</Text>
+                            <Text fontWeight="semibold" mb={3} color={gray800_100}>{t('challengePage.aiDetectionComplexity')}</Text>
                             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
                                 <Tag colorScheme={latestSubmission.aiDetection === 'AI_SUSPECTED' ? 'orange' : 'green'} w="fit-content">
-                                    {latestSubmission.aiDetection === 'AI_SUSPECTED' ? 'AI Suspected' : 'Manual'}
+                                    {latestSubmission.aiDetection === 'AI_SUSPECTED' ? t('challengePage.aiSuspected') : t('challengePage.manual')}
                                 </Tag>
-                                <Tag colorScheme="blue" w="fit-content">Time: {latestSubmission.timeComplexity || 'Unknown'}</Tag>
-                                <Tag colorScheme="purple" w="fit-content">Space: {latestSubmission.spaceComplexity || 'Unknown'}</Tag>
+                                <Tag colorScheme="blue" w="fit-content">{t('challengePage.timeLabel', { value: latestSubmission.timeComplexity || t('challengePage.unknown') })}</Tag>
+                                <Tag colorScheme="purple" w="fit-content">{t('challengePage.spaceLabel', { value: latestSubmission.spaceComplexity || t('challengePage.unknown') })}</Tag>
                             </SimpleGrid>
                         </CardBody>
                     </Card>
@@ -226,7 +228,7 @@ const ProblemDescription = () => {
                 <Box>
                     <Flex justify="space-between" align="center" mb={4}>
                         <Text fontFamily="heading" fontWeight="bold" color={gray800_100}>
-                            AI Hints
+                            {t('challengePage.aiHints')}
                         </Text>
                         <Button
                             size="sm"
@@ -235,7 +237,7 @@ const ProblemDescription = () => {
                             isDisabled={!hintAvailable}
                             onClick={requestHint}
                         >
-                            Request AI Hint
+                            {t('challengePage.requestAiHint')}
                         </Button>
                     </Flex>
                     {hint ? (
@@ -246,8 +248,8 @@ const ProblemDescription = () => {
                     ) : (
                         <Text color={gray500_400} fontSize="xs">
                             {hintAvailable
-                                ? 'You can request a hint now.'
-                                : 'Hints unlock after enough time or failed attempts.'}
+                                ? t('challengePage.hintAvailableNow')
+                                : t('challengePage.hintLockedDesc')}
                         </Text>
                     )}
                 </Box>
@@ -284,10 +286,10 @@ const ProblemDescription = () => {
                 <HStack spacing={6} fontSize="sm" color={gray500_400}>
                     <Flex align="center" gap={2}>
                         <StarIcon w={4} h={4} color="yellow.400" />
-                        <Text>+{selectedChallenge.xpReward} XP Reward</Text>
+                        <Text>{t('challengePage.xpRewardLabel', { xp: selectedChallenge.xpReward })}</Text>
                     </Flex>
                     <Text>
-                        Acceptance: <Text as="strong" color={gray800_100}>{selectedChallenge.acceptanceRate}%</Text>
+                        {t('challengePage.acceptanceLabel')} <Text as="strong" color={gray800_100}>{selectedChallenge.acceptanceRate}%</Text>
                     </Text>
                 </HStack>
             </Box>
@@ -296,7 +298,7 @@ const ProblemDescription = () => {
 
             <Box>
                 <Text fontFamily="heading" fontWeight="bold" color={gray800_100} mb={3}>
-                    Problem Statement
+                    {t('challengePage.problemStatement')}
                 </Text>
                 {selectedChallenge.description.split('\n').filter(Boolean).map((para, i) => (
                     <Text key={i} color={gray600_300} lineHeight="1.8" mb={3}>
@@ -323,20 +325,20 @@ const ProblemDescription = () => {
             {selectedChallenge.examples.map((ex, i) => (
                 <Box key={i}>
                     <Text fontFamily="heading" fontWeight="bold" color={gray800_100} mb={3}>
-                        Example {i + 1}
+                        {t('challengePage.exampleN', { n: i + 1 })}
                     </Text>
                     <Box bg="var(--color-bg-secondary)" borderRadius="12px" p={4} fontFamily="mono" fontSize="sm">
                         <Box mb={2}>
-                            <Text as="span" color={gray500_400}>Input: </Text>
+                            <Text as="span" color={gray500_400}>{t('challengePage.inputLabel')} </Text>
                             <Text as="span" color={gray800_100}>{ex.input}</Text>
                         </Box>
                         <Box mb={ex.explanation ? 2 : 0}>
-                            <Text as="span" color={gray500_400}>Output: </Text>
+                            <Text as="span" color={gray500_400}>{t('challengePage.outputLabel')} </Text>
                             <Text as="span" color={gray800_100}>{ex.output}</Text>
                         </Box>
                         {ex.explanation && (
                             <Box>
-                                <Text as="span" color={gray500_400}>Explanation: </Text>
+                                <Text as="span" color={gray500_400}>{t('challengePage.explanationLabel')} </Text>
                                 <Text as="span" color={gray600_300}>{ex.explanation}</Text>
                             </Box>
                         )}
@@ -346,7 +348,7 @@ const ProblemDescription = () => {
 
             <Box>
                 <Text fontFamily="heading" fontWeight="bold" color={gray800_100} mb={3}>
-                    Constraints
+                    {t('challengePage.constraints')}
                 </Text>
                 <VStack spacing={2} align="stretch">
                     {selectedChallenge.constraints.map((c, i) => (
@@ -367,7 +369,7 @@ const ProblemDescription = () => {
             {selectedChallenge.hints?.length > 0 && (
                 <Box>
                     <Text fontFamily="heading" fontWeight="bold" color={gray800_100} mb={3}>
-                        Hints
+                        {t('challengePage.hints')}
                     </Text>
                     <VStack spacing={2} align="stretch">
                         {selectedChallenge.hints.map((h, i) => (
@@ -384,7 +386,7 @@ const ProblemDescription = () => {
                                     onClick={() => toggleHint(i)}
                                     transition="color 0.2s"
                                 >
-                                    Hint {i + 1}
+                                    {t('challengePage.hintN', { n: i + 1 })}
                                 </Button>
                                 <Collapse in={!!openHints[i]}>
                                     <Box px={4} pb={3}>

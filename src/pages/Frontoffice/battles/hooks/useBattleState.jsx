@@ -23,6 +23,7 @@ import {
 import { battlesService } from '../../../../services/battlesService';
 import { challengeService } from '../../../../services/challengeService';
 import { useAuth } from '../../auth/context/AuthContext';
+import i18n from '../../../../i18n';
 
 const BATTLE_RESULTS_PREFIX = 'battle-results:';
 const BATTLE_PLAN_PREFIX = 'battle-plan:';
@@ -532,9 +533,8 @@ export function BattleProvider({ children }) {
             },
             opponent,
             createdAt: battle?.createdAt ? new Date(battle.createdAt) : new Date(),
-            startedAt: battle?.startedAt ? new Date(battle.startedAt) : (battle?.createdAt ? new Date(battle.createdAt) : new Date()),
             completedAt: battle?.endedAt ? new Date(battle.endedAt) : null,
-            timeLimit: Number(battle?.timeLimitSeconds || 900),
+            timeLimit: 900,
             difficulty: botDifficulty,
         };
 
@@ -603,7 +603,7 @@ export function BattleProvider({ children }) {
             const list = Array.isArray(resp) ? resp : Array.isArray(resp?.data) ? resp.data : [];
             dispatch({ type: ActionTypes.SET_CHALLENGES, payload: list });
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to load challenges' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadChallenges') });
         }
     }, []);
 
@@ -620,7 +620,7 @@ export function BattleProvider({ children }) {
             const mapped = list.map(mapBattleFromApi);
             dispatch({ type: ActionTypes.SET_BATTLES, payload: mapped });
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to load battles' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadBattles') });
         } finally {
             dispatch({ type: ActionTypes.SET_LOADING, payload: false });
         }
@@ -665,13 +665,13 @@ export function BattleProvider({ children }) {
     }, []);
 
     const confirmCreateBattle = useCallback(async () => {
-        const { mode, totalRounds, difficulty, challengeType, timeLimit } = state.createModal;
+        const { mode, totalRounds, difficulty, challengeType } = state.createModal;
         const pool = filterChallengesByType(challengeType);
         const assigned = Array.from({ length: totalRounds }, (_, idx) => pool[idx % Math.max(1, pool.length)]);
         const primary = assigned[0];
 
         if (!primary?._id) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: 'No challenges available for the selected type.' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: i18n.t('battles.noChallengesForType') });
             return;
         }
 
@@ -684,7 +684,6 @@ export function BattleProvider({ children }) {
             selectChallengeType: challengeType || resolveChallengeType(primary) || difficulty,
             battleType: mode === BattleMode.ONE_VS_AI ? '1VSBOT' : '1VS1',
             botDifficulty: difficulty,
-            timeLimitSeconds: Number(timeLimit || 900),
         };
 
         try {
@@ -719,7 +718,7 @@ export function BattleProvider({ children }) {
             dispatch({ type: ActionTypes.CLOSE_CREATE_MODAL });
             await refreshBattles();
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to create battle' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCreateBattle') });
         }
     }, [state.createModal, currentUser, currentUserId, refreshBattles, filterChallengesByType, resolveChallengeType]);
 
@@ -728,7 +727,7 @@ export function BattleProvider({ children }) {
             await battlesService.update(id, { battleStatus: 'CANCELLED' });
             await refreshBattles();
         } catch (err) {
-            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || 'Failed to cancel battle' });
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCancelBattle') });
         }
     }, [refreshBattles]);
 

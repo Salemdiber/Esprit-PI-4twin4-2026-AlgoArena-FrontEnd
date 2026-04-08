@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 
 const SystemHealth = () => {
+    const { t } = useTranslation();
     const [healthData, setHealthData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,7 +16,7 @@ const SystemHealth = () => {
                 setLoading(false);
             } catch (err) {
                 console.error("Failed to fetch system health data", err);
-                setError("Failed to monitor system health");
+                setError(t('admin.systemHealth.errorLoading'));
                 setLoading(false);
             }
         };
@@ -56,8 +58,8 @@ const SystemHealth = () => {
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6 flex justify-between items-center">
                 <div>
-                    <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">System Health Monitor</h1>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="">Real-time infrastructure and service monitoring</p>
+                    <h1 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-3xl font-bold  mb-2">{t('admin.systemHealth.title')}</h1>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="">{t('admin.systemHealth.subtitle')}</p>
                 </div>
                 <StatusBadge status={healthData.overall.status} color={healthData.overall.color} />
             </div>
@@ -67,48 +69,48 @@ const SystemHealth = () => {
                 {/* CPU Usage */}
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">CPU Usage</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.systemHealth.cpuUsage')}</h3>
                         <StatusBadge status={healthData.cpu.status} color={healthData.cpu.status === 'Healthy' ? 'green' : healthData.cpu.status === 'Warning' ? 'yellow' : 'red'} />
                     </div>
                     <div className="flex items-center justify-center mb-4">
                         <CircularProgress percentage={healthData.cpu.usage} color={healthData.cpu.status === 'Healthy' ? '#22d3ee' : healthData.cpu.status === 'Warning' ? '#facc15' : '#ef4444'} />
                     </div>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  text-center">{healthData.cpu.cores} cores available</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  text-center">{t('admin.systemHealth.coresAvailable', { count: healthData.cpu.cores })}</p>
                 </div>
 
                 {/* Memory Usage */}
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Memory Usage</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.systemHealth.memoryUsage')}</h3>
                         <StatusBadge status={healthData.memory.status} color={healthData.memory.status === 'Healthy' ? 'green' : healthData.memory.status === 'Warning' ? 'yellow' : 'red'} />
                     </div>
                     <div className="flex items-center justify-center mb-4">
                         <CircularProgress percentage={healthData.memory.usage} color={healthData.memory.status === 'Healthy' ? '#22d3ee' : healthData.memory.status === 'Warning' ? '#facc15' : '#ef4444'} />
                     </div>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  text-center">{healthData.memory.used} GB / {healthData.memory.total} GB</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  text-center">{t('admin.systemHealth.memoryDetail', { used: healthData.memory.used, total: healthData.memory.total })}</p>
                 </div>
 
                 {/* Disk Usage */}
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Disk Usage</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.systemHealth.diskUsage')}</h3>
                         <StatusBadge status={healthData.disk.status} color={healthData.disk.status === 'Healthy' ? 'green' : healthData.disk.status === 'Warning' ? 'yellow' : 'red'} />
                     </div>
                     <div className="flex items-center justify-center mb-4">
                         <CircularProgress percentage={healthData.disk.usage} color={healthData.disk.status === 'Healthy' ? '#22d3ee' : healthData.disk.status === 'Warning' ? '#facc15' : '#ef4444'} />
                     </div>
-                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  text-center">{healthData.disk.used} GB / {healthData.disk.total} GB</p>
+                    <p style={{ color: 'var(--color-text-muted)' }} className="text-sm  text-center">{t('admin.systemHealth.diskDetail', { used: healthData.disk.used, total: healthData.disk.total })}</p>
                 </div>
 
                 {/* API Latency */}
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">API Latency</h3>
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.systemHealth.apiLatency')}</h3>
                         <StatusBadge status={healthData.apiLatency.status} color="green" />
                     </div>
                     <div className="text-center mb-4">
                         <p className="font-heading text-4xl font-bold text-cyan-400 mb-2">{healthData.apiLatency.ms}ms</p>
-                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">Average response time</p>
+                        <p style={{ color: 'var(--color-text-muted)' }} className="text-sm ">{t('admin.systemHealth.avgResponseTime')}</p>
                     </div>
                     <div className="h-16 w-full flex items-end justify-center space-x-1">
                         {[40, 60, 45, 70, 55, 30, 40, 50, 45, 60, 40, Math.min(100, healthData.apiLatency.ms * 2)].map((h, i) => (
@@ -120,8 +122,8 @@ const SystemHealth = () => {
                 {/* Docker Containers */}
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Background Services</h3>
-                        <StatusBadge status="Running" color="green" />
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.systemHealth.backgroundServices')}</h3>
+                        <StatusBadge status={t('admin.systemHealth.running')} color="green" />
                     </div>
                     <div className="space-y-3">
                         {healthData.services.map((service, idx) => (
@@ -133,13 +135,13 @@ const SystemHealth = () => {
                 {/* Service Status */}
                 <div className="glass-panel rounded-2xl p-6 shadow-custom">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">Service Status</h3>
-                        <StatusBadge status="All Online" color="green" />
+                        <h3 style={{ color: 'var(--color-text-heading)' }} className="font-heading text-lg font-semibold ">{t('admin.systemHealth.serviceStatus')}</h3>
+                        <StatusBadge status={t('admin.systemHealth.allOnline')} color="green" />
                     </div>
                     <div className="space-y-3">
-                        <ServiceMetrix name="Authentication" uptime="99.9%" />
-                        <ServiceMetrix name="Code Execution" uptime="99.7%" />
-                        <ServiceMetrix name="AI Evaluation" uptime="99.8%" />
+                        <ServiceMetrix name={t('admin.systemHealth.authentication')} uptime="99.9%" />
+                        <ServiceMetrix name={t('admin.systemHealth.codeExecution')} uptime="99.7%" />
+                        <ServiceMetrix name={t('admin.systemHealth.aiEvaluation')} uptime="99.8%" />
                     </div>
                 </div>
 

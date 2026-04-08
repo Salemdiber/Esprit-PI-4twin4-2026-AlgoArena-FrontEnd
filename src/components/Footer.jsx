@@ -12,8 +12,10 @@ import {
     Flex,
     useColorModeValue,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
+    const { t } = useTranslation();
     const bg = useColorModeValue('gray.100', 'gray.800');
     const borderColor = useColorModeValue('gray.200', 'gray.700');
     const headingColor = useColorModeValue('gray.800', 'gray.100');
@@ -27,48 +29,48 @@ const Footer = () => {
                     {/* Column 1 - Brand */}
                     <GridItem>
                         <Heading as="h3" size="md" fontFamily="heading" color="brand.500" mb={4}>
-                            AlgoArena
+                            {t('common.algoArena')}
                         </Heading>
                         <Text fontSize="sm" color={textColor}>
-                            The ultimate AI-powered competitive coding platform. Battle, learn, and master algorithms through interactive simulations.
+                            {t('footer.tagline')}
                         </Text>
                     </GridItem>
 
                     {/* Column 2 - Product */}
                     <GridItem>
                         <Heading as="h4" size="sm" fontFamily="heading" color={headingColor} mb={4}>
-                            Product
+                            {t('footer.product')}
                         </Heading>
                         <VStack align="start" spacing={2} fontSize="sm">
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Game Modes</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Arena</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Leaderboards</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Roadmap</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.gameModes')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.arena')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.leaderboards')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.roadmap')}</Link>
                         </VStack>
                     </GridItem>
 
                     {/* Column 3 - Resources */}
                     <GridItem>
                         <Heading as="h4" size="sm" fontFamily="heading" color={headingColor} mb={4}>
-                            Resources
+                            {t('footer.resources')}
                         </Heading>
                         <VStack align="start" spacing={2} fontSize="sm">
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Docs</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">API</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Blog</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Support</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.docs')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.api')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.blog')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.support')}</Link>
                         </VStack>
                     </GridItem>
 
                     {/* Column 4 - Community */}
                     <GridItem>
                         <Heading as="h4" size="sm" fontFamily="heading" color={headingColor} mb={4}>
-                            Community
+                            {t('footer.community')}
                         </Heading>
                         <VStack align="start" spacing={2} fontSize="sm">
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Discord</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">GitHub</Link>
-                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">Twitter</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.discord')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.github')}</Link>
+                            <Link href="#" color={textColor} _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.twitter')}</Link>
                         </VStack>
                     </GridItem>
                 </Grid>
@@ -82,10 +84,10 @@ const Footer = () => {
                     fontSize="sm"
                     color={mutedColor}
                 >
-                    <Text mb={{ base: 4, sm: 0 }}>© 2026 AlgoArena. All rights reserved.</Text>
+                    <Text mb={{ base: 4, sm: 0 }}>{t('footer.rights', { year: 2026 })}</Text>
                     <HStack spacing={6}>
-                        <Link href="#" _hover={{ color: 'brand.500' }} transition="colors 0.3s">Privacy Policy</Link>
-                        <Link href="#" _hover={{ color: 'brand.500' }} transition="colors 0.3s">Terms</Link>
+                        <Link href="#" _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.privacy')}</Link>
+                        <Link href="#" _hover={{ color: 'brand.500' }} transition="colors 0.3s">{t('footer.terms')}</Link>
                     </HStack>
                 </Flex>
             </Container >

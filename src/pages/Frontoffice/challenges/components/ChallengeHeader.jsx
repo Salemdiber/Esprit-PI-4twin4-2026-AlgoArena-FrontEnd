@@ -23,6 +23,7 @@ import {
     useToast,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META } from '../data/mockChallenges';
 import useChallengeExecution from '../hooks/useChallengeExecution';
@@ -67,6 +68,7 @@ const getChronoColor = (secs) => {
 };
 
 const ChallengeHeader = ({ onAttemptLeave }) => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const toast = useToast();
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -111,8 +113,8 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
     const handleResetConfirmed = () => {
         resetWorkspace();
         toast({
-            title: 'Workspace reset',
-            description: 'Timer reset and paste disabled. Type your solution manually.',
+            title: t('challengePage.workspaceResetToast'),
+            description: t('challengePage.workspaceResetToastDesc'),
             status: 'info',
             duration: 3000,
             isClosable: true,
@@ -142,7 +144,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                         color={iconColor}
                         _hover={{ color: iconHoverColor, bg: iconHoverBg }}
                         onClick={handleBack}
-                        aria-label="Back to challenges"
+                        aria-label={t('challengePage.backToChallengesAria')}
                         size="sm"
                         flexShrink={0}
                     />
@@ -176,7 +178,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                                     color="green.300"
                                     fontFamily="mono"
                                 >
-                                    SOLVED
+                                    {t('challengePage.solved')}
                                 </Box>
                             )}
                         </HStack>
@@ -205,7 +207,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                         </Box>
                         <Box>
                             <Text fontSize="8px" fontFamily="mono" color={color} letterSpacing="0.1em" lineHeight={1} textTransform="uppercase" opacity={0.65}>
-                                {isPaused ? 'paused' : isChallengeSolved ? 'solved' : 'elapsed'}
+                                {isPaused ? t('challengePage.timerPausedLabel') : isChallengeSolved ? t('challengePage.timerSolvedLabel') : t('challengePage.timerElapsedLabel')}
                             </Text>
                             <Text
                                 fontFamily="mono"
@@ -221,7 +223,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                         </Box>
                     </Flex>
 
-                    <Tooltip label={isPaused ? 'Resume' : 'Pause'} placement="bottom" hasArrow>
+                    <Tooltip label={isPaused ? t('challengePage.resumeTooltip') : t('challengePage.pauseTooltip')} placement="bottom" hasArrow>
                         <Box
                             as="button"
                             onClick={handlePauseToggle}
@@ -244,7 +246,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                         </Box>
                     </Tooltip>
 
-                    <Tooltip label="Reset timer and code" placement="bottom" hasArrow>
+                    <Tooltip label={t('challengePage.resetTimerAndCode')} placement="bottom" hasArrow>
                         <Box
                             as="button"
                             onClick={onOpen}
@@ -274,11 +276,11 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                         onClick={submitCode}
                         isLoading={isSubmitting}
                         isDisabled={submitDisabled}
-                        loadingText="Submitting..."
+                        loadingText={t('challengePage.submitting')}
                         h="30px"
                         boxShadow={submitDisabled ? 'none' : '0 0 16px rgba(34,211,238,0.25)'}
                     >
-                        {isChallengeSolved ? 'Already Solved' : 'Submit Solution'}
+                        {isChallengeSolved ? t('challengePage.alreadySolved') : t('challengePage.submitSolution')}
                     </Button>
                 </HStack>
             </Flex>
@@ -286,14 +288,14 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
             <Modal isOpen={isOpen} onClose={onClose} isCentered>
                 <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(3px)" />
                 <ModalContent bg="var(--color-bg-card)" border="1px solid" borderColor="var(--color-border)">
-                    <ModalHeader>Reset Workspace?</ModalHeader>
+                    <ModalHeader>{t('challengePage.resetWorkspaceTitle')}</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody color="var(--color-text-secondary)">
-                        This will erase your current code, reset the timer to 00:00, and disable paste for this challenge session.
+                        {t('challengePage.resetWorkspaceDesc')}
                     </ModalBody>
                     <ModalFooter>
-                        <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
-                        <Button colorScheme="red" onClick={handleResetConfirmed}>Reset</Button>
+                        <Button variant="ghost" mr={3} onClick={onClose}>{t('challengePage.cancel')}</Button>
+                        <Button colorScheme="red" onClick={handleResetConfirmed}>{t('challengePage.reset')}</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

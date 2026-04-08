@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Activity,
     ArrowRight,
@@ -54,67 +55,67 @@ const createActionMeta = (icon, label, tone, entity) => ({
 });
 
 const ACTION_META = {
-    USER_REGISTERED: createActionMeta(UserPlus, 'User Registered', 'blue', 'user'),
-    USER_BANNED: createActionMeta(UserX, 'User Banned', 'red', 'user'),
-    USER_UNBANNED: createActionMeta(UserCheck, 'User Unbanned', 'green', 'user'),
-    USER_DELETED: createActionMeta(Trash2, 'User Deleted', 'red', 'user'),
-    USER_ROLE_CHANGED: createActionMeta(UserCog, 'Role Changed', 'purple', 'user'),
-    PASSWORD_RESET: createActionMeta(KeyRound, 'Password Reset', 'amber', 'user'),
-    ADMIN_ADDED: createActionMeta(ShieldPlus, 'Admin Added', 'blue', 'admin'),
-    ADMIN_REMOVED: createActionMeta(ShieldMinus, 'Admin Removed', 'red', 'admin'),
-    ADMIN_ROLE_UPDATED: createActionMeta(Shield, 'Admin Role Updated', 'purple', 'admin'),
-    PERMISSION_CHANGED: createActionMeta(LockKeyhole, 'Permission Changed', 'amber', 'admin'),
-    CHALLENGE_CREATED: createActionMeta(FilePlus, 'Challenge Created', 'blue', 'challenge'),
-    CHALLENGE_PUBLISHED: createActionMeta(Rocket, 'Challenge Published', 'green', 'challenge'),
-    CHALLENGE_UNPUBLISHED: createActionMeta(Undo2, 'Challenge Unpublished', 'amber', 'challenge'),
-    CHALLENGE_EDITED: createActionMeta(Pencil, 'Challenge Edited', 'blue', 'challenge'),
-    CHALLENGE_DELETED: createActionMeta(Trash2, 'Challenge Deleted', 'red', 'challenge'),
-    CHALLENGE_STARTED: createActionMeta(Play, 'Challenge Started', 'blue', 'challenge'),
-    CHALLENGE_SUBMITTED: createActionMeta(ClipboardList, 'Solution Submitted', 'amber', 'challenge'),
-    CHALLENGE_SOLVED: createActionMeta(BadgeCheck, 'Challenge Solved', 'green', 'challenge'),
-    DIFFICULTY_CHANGED: createActionMeta(BarChart3, 'Difficulty Changed', 'amber', 'challenge'),
-    TAGS_UPDATED: createActionMeta(Tags, 'Tags Updated', 'purple', 'challenge'),
-    SYSTEM_CONFIG_UPDATED: createActionMeta(Settings2, 'Config Updated', 'blue', 'system'),
-    FEATURE_FLAG_CHANGED: createActionMeta(Flag, 'Feature Flag', 'amber', 'system'),
-    SECURITY_SETTINGS_CHANGED: createActionMeta(ShieldCheck, 'Security Updated', 'red', 'system'),
-    '2FA_ENFORCEMENT_UPDATED': createActionMeta(Smartphone, '2FA Updated', 'purple', 'system'),
-    ACTION_CONFIRMED: createActionMeta(BadgeCheck, 'Confirmed', 'green', 'audit'),
-    ACTION_ROLLED_BACK: createActionMeta(RotateCcw, 'Rolled Back', 'amber', 'audit'),
+    USER_REGISTERED: createActionMeta(UserPlus, 'admin.activityLogs.userRegistered', 'blue', 'user'),
+    USER_BANNED: createActionMeta(UserX, 'admin.activityLogs.userBanned', 'red', 'user'),
+    USER_UNBANNED: createActionMeta(UserCheck, 'admin.activityLogs.userUnbanned', 'green', 'user'),
+    USER_DELETED: createActionMeta(Trash2, 'admin.activityLogs.userDeleted', 'red', 'user'),
+    USER_ROLE_CHANGED: createActionMeta(UserCog, 'admin.activityLogs.roleChanged', 'purple', 'user'),
+    PASSWORD_RESET: createActionMeta(KeyRound, 'admin.activityLogs.passwordReset', 'amber', 'user'),
+    ADMIN_ADDED: createActionMeta(ShieldPlus, 'admin.activityLogs.adminAdded', 'blue', 'admin'),
+    ADMIN_REMOVED: createActionMeta(ShieldMinus, 'admin.activityLogs.adminRemoved', 'red', 'admin'),
+    ADMIN_ROLE_UPDATED: createActionMeta(Shield, 'admin.activityLogs.adminRoleUpdated', 'purple', 'admin'),
+    PERMISSION_CHANGED: createActionMeta(LockKeyhole, 'admin.activityLogs.permissionChanged', 'amber', 'admin'),
+    CHALLENGE_CREATED: createActionMeta(FilePlus, 'admin.activityLogs.challengeCreated', 'blue', 'challenge'),
+    CHALLENGE_PUBLISHED: createActionMeta(Rocket, 'admin.activityLogs.challengePublished', 'green', 'challenge'),
+    CHALLENGE_UNPUBLISHED: createActionMeta(Undo2, 'admin.activityLogs.challengeUnpublished', 'amber', 'challenge'),
+    CHALLENGE_EDITED: createActionMeta(Pencil, 'admin.activityLogs.challengeEdited', 'blue', 'challenge'),
+    CHALLENGE_DELETED: createActionMeta(Trash2, 'admin.activityLogs.challengeDeleted', 'red', 'challenge'),
+    CHALLENGE_STARTED: createActionMeta(Play, 'admin.activityLogs.challengeStarted', 'blue', 'challenge'),
+    CHALLENGE_SUBMITTED: createActionMeta(ClipboardList, 'admin.activityLogs.solutionSubmitted', 'amber', 'challenge'),
+    CHALLENGE_SOLVED: createActionMeta(BadgeCheck, 'admin.activityLogs.challengeSolved', 'green', 'challenge'),
+    DIFFICULTY_CHANGED: createActionMeta(BarChart3, 'admin.activityLogs.difficultyChanged', 'amber', 'challenge'),
+    TAGS_UPDATED: createActionMeta(Tags, 'admin.activityLogs.tagsUpdated', 'purple', 'challenge'),
+    SYSTEM_CONFIG_UPDATED: createActionMeta(Settings2, 'admin.activityLogs.configUpdated', 'blue', 'system'),
+    FEATURE_FLAG_CHANGED: createActionMeta(Flag, 'admin.activityLogs.featureFlag', 'amber', 'system'),
+    SECURITY_SETTINGS_CHANGED: createActionMeta(ShieldCheck, 'admin.activityLogs.securityUpdated', 'red', 'system'),
+    '2FA_ENFORCEMENT_UPDATED': createActionMeta(Smartphone, 'admin.activityLogs.twoFaUpdated', 'purple', 'system'),
+    ACTION_CONFIRMED: createActionMeta(BadgeCheck, 'admin.activityLogs.confirmed', 'green', 'audit'),
+    ACTION_ROLLED_BACK: createActionMeta(RotateCcw, 'admin.activityLogs.rolledBack', 'amber', 'audit'),
 };
 
-const DEFAULT_ACTION_META = createActionMeta(ClipboardList, 'Activity Event', 'gray', 'audit');
+const DEFAULT_ACTION_META = createActionMeta(ClipboardList, 'admin.activityLogs.activityEvent', 'gray', 'audit');
 
 const STATUS_STYLES = {
-    active: { bg: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: 'rgba(96,165,250,0.3)', label: 'Active' },
-    confirmed: { bg: 'rgba(52,211,153,0.12)', color: '#34d399', border: 'rgba(52,211,153,0.3)', label: 'Confirmed' },
-    rolled_back: { bg: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: 'rgba(251,191,36,0.3)', label: 'Rolled Back' },
-    pending: { bg: 'rgba(168,139,250,0.12)', color: '#a78bfa', border: 'rgba(168,139,250,0.3)', label: 'Pending' },
+    active: { bg: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: 'rgba(96,165,250,0.3)', label: 'admin.activityLogs.statusActive' },
+    confirmed: { bg: 'rgba(52,211,153,0.12)', color: '#34d399', border: 'rgba(52,211,153,0.3)', label: 'admin.activityLogs.statusConfirmed' },
+    rolled_back: { bg: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: 'rgba(251,191,36,0.3)', label: 'admin.activityLogs.statusRolledBack' },
+    pending: { bg: 'rgba(168,139,250,0.12)', color: '#a78bfa', border: 'rgba(168,139,250,0.3)', label: 'admin.activityLogs.statusPending' },
 };
 
 const ENTITY_FILTERS = [
-    { value: '', label: 'All Entities' },
-    { value: 'user', label: 'User' },
-    { value: 'admin', label: 'Admin' },
-    { value: 'challenge', label: 'Challenge' },
-    { value: 'system', label: 'System' },
-    { value: 'audit', label: 'Audit' },
+    { value: '', label: 'admin.activityLogs.allEntities' },
+    { value: 'user', label: 'admin.activityLogs.entityUser' },
+    { value: 'admin', label: 'admin.activityLogs.entityAdmin' },
+    { value: 'challenge', label: 'admin.activityLogs.entityChallenge' },
+    { value: 'system', label: 'admin.activityLogs.entitySystem' },
+    { value: 'audit', label: 'admin.activityLogs.entityAudit' },
 ];
 
 const STATUS_FILTERS = [
-    { value: '', label: 'All Statuses' },
-    { value: 'active', label: 'Active' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'rolled_back', label: 'Rolled Back' },
-    { value: 'pending', label: 'Pending' },
+    { value: '', label: 'admin.activityLogs.allStatuses' },
+    { value: 'active', label: 'admin.activityLogs.statusActive' },
+    { value: 'confirmed', label: 'admin.activityLogs.statusConfirmed' },
+    { value: 'rolled_back', label: 'admin.activityLogs.statusRolledBack' },
+    { value: 'pending', label: 'admin.activityLogs.statusPending' },
 ];
 
 const STAT_CARDS = [
-    { key: 'total', label: 'Total Events', icon: Activity, tone: 'blue', getValue: (stats) => stats.total || 0 },
-    { key: 'last24h', label: 'Last 24h', icon: Clock, tone: 'gray', getValue: (stats) => stats.last24h || 0 },
-    { key: 'lastWeek', label: 'Last 7 Days', icon: CalendarDays, tone: 'blue', getValue: (stats) => stats.lastWeek || 0 },
+    { key: 'total', label: 'admin.activityLogs.totalEvents', icon: Activity, tone: 'blue', getValue: (stats) => stats.total || 0 },
+    { key: 'last24h', label: 'admin.activityLogs.last24h', icon: Clock, tone: 'gray', getValue: (stats) => stats.last24h || 0 },
+    { key: 'lastWeek', label: 'admin.activityLogs.last7Days', icon: CalendarDays, tone: 'blue', getValue: (stats) => stats.lastWeek || 0 },
     {
         key: 'rolledBack',
-        label: 'Rolled Back',
+        label: 'admin.activityLogs.rolledBackStat',
         icon: RotateCcw,
         tone: 'amber',
         getValue: (stats) => (stats.byStatus || []).find((item) => item._id === 'rolled_back')?.count || 0,
@@ -137,27 +138,28 @@ const IconBadge = ({ icon, tone = 'gray', size = 18, className = 'h-10 w-10 roun
     );
 };
 
-function getTimeAgo(dateStr) {
+function getTimeAgo(dateStr, t) {
     const now = new Date();
     const date = new Date(dateStr);
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1) return t('admin.activityLogs.justNow');
+    if (diffMins < 60) return t('admin.activityLogs.minutesAgo', { n: diffMins });
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffHours < 24) return t('admin.activityLogs.hoursAgo', { n: diffHours });
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 7) return t('admin.activityLogs.daysAgo', { n: diffDays });
     return date.toLocaleDateString();
 }
 
 const ITEMS_PER_PAGE = 15;
 
 const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => {
+    const { t } = useTranslation();
     const meta = ACTION_META[log.actionType] || { ...DEFAULT_ACTION_META, label: log.actionType };
     const sts = STATUS_STYLES[log.status] || STATUS_STYLES.active;
-    const timeAgo = getTimeAgo(log.createdAt);
+    const timeAgo = getTimeAgo(log.createdAt, t);
     const hasPrevState = log.previousState && Object.keys(log.previousState).length > 0;
     const hasNewState = log.newState && Object.keys(log.newState).length > 0;
     const canConfirm = log.status === 'active' || log.status === 'pending';
@@ -183,13 +185,13 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                                 style={{ background: `${meta.color}18`, color: meta.color, border: `1px solid ${meta.color}30` }}
                             >
                                 <meta.icon size={13} strokeWidth={2.1} />
-                                {meta.label}
+                                {t(meta.label)}
                             </span>
                             <span
                                 className="rounded-full px-2 py-0.5 text-xs font-medium"
                                 style={{ background: sts.bg, color: sts.color, border: `1px solid ${sts.border}` }}
                             >
-                                {sts.label}
+                                {t(sts.label)}
                             </span>
                         </div>
 
@@ -219,7 +221,7 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                         {canConfirm && (
                             <ActionButton
                                 icon={BadgeCheck}
-                                label="Confirm"
+                                label={t('admin.activityLogs.confirm')}
                                 tone="green"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -230,7 +232,7 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                         {canRollback && (
                             <ActionButton
                                 icon={Undo2}
-                                label="Rollback"
+                                label={t('admin.activityLogs.rollback')}
                                 tone="amber"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -250,7 +252,7 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                                 onToggle();
                             }}
                             type="button"
-                            title={isExpanded ? 'Collapse details' : 'Expand details'}
+                            title={isExpanded ? t('admin.activityLogs.collapseDetails') : t('admin.activityLogs.expandDetails')}
                         >
                             <ChevronDown size={16} strokeWidth={2.2} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
@@ -260,12 +262,12 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                 {isExpanded && (hasPrevState || hasNewState || (log.metadata && Object.keys(log.metadata).length > 0)) && (
                     <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-                            Details
+                            {t('admin.activityLogs.details')}
                         </p>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             {hasPrevState && (
                                 <div className="rounded-lg p-3" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#f87171' }}>Previous State</p>
+                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#f87171' }}>{t('admin.activityLogs.previousState')}</p>
                                     {Object.entries(log.previousState).map(([key, val]) => (
                                         <div key={key} className="flex justify-between gap-4 py-0.5 text-xs">
                                             <span className="font-mono" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
@@ -276,7 +278,7 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                             )}
                             {hasNewState && (
                                 <div className="rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
-                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#34d399' }}>New State</p>
+                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#34d399' }}>{t('admin.activityLogs.newState')}</p>
                                     {Object.entries(log.newState).map(([key, val]) => (
                                         <div key={key} className="flex justify-between gap-4 py-0.5 text-xs">
                                             <span className="font-mono" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
@@ -287,7 +289,7 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
                             )}
                             {log.metadata && Object.keys(log.metadata).length > 0 && (
                                 <div className="rounded-lg p-3 md:col-span-2" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
-                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#60a5fa' }}>Metadata</p>
+                                    <p className="mb-2 text-xs font-semibold" style={{ color: '#60a5fa' }}>{t('admin.activityLogs.metadata')}</p>
                                     {Object.entries(log.metadata).map(([key, val]) => (
                                         <div key={key} className="flex justify-between gap-4 py-0.5 text-xs">
                                             <span className="font-mono" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
@@ -305,6 +307,7 @@ const TimelineEntry = ({ log, onConfirm, onRollback, isExpanded, onToggle }) => 
 };
 
 const ConfirmModal = ({ title, message, onConfirm, onClose, variant = 'confirm' }) => {
+    const { t } = useTranslation();
     const isWarning = variant === 'rollback';
     const palette = getTone(isWarning ? 'amber' : 'green');
     const ModalIcon = isWarning ? CircleAlert : BadgeCheck;
@@ -329,10 +332,10 @@ const ConfirmModal = ({ title, message, onConfirm, onClose, variant = 'confirm' 
                 <h2 className="mb-2 text-lg font-bold" style={{ color: 'var(--color-text-heading)' }}>{title}</h2>
                 <p className="mb-5 text-sm" style={{ color: 'var(--color-text-muted)' }}>{message}</p>
                 <div className="flex flex-col justify-center gap-3 sm:flex-row">
-                    <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm" type="button">Cancel</button>
+                    <button onClick={onClose} className="btn-secondary px-4 py-2 text-sm" type="button">{t('admin.activityLogs.cancel')}</button>
                     <ActionButton
                         icon={isWarning ? Undo2 : BadgeCheck}
-                        label={isWarning ? 'Rollback' : 'Confirm'}
+                        label={isWarning ? t('admin.activityLogs.rollback') : t('admin.activityLogs.confirm')}
                         tone={isWarning ? 'amber' : 'green'}
                         onClick={onConfirm}
                     />
@@ -343,6 +346,7 @@ const ConfirmModal = ({ title, message, onConfirm, onClose, variant = 'confirm' 
 };
 
 const ActivityLogs = () => {
+    const { t } = useTranslation();
     const [logs, setLogs] = useState([]);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
@@ -398,8 +402,8 @@ const ActivityLogs = () => {
 
     const handleConfirm = (id) => {
         setConfirmModal({
-            title: 'Confirm Action',
-            message: 'Are you sure you want to confirm this action? This marks it as reviewed and approved.',
+            title: t('admin.activityLogs.confirmAction'),
+            message: t('admin.activityLogs.confirmActionMessage'),
             variant: 'confirm',
             onConfirm: async () => {
                 try {
@@ -407,7 +411,7 @@ const ActivityLogs = () => {
                     fetchLogs();
                     fetchStats();
                 } catch (err) {
-                    alert(err.message || 'Failed to confirm');
+                    alert(err.message || t('admin.activityLogs.failedToConfirm'));
                 }
                 setConfirmModal(null);
             },
@@ -416,8 +420,8 @@ const ActivityLogs = () => {
 
     const handleRollback = (id) => {
         setConfirmModal({
-            title: 'Rollback Action',
-            message: 'Warning: This will revert the entity to its previous state. This action itself will be logged. Are you sure?',
+            title: t('admin.activityLogs.rollbackAction'),
+            message: t('admin.activityLogs.rollbackActionMessage'),
             variant: 'rollback',
             onConfirm: async () => {
                 try {
@@ -425,7 +429,7 @@ const ActivityLogs = () => {
                     fetchLogs();
                     fetchStats();
                 } catch (err) {
-                    alert(err.message || 'Failed to rollback');
+                    alert(err.message || t('admin.activityLogs.failedToRollback'));
                 }
                 setConfirmModal(null);
             },
@@ -445,10 +449,10 @@ const ActivityLogs = () => {
         <div className="space-y-6 animate-fade-in-up">
             <div className="mb-6">
                 <h1 className="mb-2 font-heading text-3xl font-bold" style={{ color: 'var(--color-text-heading)' }}>
-                    Activity Logs
+                    {t('admin.activityLogs.pageTitle')}
                 </h1>
                 <p style={{ color: 'var(--color-text-muted)' }}>
-                    Track, review, and audit all platform actions
+                    {t('admin.activityLogs.pageSubtitle')}
                 </p>
             </div>
 
@@ -462,7 +466,7 @@ const ActivityLogs = () => {
                                 <div className="mb-3 flex items-start justify-between gap-3">
                                     <div>
                                         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-                                            {stat.label}
+                                            {t(stat.label)}
                                         </span>
                                         <p className="mt-2 text-2xl font-bold font-mono" style={{ color: palette.color }}>
                                             {stat.getValue(stats).toLocaleString()}
@@ -481,7 +485,7 @@ const ActivityLogs = () => {
                     <div className="search-wrapper relative w-full flex-1">
                         <input
                             type="text"
-                            placeholder="Search by actor, description, target..."
+                            placeholder={t('admin.activityLogs.searchPlaceholder')}
                             className="search-input w-full"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -490,11 +494,11 @@ const ActivityLogs = () => {
                     </div>
 
                     <select className="form-select w-full lg:w-36" style={{ background: 'var(--color-bg-input)' }} value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)}>
-                        {ENTITY_FILTERS.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}
+                        {ENTITY_FILTERS.map((filter) => <option key={filter.value} value={filter.value}>{t(filter.label)}</option>)}
                     </select>
 
                     <select className="form-select w-full lg:w-36" style={{ background: 'var(--color-bg-input)' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                        {STATUS_FILTERS.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}
+                        {STATUS_FILTERS.map((filter) => <option key={filter.value} value={filter.value}>{t(filter.label)}</option>)}
                     </select>
 
                     <input type="date" className="form-select w-full lg:w-40" style={{ background: 'var(--color-bg-input)' }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -507,7 +511,7 @@ const ActivityLogs = () => {
                             onClick={() => setViewMode('timeline')}
                             type="button"
                         >
-                            Timeline
+                            {t('admin.activityLogs.timeline')}
                         </button>
                         <button
                             className={`flex-1 px-3 py-2 text-xs font-medium transition-colors lg:flex-none ${viewMode === 'table' ? 'text-cyan-400' : ''}`}
@@ -515,7 +519,7 @@ const ActivityLogs = () => {
                             onClick={() => setViewMode('table')}
                             type="button"
                         >
-                            Table
+                            {t('admin.activityLogs.table')}
                         </button>
                     </div>
                 </div>
@@ -530,8 +534,8 @@ const ActivityLogs = () => {
                     <div className="mb-4 flex justify-center">
                         <IconBadge icon={ClipboardList} tone="gray" size={24} className="h-14 w-14 rounded-2xl" />
                     </div>
-                    <p className="mb-1 text-lg font-semibold" style={{ color: 'var(--color-text-heading)' }}>No Activity Logs</p>
-                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No audit events match your filters. Actions will appear here as they occur.</p>
+                    <p className="mb-1 text-lg font-semibold" style={{ color: 'var(--color-text-heading)' }}>{t('admin.activityLogs.noActivityLogs')}</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.noActivityLogsHint')}</p>
                 </div>
             ) : viewMode === 'timeline' ? (
                 <div className="pl-1">
@@ -552,12 +556,12 @@ const ActivityLogs = () => {
                         <table className="w-full min-w-[760px]">
                             <thead style={{ background: 'var(--color-bg-sidebar)' }}>
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Action</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Actor</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Target</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Status</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Time</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Actions</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.thAction')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.thActor')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.thTarget')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.thStatus')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.thTime')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{t('admin.activityLogs.thActions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
@@ -574,7 +578,7 @@ const ActivityLogs = () => {
                                                 <div className="flex items-center gap-3">
                                                     <IconBadge icon={meta.icon} tone={meta.tone} size={16} className="h-9 w-9 rounded-lg" />
                                                     <div className="min-w-0">
-                                                        <span className="block text-xs font-semibold" style={{ color: meta.color }}>{meta.label}</span>
+                                                        <span className="block text-xs font-semibold" style={{ color: meta.color }}>{t(meta.label)}</span>
                                                         <span className="block truncate text-xs" style={{ color: 'var(--color-text-muted)' }}>{log.description}</span>
                                                     </div>
                                                 </div>
@@ -585,19 +589,19 @@ const ActivityLogs = () => {
                                                     @{log.actor}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-mono" style={{ color: 'var(--color-text-secondary)' }}>{log.targetLabel || 'N/A'}</td>
+                                            <td className="px-4 py-3 text-sm font-mono" style={{ color: 'var(--color-text-secondary)' }}>{log.targetLabel || t('admin.activityLogs.na')}</td>
                                             <td className="px-4 py-3">
                                                 <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: sts.bg, color: sts.color, border: `1px solid ${sts.border}` }}>
-                                                    {sts.label}
+                                                    {t(sts.label)}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>{getTimeAgo(log.createdAt)}</td>
+                                            <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>{getTimeAgo(log.createdAt, t)}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap gap-2">
                                                     {canConfirm && (
                                                         <ActionButton
                                                             icon={BadgeCheck}
-                                                            label="Confirm"
+                                                            label={t('admin.activityLogs.confirm')}
                                                             tone="green"
                                                             onClick={() => handleConfirm(log._id)}
                                                         />
@@ -605,7 +609,7 @@ const ActivityLogs = () => {
                                                     {canRollback && (
                                                         <ActionButton
                                                             icon={Undo2}
-                                                            label="Rollback"
+                                                            label={t('admin.activityLogs.rollback')}
                                                             tone="amber"
                                                             onClick={() => handleRollback(log._id)}
                                                         />
@@ -624,11 +628,11 @@ const ActivityLogs = () => {
             {!loading && logs.length > 0 && (
                 <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
                     <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, total)} of {total} events
+                        {t('admin.activityLogs.showingEvents', { from: ((currentPage - 1) * ITEMS_PER_PAGE) + 1, to: Math.min(currentPage * ITEMS_PER_PAGE, total), total })}
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                         <button className="btn-secondary px-3 py-1.5 text-sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} type="button">
-                            Previous
+                            {t('admin.activityLogs.previous')}
                         </button>
                         {pageNumbers.map((page) => (
                             <button key={page} className={`${page === currentPage ? 'btn-primary' : 'btn-secondary hover:text-cyan-400'} px-3 py-1.5 text-sm`} onClick={() => setCurrentPage(page)} type="button">
@@ -636,7 +640,7 @@ const ActivityLogs = () => {
                             </button>
                         ))}
                         <button className="btn-secondary px-3 py-1.5 text-sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} type="button">
-                            Next
+                            {t('admin.activityLogs.next')}
                         </button>
                     </div>
                 </div>

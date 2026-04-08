@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import usePasswordStrength from '../hooks/usePasswordStrength';
 import PasswordStrengthMeter from './PasswordStrengthMeter';
 import RequirementChecklist from './RequirementChecklist';
@@ -39,6 +40,7 @@ const inputStyles = {
 };
 
 const ChangePasswordSection = () => {
+    const { t } = useTranslation();
     const toast = useToast();
     const prefersReducedMotion = useReducedMotion();
 
@@ -66,8 +68,8 @@ const ChangePasswordSection = () => {
                 confirmPassword: confirmPw,
             });
             toast({
-                title: 'Password updated',
-                description: 'Your password has been changed successfully.',
+                title: t('profilePage.passwordUpdated'),
+                description: t('profilePage.passwordUpdatedDesc'),
                 status: 'success',
                 duration: 3000,
                 isClosable: true,
@@ -78,7 +80,7 @@ const ChangePasswordSection = () => {
             setConfirmPw('');
         } catch (error) {
             toast({
-                title: 'Error updating password',
+                title: t('profilePage.passwordUpdateError'),
                 description: error.message,
                 status: 'error',
                 duration: 4000,
@@ -103,10 +105,10 @@ const ChangePasswordSection = () => {
         >
             <Box mb={6}>
                 <Text fontFamily="heading" fontSize="lg" fontWeight="600" color={useColorModeValue("gray.800","gray.100")}>
-                    Change Password
+                    {t('profilePage.changePassword')}
                 </Text>
                 <Text color={useColorModeValue("gray.500","gray.400")} fontSize="sm" mt={1}>
-                    Ensure your account stays secure with a strong password.
+                    {t('profilePage.changePasswordDesc')}
                 </Text>
             </Box>
 
@@ -114,19 +116,19 @@ const ChangePasswordSection = () => {
                 {/* Current Password */}
                 <Box>
                     <Text fontSize="sm" fontWeight="500" color={useColorModeValue("gray.600","gray.300")} mb="6px">
-                        Current Password
+                        {t('profilePage.currentPassword')}
                     </Text>
                     <InputGroup>
                         <Input
                             type={showCurrent ? 'text' : 'password'}
-                            placeholder="Enter current password"
+                            placeholder={t('profilePage.enterCurrentPassword')}
                             value={currentPw}
                             onChange={(e) => setCurrentPw(e.target.value)}
                             {...inputStyles}
                         />
                         <InputRightElement>
                             <IconButton
-                                aria-label="Toggle current password visibility"
+                                aria-label={t('profilePage.toggleCurrentPw')}
                                 variant="unstyled"
                                 size="sm"
                                 color="gray.500"
@@ -141,19 +143,19 @@ const ChangePasswordSection = () => {
                 {/* New Password */}
                 <Box>
                     <Text fontSize="sm" fontWeight="500" color={useColorModeValue("gray.600","gray.300")} mb="6px">
-                        New Password
+                        {t('profilePage.newPassword')}
                     </Text>
                     <InputGroup>
                         <Input
                             type={showNew ? 'text' : 'password'}
-                            placeholder="Enter new password"
+                            placeholder={t('profilePage.enterNewPassword')}
                             value={newPw}
                             onChange={(e) => setNewPw(e.target.value)}
                             {...inputStyles}
                         />
                         <InputRightElement>
                             <IconButton
-                                aria-label="Toggle new password visibility"
+                                aria-label={t('profilePage.toggleNewPw')}
                                 variant="unstyled"
                                 size="sm"
                                 color="gray.500"
@@ -180,19 +182,19 @@ const ChangePasswordSection = () => {
                 {/* Confirm Password */}
                 <Box>
                     <Text fontSize="sm" fontWeight="500" color={useColorModeValue("gray.600","gray.300")} mb="6px">
-                        Confirm New Password
+                        {t('profilePage.confirmNewPassword')}
                     </Text>
                     <InputGroup>
                         <Input
                             type={showConfirm ? 'text' : 'password'}
-                            placeholder="Re-enter new password"
+                            placeholder={t('profilePage.reenterNewPassword')}
                             value={confirmPw}
                             onChange={(e) => setConfirmPw(e.target.value)}
                             {...inputStyles}
                         />
                         <InputRightElement>
                             <IconButton
-                                aria-label="Toggle confirm password visibility"
+                                aria-label={t('profilePage.toggleConfirmPw')}
                                 variant="unstyled"
                                 size="sm"
                                 color="gray.500"
@@ -204,7 +206,7 @@ const ChangePasswordSection = () => {
                     </InputGroup>
                     {confirmPw.length > 0 && !passwordsMatch && (
                         <Text fontSize="xs" color="#ef4444" mt={1}>
-                            Passwords do not match
+                            {t('profilePage.passwordsDoNotMatch')}
                         </Text>
                     )}
                 </Box>
@@ -230,7 +232,7 @@ const ChangePasswordSection = () => {
                         isLoading={isSubmitting}
                         onClick={handleSubmit}
                     >
-                        Update Password
+                        {t('profilePage.updatePassword')}
                     </Button>
                 </Box>
             </Flex>

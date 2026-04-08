@@ -1,4 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Text, VStack } from '@chakra-ui/react';
 import { LockIcon } from '@chakra-ui/icons';
@@ -44,6 +45,8 @@ import { ProfileProvider } from './pages/Frontoffice/profile';
 import { AuthProvider, useAuth, hasCompletedSpeedChallenge } from './pages/Frontoffice/auth/context/AuthContext';
 import { settingsService } from './services/settingsService';
 import { getToken } from './services/cookieUtils';
+import { ChatProvider, ChatPanel } from './features/chat';
+import { SupportProvider } from './features/support';
 
 // Frontoffice Challenge Pages
 const ChallengesListPage = lazy(() => import('./pages/Frontoffice/challenges/pages/ChallengesListPage'));
@@ -97,7 +100,8 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const ChallengesAuthGuard = ({ children }) => {
+function ChallengesAuthGuard({ children }) {
+  const { t } = useTranslation();
   const { isLoggedIn, isAuthLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -163,10 +167,10 @@ const ChallengesAuthGuard = ({ children }) => {
               </Box>
               <Box>
                 <Text fontSize="sm" letterSpacing="0.18em" textTransform="uppercase" color="cyan.200" fontWeight="700">
-                  Locked Training Zone
+                  {t('appGuards.challenges.badge')}
                 </Text>
                 <Text color="var(--color-text-secondary)" fontSize="sm">
-                  Sign in to unlock algorithm drills, timed practice, and challenge history.
+                  {t('appGuards.challenges.badgeSub')}
                 </Text>
               </Box>
             </Box>
@@ -180,10 +184,10 @@ const ChallengesAuthGuard = ({ children }) => {
                 color="var(--color-text-heading)"
                 maxW="12ch"
               >
-                Step into the challenge lab.
+                {t('appGuards.challenges.headline')}
               </Text>
               <Text mt={4} color="var(--color-text-secondary)" fontSize={{ base: 'md', md: 'lg' }} maxW="xl">
-                Access the full challenge flow only after authentication: curated problems, submission tracking, progress stats, and your training streak.
+                {t('appGuards.challenges.body')}
               </Text>
             </Box>
 
@@ -193,9 +197,9 @@ const ChallengesAuthGuard = ({ children }) => {
               gap={3}
             >
               {[
-                { label: 'Practice pool', value: '120+' },
-                { label: 'Time attack', value: 'On' },
-                { label: 'Rank flow', value: 'Synced' },
+                { label: t('appGuards.challenges.statPractice'), value: t('appGuards.challenges.statPracticeVal') },
+                { label: t('appGuards.challenges.statTime'), value: t('appGuards.challenges.statTimeVal') },
+                { label: t('appGuards.challenges.statRank'), value: t('appGuards.challenges.statRankVal') },
               ].map((item) => (
                 <Box
                   key={item.label}
@@ -220,9 +224,9 @@ const ChallengesAuthGuard = ({ children }) => {
               gap={3}
             >
               {[
-                'Solve ranked challenges',
-                'Compare runtime and XP',
-                'Review your progress',
+                t('appGuards.challenges.bullet1'),
+                t('appGuards.challenges.bullet2'),
+                t('appGuards.challenges.bullet3'),
               ].map((item) => (
                 <Box
                   key={item}
@@ -248,7 +252,7 @@ const ChallengesAuthGuard = ({ children }) => {
                 _hover={{ transform: 'translateY(-1px)', boxShadow: '0 18px 34px rgba(34, 211, 238, 0.26)' }}
                 transition="all 0.2s ease"
               >
-                Sign In
+                {t('header.login')}
               </Button>
               <Button
                 w="100%"
@@ -259,7 +263,7 @@ const ChallengesAuthGuard = ({ children }) => {
                 _hover={{ bg: 'rgba(34, 211, 238, 0.08)', transform: 'translateY(-1px)' }}
                 transition="all 0.2s ease"
               >
-                Create Account
+                {t('header.createAccount')}
               </Button>
             </VStack>
           </VStack>
@@ -280,21 +284,21 @@ const ChallengesAuthGuard = ({ children }) => {
               border="1px solid rgba(34, 211, 238, 0.2)"
             >
               <Text fontSize="sm" color="cyan.200" fontWeight="700" letterSpacing="0.14em" textTransform="uppercase">
-                Access preview
+                {t('appGuards.challenges.previewLabel')}
               </Text>
               <Text mt={2} fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="800" color="white">
-                Your problem set is waiting
+                {t('appGuards.challenges.previewTitle')}
               </Text>
               <Text mt={2} color="rgba(226, 232, 240, 0.82)">
-                Authentication unlocks the full challenge workspace, including timer-driven sessions and submission history.
+                {t('appGuards.challenges.previewBody')}
               </Text>
             </Box>
 
             <Box display="grid" gridTemplateColumns="1fr" gap={3}>
               {[
-                { title: 'Timed drills', detail: 'Practice under pressure with structured timers', tone: 'rgba(59, 130, 246, 0.14)' },
-                { title: 'Submission review', detail: 'Inspect your attempts and iteration history', tone: 'rgba(14, 165, 233, 0.14)' },
-                { title: 'Skill progress', detail: 'Keep your rank and XP progression in sync', tone: 'rgba(34, 211, 238, 0.14)' },
+                { title: t('appGuards.challenges.card1Title'), detail: t('appGuards.challenges.card1Detail'), tone: 'rgba(59, 130, 246, 0.14)' },
+                { title: t('appGuards.challenges.card2Title'), detail: t('appGuards.challenges.card2Detail'), tone: 'rgba(14, 165, 233, 0.14)' },
+                { title: t('appGuards.challenges.card3Title'), detail: t('appGuards.challenges.card3Detail'), tone: 'rgba(34, 211, 238, 0.14)' },
               ].map((card) => (
                 <Box
                   key={card.title}
@@ -322,9 +326,10 @@ const ChallengesAuthGuard = ({ children }) => {
   }
 
   return children;
-};
+}
 
-const BattlesAuthGuard = ({ children }) => {
+function BattlesAuthGuard({ children }) {
+  const { t } = useTranslation();
   const { isLoggedIn, isAuthLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -390,10 +395,10 @@ const BattlesAuthGuard = ({ children }) => {
               </Box>
               <Box>
                 <Text fontSize="sm" letterSpacing="0.18em" textTransform="uppercase" color="cyan.200" fontWeight="700">
-                  Restricted Arena
+                  {t('appGuards.battles.badge')}
                 </Text>
                 <Text color="var(--color-text-secondary)" fontSize="sm">
-                  Sign in to join live battles, ranked runs, and post-match analytics.
+                  {t('appGuards.battles.badgeSub')}
                 </Text>
               </Box>
             </Box>
@@ -407,10 +412,10 @@ const BattlesAuthGuard = ({ children }) => {
                 color="var(--color-text-heading)"
                 maxW="12ch"
               >
-                Enter the battle arena.
+                {t('appGuards.battles.headline')}
               </Text>
               <Text mt={4} color="var(--color-text-secondary)" fontSize={{ base: 'md', md: 'lg' }} maxW="xl">
-                Unlock live matchups, strategic rounds, and your personal performance dashboard. The arena stays locked until your account is authenticated.
+                {t('appGuards.battles.body')}
               </Text>
             </Box>
 
@@ -420,9 +425,9 @@ const BattlesAuthGuard = ({ children }) => {
               gap={3}
             >
               {[
-                { label: 'Live battles', value: '24/7' },
-                { label: 'Ranked flow', value: 'Enabled' },
-                { label: 'XP tracking', value: 'Synced' },
+                { label: t('appGuards.battles.statLive'), value: t('appGuards.battles.statLiveVal') },
+                { label: t('appGuards.battles.statRanked'), value: t('appGuards.battles.statRankedVal') },
+                { label: t('appGuards.battles.statXp'), value: t('appGuards.battles.statXpVal') },
               ].map((item) => (
                 <Box
                   key={item.label}
@@ -447,9 +452,9 @@ const BattlesAuthGuard = ({ children }) => {
               gap={3}
             >
               {[
-                'Join the ranked ladder',
-                'Track your win streaks',
-                'Review battle replays',
+                t('appGuards.battles.bullet1'),
+                t('appGuards.battles.bullet2'),
+                t('appGuards.battles.bullet3'),
               ].map((item) => (
                 <Box
                   key={item}
@@ -475,7 +480,7 @@ const BattlesAuthGuard = ({ children }) => {
                 _hover={{ transform: 'translateY(-1px)', boxShadow: '0 18px 34px rgba(34, 211, 238, 0.26)' }}
                 transition="all 0.2s ease"
               >
-                Sign In
+                {t('header.login')}
               </Button>
               <Button
                 w="100%"
@@ -486,7 +491,7 @@ const BattlesAuthGuard = ({ children }) => {
                 _hover={{ bg: 'rgba(34, 211, 238, 0.08)', transform: 'translateY(-1px)' }}
                 transition="all 0.2s ease"
               >
-                Create Account
+                {t('header.createAccount')}
               </Button>
             </VStack>
           </VStack>
@@ -507,21 +512,21 @@ const BattlesAuthGuard = ({ children }) => {
               border="1px solid rgba(34, 211, 238, 0.2)"
             >
               <Text fontSize="sm" color="cyan.200" fontWeight="700" letterSpacing="0.14em" textTransform="uppercase">
-                Access preview
+                {t('appGuards.battles.previewLabel')}
               </Text>
               <Text mt={2} fontFamily="heading" fontSize={{ base: 'xl', md: '2xl' }} fontWeight="800" color="white">
-                Your battle cockpit awaits
+                {t('appGuards.battles.previewTitle')}
               </Text>
               <Text mt={2} color="rgba(226, 232, 240, 0.82)">
-                Authentication unlocks the full competition flow, including matchmaking, battle details, and summary screens.
+                {t('appGuards.battles.previewBody')}
               </Text>
             </Box>
 
             <Box display="grid" gridTemplateColumns="1fr" gap={3}>
               {[
-                { title: 'Matchmaking', detail: 'Queue against AI or upcoming opponents', tone: 'rgba(59, 130, 246, 0.14)' },
-                { title: 'Battle insight', detail: 'See rounds, scores, and timing breakdowns', tone: 'rgba(14, 165, 233, 0.14)' },
-                { title: 'Progress feed', detail: 'Keep your rank and XP in sync', tone: 'rgba(34, 211, 238, 0.14)' },
+                { title: t('appGuards.battles.card1Title'), detail: t('appGuards.battles.card1Detail'), tone: 'rgba(59, 130, 246, 0.14)' },
+                { title: t('appGuards.battles.card2Title'), detail: t('appGuards.battles.card2Detail'), tone: 'rgba(14, 165, 233, 0.14)' },
+                { title: t('appGuards.battles.card3Title'), detail: t('appGuards.battles.card3Detail'), tone: 'rgba(34, 211, 238, 0.14)' },
               ].map((card) => (
                 <Box
                   key={card.title}
@@ -549,7 +554,7 @@ const BattlesAuthGuard = ({ children }) => {
   }
 
   return children;
-};
+}
 
 // Maintenance Gate - only applies AFTER login
 // Admin → bypass, Player → show maintenance page, Not logged in → let through (auth routes handle themselves)
@@ -710,22 +715,25 @@ const NavigateRegistrar = () => {
 };
 
 function App() {
+  const { t } = useTranslation();
   return (
     <ErrorBoundary>
       <AccessibilityProvider>
         <LoadingProvider>
-          <a href="#main-content" className="skip-to-content">Skip to content</a>
+          <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
           <Router>
             <NavigateRegistrar />
             <GlobalAccessibilityUI />
             <AuthProvider>
-              <BattleProvider>
-                <ChallengeProvider>
-                  <ProfileProvider>
-                    <Suspense fallback={<RouteLoader />}>
-                      <MaintenanceGate>
-                        <SpeedChallengeGate>
-                          <Routes>
+              <ChatProvider>
+                <SupportProvider>
+                  <BattleProvider>
+                    <ChallengeProvider>
+                      <ProfileProvider>
+                        <Suspense fallback={<RouteLoader />}>
+                          <MaintenanceGate>
+                            <SpeedChallengeGate>
+                              <Routes>
                           {/* Public Routes with global header+footer */}
                           <Route element={<PublicLayout />}>
                             <Route path="/" element={<LandingPage />} />
@@ -768,13 +776,16 @@ function App() {
                           </Route>
                           <Route path="/notfound" element={<NotFoundPage />} />
                           <Route path="*" element={<Navigate to="/notfound" replace />} />
-                        </Routes>
-                        </SpeedChallengeGate>
-                      </MaintenanceGate>
-                    </Suspense>
-                  </ProfileProvider>
-                </ChallengeProvider>
-              </BattleProvider>
+                              </Routes>
+                            </SpeedChallengeGate>
+                          </MaintenanceGate>
+                        </Suspense>
+                      </ProfileProvider>
+                    </ChallengeProvider>
+                  </BattleProvider>
+                </SupportProvider>
+                <ChatPanel />
+              </ChatProvider>
             </AuthProvider>
           </Router>
         </LoadingProvider>

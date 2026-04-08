@@ -4,11 +4,13 @@
  * Victory/Defeat banner, scoreboard, round breakdown,
  * and performance analytics — all dynamically derived.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
 import { useChallengeContext } from '../../challenges/context/ChallengeContext';
 import { useAuth } from '../../auth/context/AuthContext';
+import { userService } from '../../../../services/userService';
 import {
     getTotalPlayerScore,
     getTotalOpponentScore,
@@ -25,11 +27,13 @@ import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import '../battles.css';
 
 const BattleSummaryPage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const { battles, selectBattle, deselectBattle } = useBattleState();
     const { refreshUserStats } = useChallengeContext();
     const { currentUser } = useAuth();
+    const xpAwardInFlightRef = useRef(false);
 
     const battle = battles.find(b => b.id === id);
 
@@ -42,14 +46,44 @@ const BattleSummaryPage = () => {
         refreshUserStats?.();
     }, [refreshUserStats]);
 
+    useEffect(() => {
+        const awardXpIfNeeded = async () => {
+            if (!battle) return;
+            if (battle.status !== BattleStatus.COMPLETED) return;
+
+            const currentUserId = currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username || null;
+            if (!currentUserId) return;
+
+            const xpEarned = Number(getXPEarned(battle) ?? 0);
+            if (!Number.isFinite(xpEarned) || xpEarned <= 0) return;
+
+            const awardedKey = `battle-xp-awarded:${currentUserId}:${battle.id}`;
+            if (localStorage.getItem(awardedKey)) return;
+            if (xpAwardInFlightRef.current) return;
+
+            xpAwardInFlightRef.current = true;
+            try {
+                await userService.updateMyXp(xpEarned);
+                localStorage.setItem(awardedKey, JSON.stringify({ xpEarned, awardedAt: new Date().toISOString() }));
+                await refreshUserStats?.();
+            } catch (err) {
+                console.error('Failed to award battle XP:', err);
+            } finally {
+                xpAwardInFlightRef.current = false;
+            }
+        };
+
+        awardXpIfNeeded();
+    }, [battle, currentUser, refreshUserStats]);
+
     if (!battle) {
         return (
             <div className="battle-page">
                 <div className="battle-container battle-text-center" style={{ paddingTop: '4rem' }}>
-                    <h2 className="battle-text-2xl battle-font-bold battle-mb-md">Battle Not Found</h2>
-                    <p className="battle-text-muted battle-mb-lg">The requested battle doesn't exist.</p>
+                    <h2 className="battle-text-2xl battle-font-bold battle-mb-md">{t('battles.notFound')}</h2>
+                    <p className="battle-text-muted battle-mb-lg">{t('battles.notFoundDesc')}</p>
                     <button className="battle-btn battle-btn--primary" onClick={() => navigate('/battles')}>
-                        Back to Arena
+                        {t('battles.backToArena')}
                     </button>
                 </div>
             </div>
@@ -68,10 +102,9 @@ const BattleSummaryPage = () => {
     const winnerName = winner === 'player'
         ? battle.player.name
         : winner === 'opponent'
-            ? (isAiBattle ? 'I got you!' : battle.opponent?.name || 'Opponent')
-            : 'Draw';
+            ? (isAiBattle ? t('battles.iGotYou') : battle.opponent?.name || t('battles.opponent'))
+            : t('battles.drawResult');
 
-    // Duration
     const durationMins = battle.completedAt && battle.createdAt
         ? Math.round((new Date(battle.completedAt) - new Date(battle.createdAt)) / 60000)
         : 0;
@@ -84,15 +117,15 @@ const BattleSummaryPage = () => {
 
     const bannerEmoji = winner === 'player' ? '🏆' : winner === 'opponent' ? (isAiBattle ? '🤖' : '😔') : '🤝';
     const bannerTitle = winner === 'player'
-        ? `${battle.player.name} wins!`
+        ? t('battles.playerWinsTitle', { name: battle.player.name })
         : winner === 'opponent'
-            ? (isAiBattle ? 'I got you!' : 'DEFEAT')
-            : 'DRAW';
+            ? (isAiBattle ? t('battles.iGotYou') : t('battles.defeat'))
+            : t('battles.draw');
     const bannerSubtitle = winner === 'player'
-        ? `${battle.player.name} outpaced ${battle.opponent?.name || 'the opponent'}`
+        ? t('battles.outpaced', { player: battle.player.name, opponent: battle.opponent?.name || t('battles.opponent') })
         : winner === 'opponent'
-            ? (isAiBattle ? 'The bot edged you out this time.' : `${battle.opponent?.name} won this battle`)
-            : `It's a tie with ${battle.opponent?.name}`;
+            ? (isAiBattle ? t('battles.botEdged') : t('battles.opponentWon', { name: battle.opponent?.name }))
+            : t('battles.tieWith', { name: battle.opponent?.name });
 
     const aggregateResults = (side) => {
         const results = battle.rounds
@@ -121,10 +154,10 @@ const BattleSummaryPage = () => {
             timeComplexity,
             spaceComplexity,
             criteria: [
-                `Rounds won: ${side === 'player' ? playerWins : opponentWins}`,
-                `Total score: ${totalScore}`,
-                `Avg execution: ${avgExecutionMs}ms`,
-                `Complexity: ${timeComplexity} / ${spaceComplexity}`,
+                t('battles.roundsWonCriteria', { count: side === 'player' ? playerWins : opponentWins }),
+                t('battles.totalScoreCriteria', { score: totalScore }),
+                t('battles.avgExecutionCriteria', { ms: avgExecutionMs }),
+                t('battles.complexityCriteria', { time: timeComplexity, space: spaceComplexity }),
             ],
         };
     };
@@ -142,13 +175,13 @@ const BattleSummaryPage = () => {
                         onClick={() => navigate('/battles')}
                         style={{ marginBottom: '1.5rem' }}
                     >
-                        ← Back to Arena
+                        {t('battles.backToArenaArrow')}
                     </button>
                     <h1 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-                        Battle Results
+                        {t('battles.battleResults')}
                     </h1>
                     <p className="battle-text-muted" style={{ fontSize: '1.125rem' }}>
-                        {battle.totalRounds} Rounds Completed • {durationMins > 0 ? `${durationMins} minutes` : 'Just now'}
+                        {t('battles.roundsCompleted', { count: battle.totalRounds })} • {durationMins > 0 ? t('battles.nMinutes', { n: durationMins }) : t('battles.justNow')}
                     </p>
                 </div>
 
@@ -175,28 +208,28 @@ const BattleSummaryPage = () => {
                                 {battle.player.name}
                             </h3>
                             {winner === 'player' && (
-                                <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>WINNER</span>
+                                <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{t('battles.winner')}</span>
                             )}
                             <p className={`battle-font-bold battle-text-5xl ${winner === 'player' ? 'battle-text-green' : ''}`} style={{ marginBottom: '0.25rem' }}>
                                 {playerScore}
                             </p>
-                            <p className="battle-text-xs battle-text-muted battle-text-uppercase">Final Score</p>
+                            <p className="battle-text-xs battle-text-muted battle-text-uppercase">{t('battles.finalScore')}</p>
                         </div>
 
                         {/* Center Stats */}
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.75rem' }}>
                             <div className="battle-text-center">
-                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>Rounds Won</p>
+                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>{t('battles.roundsWon')}</p>
                                 <p className="battle-text-xl battle-font-bold battle-text-green">{playerWins} - {opponentWins}</p>
                             </div>
                             <div className="battle-text-center">
-                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>XP Earned</p>
+                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>{t('battles.xpEarned')}</p>
                                 <p className="battle-text-xl battle-font-bold battle-text-yellow">+{xpEarned} XP</p>
                             </div>
                             <div className="battle-text-center">
-                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>Rank Progress</p>
+                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>{t('battles.rankProgress')}</p>
                                 <p className="battle-text-xl battle-font-bold battle-text-cyan">
-                                    {rankProgress > 0 ? '+' : ''}{rankProgress} Points
+                                    {rankProgress > 0 ? '+' : ''}{rankProgress} {t('battles.points')}
                                 </p>
                             </div>
                         </div>
@@ -213,39 +246,39 @@ const BattleSummaryPage = () => {
                                 <div className="battle-ai-avatar battle-ai-avatar--lg" style={{ margin: '0 auto 1rem', border: '4px solid #475569' }}>AI</div>
                             )}
                             <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.5rem' }}>
-                                {battle.opponent?.name || 'Unknown'}
+                                {battle.opponent?.name || t('battles.unknown')}
                             </h3>
                             {winner !== 'player' && winner !== 'draw' ? (
-                                <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>WINNER</span>
+                                <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{t('battles.winner')}</span>
                             ) : (
-                                <span className="battle-badge battle-badge--gray" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>DEFEATED</span>
+                                <span className="battle-badge battle-badge--gray" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{t('battles.defeated')}</span>
                             )}
                             <p className="battle-font-bold battle-text-5xl" style={{ color: winner === 'opponent' ? '#22c55e' : '#cbd5e1', marginBottom: '0.25rem' }}>
                                 {opponentScore}
                             </p>
-                            <p className="battle-text-xs battle-text-muted battle-text-uppercase">Final Score</p>
+                            <p className="battle-text-xs battle-text-muted battle-text-uppercase">{t('battles.finalScore')}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Detailed Results */}
                 <div className="battle-mb-xl">
-                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">Detailed Results</h2>
+                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.detailedResults')}</h2>
                     <div className="battle-results-grid">
                         <div className="battle-result-card">
                             <div className="battle-result-title">{battle.player.name}</div>
                             {playerAggregate ? (
                                 <>
                                     <div className="battle-result-metric">
-                                        <span>Execution Time</span>
+                                        <span>{t('battles.executionTimeLabel')}</span>
                                         <strong>{playerAggregate.avgExecutionMs}ms</strong>
                                     </div>
                                     <div className="battle-result-metric">
-                                        <span>Time / Space</span>
+                                        <span>{t('battles.timeSpace')}</span>
                                         <strong>{playerAggregate.timeComplexity} / {playerAggregate.spaceComplexity}</strong>
                                     </div>
                                     <div className="battle-result-metric">
-                                        <span>Score</span>
+                                        <span>{t('battles.score')}</span>
                                         <strong>{playerAggregate.totalScore}</strong>
                                     </div>
                                     <div className="battle-result-criteria">
@@ -255,26 +288,26 @@ const BattleSummaryPage = () => {
                                     </div>
                                 </>
                             ) : (
-                                <div className="battle-empty">No performance data yet.</div>
+                                <div className="battle-empty">{t('battles.noPerformanceData')}</div>
                             )}
                         </div>
 
                         <div className="battle-result-card">
                             <div className="battle-result-title">
-                                {winner === 'opponent' && isAiBattle ? '🤖 I got you!' : battle.opponent?.name || 'Opponent'}
+                                {winner === 'opponent' && isAiBattle ? `🤖 ${t('battles.iGotYou')}` : battle.opponent?.name || t('battles.opponent')}
                             </div>
                             {opponentAggregate ? (
                                 <>
                                     <div className="battle-result-metric">
-                                        <span>Execution Time</span>
+                                        <span>{t('battles.executionTimeLabel')}</span>
                                         <strong>{opponentAggregate.avgExecutionMs}ms</strong>
                                     </div>
                                     <div className="battle-result-metric">
-                                        <span>Time / Space</span>
+                                        <span>{t('battles.timeSpace')}</span>
                                         <strong>{opponentAggregate.timeComplexity} / {opponentAggregate.spaceComplexity}</strong>
                                     </div>
                                     <div className="battle-result-metric">
-                                        <span>Score</span>
+                                        <span>{t('battles.score')}</span>
                                         <strong>{opponentAggregate.totalScore}</strong>
                                     </div>
                                     <div className="battle-result-criteria">
@@ -284,18 +317,18 @@ const BattleSummaryPage = () => {
                                     </div>
                                 </>
                             ) : (
-                                <div className="battle-empty">No performance data yet.</div>
+                                <div className="battle-empty">{t('battles.noPerformanceData')}</div>
                             )}
                         </div>
                     </div>
                     <div className="battle-result-winner">
-                        Winner: <strong>{winnerName}</strong>
+                        {t('battles.winnerLabel')} <strong>{winnerName}</strong>
                     </div>
                 </div>
 
                 {/* Round Breakdown */}
                 <div className="battle-mb-xl">
-                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">Round Breakdown</h2>
+                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.roundBreakdown')}</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {battle.rounds.map(round => (
                             <RoundCard key={round.index} round={round} />
@@ -305,20 +338,20 @@ const BattleSummaryPage = () => {
 
                 {/* Performance Analytics */}
                 <div className="battle-mb-xl">
-                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">Performance Analytics</h2>
+                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.performanceAnalytics')}</h2>
                     <PerformanceAnalytics battle={battle} />
                 </div>
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
                     <button className="battle-btn battle-btn--primary" onClick={() => navigate('/battles')}>
-                        Challenge Again
+                        {t('battles.challengeAgain')}
                     </button>
                     <button className="battle-btn battle-btn--secondary" onClick={() => navigate('/battles')}>
-                        Back to Arena
+                        {t('battles.backToArena')}
                     </button>
                     <button className="battle-btn battle-btn--secondary">
-                        Share Results
+                        {t('battles.shareResults')}
                     </button>
                 </div>
             </div>

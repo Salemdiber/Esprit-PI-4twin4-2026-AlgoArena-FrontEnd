@@ -15,6 +15,7 @@ import {
     AlertDescription,
     useColorModeValue,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChallengeContext } from '../context/ChallengeContext';
 import useChallengeExecution from '../hooks/useChallengeExecution';
@@ -50,6 +51,7 @@ function sanitizeError(err) {
 }
 
 const TerminalPanel = () => {
+    const { t } = useTranslation();
     const {
         testResults,
         isRunning,
@@ -82,9 +84,9 @@ const TerminalPanel = () => {
     // Execution source badge
     const execSource = error?.source || testResults[0]?.source;
     const sourceBadge = execSource === 'ai-syntax-check'
-        ? { label: 'AI Validation', color: 'purple' }
+        ? { label: t('challengePage.aiValidation'), color: 'purple' }
         : execSource === 'docker'
-        ? { label: 'Docker Exec', color: 'blue' }
+        ? { label: t('challengePage.dockerExec'), color: 'blue' }
         : null;
 
     return (
@@ -115,9 +117,9 @@ const TerminalPanel = () => {
                     onClick={runCode}
                     isLoading={isRunning && !isSubmitting}
                     isDisabled={runDisabled}
-                    loadingText="Running"
+                    loadingText={t('challengePage.running')}
                 >
-                    Run Code
+                    {t('challengePage.runCode')}
                 </Button>
                 <Button
                     variant="primary"
@@ -127,9 +129,9 @@ const TerminalPanel = () => {
                     onClick={submitCode}
                     isLoading={isSubmitting}
                     isDisabled={submitDisabled}
-                    loadingText="Submitting"
+                    loadingText={t('challengePage.submittingLabel')}
                 >
-                    {isChallengeSolved ? 'Already Solved' : 'Submit Solution'}
+                    {isChallengeSolved ? t('challengePage.alreadySolved') : t('challengePage.submitSolution')}
                 </Button>
 
                 {/* Execution source badge */}
@@ -142,7 +144,7 @@ const TerminalPanel = () => {
 
             {/* Terminal tabs */}
             <Flex borderBottom="1px solid" borderColor={borderColor} px={4} py={2} gap={4}>
-                {['Test Results', 'Console'].map((label, i) => (
+                {[t('challengePage.testResults'), t('challengePage.console')].map((label, i) => (
                     <Button
                         key={label}
                         variant="unstyled"
@@ -174,7 +176,7 @@ const TerminalPanel = () => {
                                 <Flex align="center" gap={3}>
                                     <Spinner size="sm" color="brand.500" />
                                     <Text color="gray.400" fontSize="sm">
-                                        Running your code...
+                                        {t('challengePage.runningCode')}
                                     </Text>
                                 </Flex>
                             </Flex>
@@ -184,10 +186,10 @@ const TerminalPanel = () => {
                             <Flex align="center" justify="center" h="80px">
                                 <Text color="gray.500" fontSize="sm" fontStyle="italic">
                                     {isPaused
-                                        ? 'Timer is paused. Resume to continue.'
+                                        ? t('challengePage.pausedResume')
                                         : isChallengeSolved
-                                            ? 'Challenge solved. Review your submission details.'
-                                            : 'Click "Run Code" or "Submit Solution" to execute'}
+                                            ? t('challengePage.solvedReview')
+                                            : t('challengePage.clickToExecute')}
                                 </Text>
                             </Flex>
                         )}
@@ -204,14 +206,14 @@ const TerminalPanel = () => {
                                     <Alert status="error" borderRadius="md" alignItems="flex-start">
                                         <AlertIcon mt={1} />
                                         <Box>
-                                            <AlertTitle>{error.type || 'Error'}</AlertTitle>
+                                            <AlertTitle>{error.type || t('challengePage.failed')}</AlertTitle>
                                             <AlertDescription display="block">
-                                                {error.line && <Text fontSize="sm" fontWeight="bold">Line {error.line}:</Text>}
+                                                {error.line && <Text fontSize="sm" fontWeight="bold">{t('challengePage.lineError', { n: error.line })}</Text>}
                                                 <Text fontSize="sm" fontFamily="mono" mt={1}>{error.message}</Text>
                                                 {/* If SYNTAX ERROR (state 2), show AI analysis directly in alert */}
                                                 {judgeAnalysis && error.type === 'SyntaxError' && (
                                                     <Box mt={3} p={2} bg="red.800" borderRadius="md">
-                                                        <Text fontSize="sm" color="red.100">AI Analysis: {judgeAnalysis}</Text>
+                                                        <Text fontSize="sm" color="red.100">{t('challengePage.aiAnalysis')} {judgeAnalysis}</Text>
                                                     </Box>
                                                 )}
                                             </AlertDescription>
@@ -228,13 +230,13 @@ const TerminalPanel = () => {
                                 >
                                     <Alert status="warning" borderRadius="md" mb={4}>
                                         <AlertIcon />
-                                        <AlertTitle>{passedCount}/{totalCount} Tests Passed</AlertTitle>
+                                        <AlertTitle>{t('challengePage.testsPassed', { passed: passedCount, total: totalCount })}</AlertTitle>
                                     </Alert>
 
                                     {judgeAnalysis && (
                                         <Box mb={4} p={3} bg="orange.800" borderRadius="md">
                                             <Text fontSize="sm" color="orange.100">
-                                                <strong>AI Analysis:</strong> {judgeAnalysis}
+                                                <strong>{t('challengePage.aiAnalysis')}</strong> {judgeAnalysis}
                                             </Text>
                                         </Box>
                                     )}
@@ -249,7 +251,7 @@ const TerminalPanel = () => {
                                     {testResults.length > 5 && (
                                         <Box mt={2} mb={2}>
                                             <Button size="xs" onClick={() => setShowRemaining(!showRemaining)}>
-                                                {showRemaining ? "Hide remaining tests" : `Show ${testResults.length - 5} more tests`}
+                                                {showRemaining ? t('challengePage.hideRemainingTests') : t('challengePage.showMoreTests', { count: testResults.length - 5 })}
                                             </Button>
                                             <Collapse in={showRemaining} animateOpacity>
                                                 <VStack spacing={3} align="stretch" mt={3}>
@@ -271,13 +273,13 @@ const TerminalPanel = () => {
                                 >
                                     <Alert status="success" borderRadius="md" mb={4}>
                                         <AlertIcon />
-                                        <AlertTitle>All Tests Passed ({totalCount}/{totalCount})</AlertTitle>
+                                        <AlertTitle>{t('challengePage.allTestsPassed', { total: totalCount })}</AlertTitle>
                                     </Alert>
 
                                     {judgeAnalysis && (
                                         <Box mb={4} p={3} bg="green.800" borderRadius="md">
                                             <Text fontSize="sm" color="green.100">
-                                                <strong>AI Tip:</strong> {judgeAnalysis}
+                                                <strong>{t('challengePage.aiTip')}</strong> {judgeAnalysis}
                                             </Text>
                                         </Box>
                                     )}
@@ -293,8 +295,8 @@ const TerminalPanel = () => {
                                         >
                                             <Text fontSize="sm" color={currentSubmission?.wasReduced ? 'orange.100' : 'green.100'} fontWeight="bold">
                                                 {currentSubmission?.wasReduced
-                                                    ? `You earned ${currentSubmission.xpGained} XP (50% rate after 1 hour). Full XP: ${Math.round(currentSubmission.xpGained * 2)} XP.`
-                                                    : `You earned ${currentSubmission.xpGained} XP!`}
+                                                    ? t('challengePage.xpEarnedReduced', { xp: currentSubmission.xpGained, max: Math.round(currentSubmission.xpGained * 2) })
+                                                    : t('challengePage.xpEarnedFull', { xp: currentSubmission.xpGained })}
                                             </Text>
                                         </Box>
                                     )}
@@ -311,15 +313,15 @@ const TerminalPanel = () => {
                     </>
                 ) : (
                     <Box fontFamily="mono" fontSize="sm" color={consoleTextColor}>
-                        <Text color="gray.300">{'>'} Waiting for logs...</Text>
+                        <Text color="gray.300">{t('challengePage.waitingForLogs')}</Text>
                         {error && (
                             <Text color="red.400" mt={2}>
-                                ERROR: {error.message}
+                                {t('challengePage.errorPrefix')} {error.message}
                             </Text>
                         )}
                         {testResults.length > 0 && (
                              <Text color="gray.500" mt={2}>
-                                Execution complete. Summary: {passedCount}/{totalCount} passed.
+                                {t('challengePage.executionSummary', { passed: passedCount, total: totalCount })}
                              </Text>
                         )}
                     </Box>

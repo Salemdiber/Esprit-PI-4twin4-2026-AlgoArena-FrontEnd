@@ -13,6 +13,7 @@ import {
     Code,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const MotionBox = motion.create(Box);
 
@@ -35,6 +36,7 @@ function formatValue(val) {
 }
 
 const TestResultCard = ({ result, index }) => {
+    const { t } = useTranslation();
     const passed = result.passed;
     const hasError = !passed && result.error;
     const hasOutputMismatch = !passed && !result.error && result.expected != null && result.got != null;
@@ -59,11 +61,11 @@ const TestResultCard = ({ result, index }) => {
                         <XCircle w={5} h={5} color="red.500" />
                     )}
                     <Text fontWeight="semibold" color={passed ? 'green.400' : 'red.400'} fontSize="sm">
-                        Test Case {result.testCase || index + 1}: {passed ? 'Passed' : result.timedOut ? 'Timed Out' : 'Failed'}
+                        {passed ? t('challengePage.testCasePassed', { n: result.testCase || index + 1 }) : result.timedOut ? t('challengePage.testCaseTimedOut', { n: result.testCase || index + 1 }) : t('challengePage.testCaseFailed', { n: result.testCase || index + 1 })}
                     </Text>
                 </Flex>
                 <Text fontSize="xs" color="gray.500" fontFamily="mono">
-                    {result.executionTime || 'N/A'}
+                    {result.executionTime || t('challengePage.na')}
                 </Text>
             </Flex>
 
@@ -72,7 +74,7 @@ const TestResultCard = ({ result, index }) => {
                 {/* Input */}
                 {result.input != null && result.input !== '' && (
                     <Flex gap={2} mb={1}>
-                        <Text color="gray.500" flexShrink={0}>Input:</Text>
+                        <Text color="gray.500" flexShrink={0}>{t('challengePage.inputTestLabel')}</Text>
                         <Code
                             fontSize="xs"
                             bg="transparent"
@@ -88,7 +90,7 @@ const TestResultCard = ({ result, index }) => {
                 {/* Expected */}
                 {result.expected != null && (
                     <Flex gap={2} mb={1}>
-                        <Text color="gray.500" flexShrink={0}>Expected:</Text>
+                        <Text color="gray.500" flexShrink={0}>{t('challengePage.expectedTestLabel')}</Text>
                         <Code
                             fontSize="xs"
                             bg="transparent"
@@ -104,7 +106,7 @@ const TestResultCard = ({ result, index }) => {
                 {/* Actual output */}
                 {!passed && result.got != null && (
                     <Flex gap={2} mb={1}>
-                        <Text color="gray.500" flexShrink={0}>Got:</Text>
+                        <Text color="gray.500" flexShrink={0}>{t('challengePage.gotTestLabel')}</Text>
                         <Code
                             fontSize="xs"
                             bg="transparent"
@@ -120,7 +122,7 @@ const TestResultCard = ({ result, index }) => {
                 {/* Runtime error */}
                 {hasError && (
                     <Flex gap={2} mt={1}>
-                        <Text color="red.400" flexShrink={0}>Error:</Text>
+                        <Text color="red.400" flexShrink={0}>{t('challengePage.errorTestLabel')}</Text>
                         <Text color="red.300" wordBreak="break-all" whiteSpace="pre-wrap">
                             {result.error}
                         </Text>

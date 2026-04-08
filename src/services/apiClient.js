@@ -1,4 +1,6 @@
 import { getToken, removeToken, setToken } from './cookieUtils';
+import i18n, { getAcceptLanguageHeader } from '../i18n';
+import { recordNetworkFailure } from './diagnosticsCollector';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -20,6 +22,7 @@ export const apiClient = async (endpoint, options = {}) => {
     const token = options.token || getToken();
     const headers = {
         'Content-Type': 'application/json',
+        'Accept-Language': getAcceptLanguageHeader(),
         ...options.headers,
     };
 
@@ -54,7 +57,8 @@ export const apiClient = async (endpoint, options = {}) => {
                 break;
             } catch (error) {
                 if (attempt === maxRetries) {
-                    const networkError = new Error(`Cannot reach backend at ${BASE_URL}. Please confirm the API server is running.`);
+                    recordNetworkFailure({ url: `${BASE_URL}${endpoint}`, method, status: 0 });
+                    const networkError = new Error(i18n.t('errors.network'));
                     networkError.cause = error;
                     throw networkError;
                 }
@@ -89,7 +93,7 @@ export const apiClient = async (endpoint, options = {}) => {
                 newOpts.headers['Authorization'] = `Bearer ${newToken}`;
                 return doFetch(newOpts).then(res => {
                     if (!res.response.ok) {
-                        const errorMsg = res.data?.message || res.data?.error || 'Something went wrong';
+                        const errorMsg = res.data?.message || res.data?.error || i18n.t('errors.generic');
                         throw new Error(errorMsg);
                     }
                     return res.data;
@@ -103,7 +107,11 @@ export const apiClient = async (endpoint, options = {}) => {
 
         try {
             // Try refresh
-            const refreshResp = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+            const refreshResp = await fetch(`${BASE_URL}/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Accept-Language': getAcceptLanguageHeader() },
+            });
             if (refreshResp.ok) {
                 const refreshData = await refreshResp.json();
                 const newAccess = refreshData?.access_token;
@@ -118,7 +126,7 @@ export const apiClient = async (endpoint, options = {}) => {
                     ({ response, data } = await doFetch(fetchOptions));
                 }
             } else {
-                throw new Error('Refresh failed');
+                throw new Error(i18n.t('errors.refreshFailed'));
             }
         } catch (e) {
             isRefreshing = false;
@@ -131,12 +139,13 @@ export const apiClient = async (endpoint, options = {}) => {
             if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
                 window.location.href = '/signin';
             }
-            throw new Error('Session expired');
+            throw new Error(i18n.t('errors.sessionExpired'));
         }
     }
 
     if (!response.ok) {
-        const errorMsg = data?.message || data?.error || 'Something went wrong';
+        recordNetworkFailure({ url: `${BASE_URL}${endpoint}`, method: fetchOptions.method || 'GET', status: response.status });
+        const errorMsg = data?.message || data?.error || i18n.t('errors.generic');
         const error = new Error(errorMsg);
         error.status = response.status;
         error.payload = data;
