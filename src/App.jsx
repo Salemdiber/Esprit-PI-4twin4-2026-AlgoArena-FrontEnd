@@ -13,6 +13,7 @@ import GlobalAccessibilityUI from './accessibility/components/GlobalAccessibilit
 // Loading System
 import { LoadingProvider } from './shared/context/LoadingContext';
 import RouteLoader from './shared/components/RouteLoader';
+import NavigationProgress from './shared/components/NavigationProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Layouts (always loaded – they wrap everything)
@@ -48,6 +49,7 @@ import { settingsService } from './services/settingsService';
 import { getToken } from './services/cookieUtils';
 import { ChatProvider } from './features/chat/ChatProvider';
 import { SupportProvider } from './features/support/SupportProvider';
+import { prefetchLikelyRoutes } from './routes/prefetchRoutes';
 
 const ChatPanel = lazy(() => import('./features/chat/ChatPanel'));
 
@@ -720,6 +722,17 @@ const NavigateRegistrar = () => {
   return null;
 };
 
+const IdleRoutePrefetcher = () => {
+  const { currentUser, isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    const role = String(currentUser?.role || '').toUpperCase();
+    prefetchLikelyRoutes(isLoggedIn && (role === 'ADMIN' || role === 'ORGANIZER'));
+  }, [currentUser?.role, isLoggedIn]);
+
+  return null;
+};
+
 function App() {
   const { t } = useTranslation();
   return (
@@ -730,8 +743,10 @@ function App() {
             <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
             <Router>
             <NavigateRegistrar />
+            <NavigationProgress />
             <GlobalAccessibilityUI />
             <AuthProvider>
+              <IdleRoutePrefetcher />
               <ChatProvider>
                 <SupportProvider>
                   <BattleProvider>

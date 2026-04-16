@@ -28,7 +28,7 @@ import {
     Divider,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { MessageCircle, LifeBuoy } from 'lucide-react';
@@ -39,6 +39,8 @@ import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useChat } from '../features/chat/ChatProvider';
 import { useSupport } from '../features/support/SupportProvider';
+import { prefetchRoute } from '../routes/prefetchRoutes';
+import { startNavigationProgress } from '../shared/navigation/progress';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
@@ -205,6 +207,22 @@ const Header = () => {
         setHeaderSpotlight({ left: x - 150 });
     };
 
+    const warmRoute = useCallback((path) => {
+        prefetchRoute(path);
+    }, []);
+
+    const handleNavStart = useCallback((path) => {
+        warmRoute(path);
+        if (path !== location.pathname) {
+            startNavigationProgress();
+        }
+    }, [location.pathname, warmRoute]);
+
+    const handleDrawerNav = useCallback((path) => {
+        handleNavStart(path);
+        onClose();
+    }, [handleNavStart, onClose]);
+
     const isActive = (path) => {
         if (path === '/') return location.pathname === '/';
         return location.pathname.startsWith(path) && !path.startsWith('/#');
@@ -287,6 +305,9 @@ const Header = () => {
                                 }}
                                 transition="all 0.2s ease"
                                 position="relative"
+                                onMouseEnter={() => warmRoute(item.to)}
+                                onFocus={() => warmRoute(item.to)}
+                                onPointerDown={() => handleNavStart(item.to)}
                                 _after={isActive(item.to) ? {
                                     content: '""',
                                     position: 'absolute',
@@ -333,6 +354,9 @@ const Header = () => {
                                 }}
                                 transition="all 0.2s ease"
                                 position="relative"
+                                onMouseEnter={() => warmRoute(item.to)}
+                                onFocus={() => warmRoute(item.to)}
+                                onPointerDown={() => handleNavStart(item.to)}
                                 _after={isActive(item.to) ? {
                                     content: '""',
                                     position: 'absolute',
@@ -372,6 +396,9 @@ const Header = () => {
                                     variant="ghost"
                                     size="sm"
                                     fontWeight="500"
+                                    onMouseEnter={() => warmRoute('/signin')}
+                                    onFocus={() => warmRoute('/signin')}
+                                    onPointerDown={() => handleNavStart('/signin')}
                                 >
                                     {t('header.login')}
                                 </Button>
@@ -382,6 +409,9 @@ const Header = () => {
                                     size="sm"
                                     boxShadow="custom"
                                     display={{ base: 'none', sm: 'inline-flex' }}
+                                    onMouseEnter={() => warmRoute('/signup')}
+                                    onFocus={() => warmRoute('/signup')}
+                                    onPointerDown={() => handleNavStart('/signup')}
                                 >
                                     {t('header.createAccount')}
                                 </Button>
@@ -536,7 +566,10 @@ const Header = () => {
                                             fontSize="sm"
                                             borderRadius="8px"
                                             mx={2}
-                                            onClick={() => navigate('/profile')}
+                                            onClick={() => {
+                                                handleNavStart('/profile');
+                                                navigate('/profile');
+                                            }}
                                         >
                                             {t('header.viewProfile')}
                                         </MenuItem>
@@ -571,7 +604,9 @@ const Header = () => {
                                 border="2px solid"
                                 borderColor="var(--color-border)"
                                 cursor="pointer"
-                                onClick={() => { navigate('/profile'); onClose(); }}
+                                onMouseEnter={() => warmRoute('/profile')}
+                                onFocus={() => warmRoute('/profile')}
+                                onClick={() => { handleDrawerNav('/profile'); navigate('/profile'); }}
                                 _hover={{ borderColor: '#22d3ee' }}
                                 transition="all 0.2s"
                             />
@@ -630,7 +665,9 @@ const Header = () => {
                                     fontSize="md"
                                     fontFamily="heading"
                                     _hover={{ color: 'brand.500', bg: useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') }}
-                                    onClick={onClose}
+                                    onMouseEnter={() => warmRoute(item.to)}
+                                    onFocus={() => warmRoute(item.to)}
+                                    onClick={() => handleDrawerNav(item.to)}
                                     borderLeft={isActive(item.to) ? '3px solid' : '3px solid transparent'}
                                     borderColor={isActive(item.to) ? 'brand.500' : 'transparent'}
                                     bg={isActive(item.to) ? useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') : 'transparent'}
@@ -655,7 +692,9 @@ const Header = () => {
                                         fontSize="md"
                                         fontFamily="heading"
                                         _hover={{ color: 'brand.500' }}
-                                        onClick={onClose}
+                                        onMouseEnter={() => warmRoute('/profile')}
+                                        onFocus={() => warmRoute('/profile')}
+                                        onClick={() => handleDrawerNav('/profile')}
                                         borderLeft={isActive('/profile') ? '3px solid' : '3px solid transparent'}
                                         borderColor={isActive('/profile') ? 'brand.500' : 'transparent'}
                                         bg={isActive('/profile') ? useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') : 'transparent'}
@@ -708,7 +747,9 @@ const Header = () => {
                                                 variant="ghost"
                                                 size="md"
                                                 w="full"
-                                                onClick={onClose}
+                                                onMouseEnter={() => warmRoute('/signin')}
+                                                onFocus={() => warmRoute('/signin')}
+                                                onClick={() => handleDrawerNav('/signin')}
                                             >
                                                 {t('header.login')}
                                             </Button>
@@ -718,7 +759,9 @@ const Header = () => {
                                                 variant="primary"
                                                 size="md"
                                                 w="full"
-                                                onClick={onClose}
+                                                onMouseEnter={() => warmRoute('/signup')}
+                                                onFocus={() => warmRoute('/signup')}
+                                                onClick={() => handleDrawerNav('/signup')}
                                             >
                                                 {t('header.createAccount')}
                                             </Button>
@@ -735,7 +778,7 @@ const Header = () => {
                                             leftIcon={<LogoutIcon w={4} h={4} />}
                                             onClick={() => {
                                                 logout();
-                                                onClose();
+                                                handleDrawerNav('/');
                                                 navigate('/');
                                             }}
                                         >
