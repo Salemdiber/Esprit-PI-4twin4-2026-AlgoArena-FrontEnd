@@ -25,6 +25,7 @@ import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import UserRankStatsBar from '../components/UserRankStatsBar';
 import ChallengesFilters from '../components/ChallengesFilters';
 import ChallengeCard from '../components/ChallengeCard';
@@ -33,6 +34,7 @@ import ChallengesListSkeleton from '../../../../shared/skeletons/ChallengesListS
 import { useChallengeContext } from '../context/ChallengeContext';
 
 const MotionBox = m.create(Box);
+const ESTIMATED_CHALLENGE_CARD_HEIGHT = 190;
 
 const ChallengesListPage = () => {
     const { t } = useTranslation();
@@ -59,6 +61,25 @@ const ChallengesListPage = () => {
         difficultyCounts,
         tagCounts,
     } = useChallenges();
+    const listParentRef = React.useRef(null);
+    const [listScrollMargin, setListScrollMargin] = React.useState(0);
+
+    React.useLayoutEffect(() => {
+        const updateScrollMargin = () => {
+            setListScrollMargin(listParentRef.current?.offsetTop ?? 0);
+        };
+
+        updateScrollMargin();
+        window.addEventListener('resize', updateScrollMargin);
+        return () => window.removeEventListener('resize', updateScrollMargin);
+    }, [filteredChallenges.length]);
+
+    const challengeVirtualizer = useWindowVirtualizer({
+        count: filteredChallenges.length,
+        estimateSize: () => ESTIMATED_CHALLENGE_CARD_HEIGHT,
+        overscan: 5,
+        scrollMargin: listScrollMargin,
+    });
 
     React.useEffect(() => {
         const currentStreak = Number(streakDetails?.currentStreak || 0);
@@ -263,24 +284,38 @@ const ChallengesListPage = () => {
                         </Flex>
 
                         {/* Challenge cards */}
-                        <VStack spacing={4} align="stretch">
-                            {filteredChallenges.length === 0 ? (
-                                <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" borderRadius="12px" p={10} textAlign="center">
-                                    <Text fontSize="2xl" mb={2}>🔍</Text>
-                                    <Text color="var(--color-text-secondary)" fontWeight="medium">{t('challengePage.noMatchTitle')}</Text>
-                                    <Text color="var(--color-text-muted)" fontSize="sm" mt={1}>
-                                        {t('challengePage.noMatchHint')}
-                                    </Text>
-                                </Box>
-                            ) : (
-                                filteredChallenges.map(challenge => (
-                                    <ChallengeCard
-                                        key={challenge.id}
-                                        challenge={challenge}
-                                    />
-                                ))
-                            )}
-                        </VStack>
+                        {filteredChallenges.length === 0 ? (
+                            <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" borderRadius="12px" p={10} textAlign="center">
+                                <Text fontSize="2xl" mb={2}>Search</Text>
+                                <Text color="var(--color-text-secondary)" fontWeight="medium">{t('challengePage.noMatchTitle')}</Text>
+                                <Text color="var(--color-text-muted)" fontSize="sm" mt={1}>
+                                    {t('challengePage.noMatchHint')}
+                                </Text>
+                            </Box>
+                        ) : (
+                            <Box
+                                ref={listParentRef}
+                                position="relative"
+                                h={`${challengeVirtualizer.getTotalSize()}px`}
+                            >
+                                {challengeVirtualizer.getVirtualItems().map((virtualRow) => {
+                                    const challenge = filteredChallenges[virtualRow.index];
+                                    return (
+                                        <Box
+                                            key={challenge.id}
+                                            position="absolute"
+                                            top={0}
+                                            left={0}
+                                            w="100%"
+                                            pb={4}
+                                            transform={`translateY(${virtualRow.start - listScrollMargin}px)`}
+                                        >
+                                            <ChallengeCard challenge={challenge} />
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        )}
                     </Box>
                 </Flex>
             </Box>
