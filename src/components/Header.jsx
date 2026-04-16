@@ -37,8 +37,8 @@ import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useChat } from '../features/chat';
-import { useSupport } from '../features/support';
+import { useChat } from '../features/chat/ChatProvider';
+import { useSupport } from '../features/support/SupportProvider';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {

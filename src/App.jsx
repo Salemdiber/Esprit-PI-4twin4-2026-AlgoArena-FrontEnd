@@ -45,8 +45,10 @@ import { ProfileProvider } from './pages/Frontoffice/profile/context/ProfileCont
 import { AuthProvider, useAuth, hasCompletedSpeedChallenge } from './pages/Frontoffice/auth/context/AuthContext';
 import { settingsService } from './services/settingsService';
 import { getToken } from './services/cookieUtils';
-import { ChatProvider, ChatPanel } from './features/chat';
-import { SupportProvider } from './features/support';
+import { ChatProvider } from './features/chat/ChatProvider';
+import { SupportProvider } from './features/support/SupportProvider';
+
+const ChatPanel = lazy(() => import('./features/chat/ChatPanel'));
 
 // Frontoffice Challenge Pages
 const ChallengesListPage = lazy(() => import('./pages/Frontoffice/challenges/pages/ChallengesListPage'));
@@ -792,7 +794,9 @@ function App() {
                     </ChallengeProvider>
                   </BattleProvider>
                 </SupportProvider>
-                <ChatPanel />
+                <Suspense fallback={null}>
+                  <ChatPanel />
+                </Suspense>
               </ChatProvider>
             </AuthProvider>
           </Router>
