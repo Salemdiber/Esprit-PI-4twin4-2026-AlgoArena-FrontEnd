@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
-import Logo from '../assets/logo_algoarena.png';
+import Logo from '../assets/logo_algoarena.svg';
 import LanguageSwitcher from './LanguageSwitcher';
 
 const IconWrapper = ({ children }) => (

@@ -33,7 +33,7 @@ import { userService } from '../../../services/userService';
 import { settingsService } from '../../../services/settingsService';
 import { apiClient } from '../../../services/apiClient';
 
-import Logo from '../../../assets/logo_algoarena.png';
+import Logo from '../../../assets/logo_algoarena.svg';
 import { useTranslation } from 'react-i18next';
 
 // Key used to persist the placement so the SignIn page can read it

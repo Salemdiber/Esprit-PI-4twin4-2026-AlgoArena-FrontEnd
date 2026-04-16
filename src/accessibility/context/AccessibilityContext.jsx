@@ -14,6 +14,17 @@ import { applyAccessibilityOverrides } from '../utils/themeOverrides';
 import { startListening, stopListening } from '../utils/speechUtils';
 
 const STORAGE_KEY = 'algoarena_a11y_settings';
+let dyslexiaFontPromise = null;
+
+const loadDyslexiaFont = () => {
+    if (!dyslexiaFontPromise) {
+        dyslexiaFontPromise = Promise.all([
+            import('@fontsource/opendyslexic/400.css'),
+            import('@fontsource/opendyslexic/700.css'),
+        ]);
+    }
+    return dyslexiaFontPromise;
+};
 
 const loadSettings = () => {
     try {
@@ -46,11 +57,17 @@ const AccessibilityProvider = ({ children }) => {
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         applyAccessibilityOverrides(settings);
+        if (settings.dyslexiaFont) {
+            loadDyslexiaFont().catch(() => {});
+        }
     }, [settings]);
 
     // Apply on initial mount
     useEffect(() => {
         applyAccessibilityOverrides(settings);
+        if (settings.dyslexiaFont) {
+            loadDyslexiaFont().catch(() => {});
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

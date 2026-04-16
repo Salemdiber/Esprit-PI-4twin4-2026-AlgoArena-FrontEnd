@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Flex, HStack, Text, Button, Image, useColorModeValue } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import Logo from '../assets/logo_algoarena.png';
+import Logo from '../assets/logo_algoarena.svg';
 
 const AuthLayout = ({ children, activeTab = 'signin' }) => {
     const bg = useColorModeValue('#f8fafc', '#0f172a');

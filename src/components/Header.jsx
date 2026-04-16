@@ -32,7 +32,7 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { MessageCircle, LifeBuoy } from 'lucide-react';
-import Logo from '../assets/logo_algoarena.png';
+import Logo from '../assets/logo_algoarena.svg';
 import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
