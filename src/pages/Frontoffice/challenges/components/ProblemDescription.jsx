@@ -32,7 +32,7 @@ import { TimeIcon, InfoIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META } from '../data/mockChallenges';
-import { CodeEditor } from '../../../../editor';
+import CodeEditor from '../../../../editor/components/CodeEditor';
 
 const StarIcon = (props) => (
     <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>

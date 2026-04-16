@@ -21,7 +21,7 @@ import {
     VStack,
     keyframes,
 } from '@chakra-ui/react';
-import { CodeEditor } from '../../editor';
+import CodeEditor from '../../editor/components/CodeEditor';
 import {
     BarChart3,
     ChevronRight,
