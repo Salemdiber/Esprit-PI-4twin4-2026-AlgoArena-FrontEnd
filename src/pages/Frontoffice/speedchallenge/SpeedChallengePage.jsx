@@ -17,7 +17,7 @@ import {
     Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner,
 } from '@chakra-ui/react';
 import { MdOutlineEdit, MdTimer, MdSwapHoriz, MdEmojiEvents, MdKey, MdBolt } from 'react-icons/md';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 
 import {
     SPEED_CHALLENGE_PROBLEMS,
@@ -54,8 +54,8 @@ const debounce = (fn, delay) => {
     };
 };
 
-const MotionBox = motion.create(Box);
-const MotionFlex = motion.create(Flex);
+const MotionBox = m.create(Box);
+const MotionFlex = m.create(Flex);
 
 // ─── Phase enum ──────────────────────────────────────────────────
 const PHASE = {

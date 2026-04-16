@@ -10,10 +10,10 @@
  */
 import React from 'react';
 import { Box, Flex, Text } from '@chakra-ui/react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const PasswordStrengthMeter = ({ score, label, color, glowColor, percent }) => {
     const { t } = useTranslation();

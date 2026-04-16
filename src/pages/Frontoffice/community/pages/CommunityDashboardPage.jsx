@@ -12,7 +12,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import {
   ArcElement,
   BarElement,
@@ -28,7 +28,7 @@ import { useAuth } from '../../auth/context/AuthContext';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS = [
   'openrouter/auto',

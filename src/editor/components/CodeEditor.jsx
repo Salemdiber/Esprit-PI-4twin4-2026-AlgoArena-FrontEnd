@@ -99,7 +99,7 @@ const CodeEditor = ({
         // Performance: disable smooth scrolling to fix scroll lag
         smoothScrolling: false,
         scrollBeyondLastLine: false,
-        // Respect reduced motion
+        // Respect reduced m
         ...(noMotion && {
             cursorBlinking: 'solid',
             cursorSmoothCaretAnimation: 'off',

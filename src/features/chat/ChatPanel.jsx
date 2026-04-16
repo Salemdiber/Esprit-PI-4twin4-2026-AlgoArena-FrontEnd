@@ -1,13 +1,13 @@
 import React from 'react';
 import { Alert, AlertIcon, Box, Button, VStack } from '@chakra-ui/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useChat } from './ChatProvider';
 import ChatHeader from './ChatHeader';
 import ChatMessageList from './ChatMessageList';
 import ChatMessageInput from './ChatMessageInput';
 
-const MotionBox = motion(Box);
+const MotionBox = m(Box);
 
 const ChatPanel = () => {
   const { t } = useTranslation();

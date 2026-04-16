@@ -3,21 +3,21 @@
  *
  * Features:
  *  • Spotlight radial gradient behind the card
- *  • Animated cyan glow via Framer Motion (replaces CSS championGlow keyframe)
+ *  • Animated cyan glow via Framer m (replaces CSS championGlow keyframe)
  *  • Slightly larger scale
  *  • "Champion" floating badge above rank number
  *  • Aura ring around avatar
  */
 import React from 'react';
 import { Box, Flex, Text, Image, Grid } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import RankBadge from './RankBadge';
 import EnergyBar from './EnergyBar';
 import StreakIndicator from './StreakIndicator';
 
-const MotionBox = motion.create(Box);
-const MotionFlex = motion.create(Flex);
+const MotionBox = m.create(Box);
+const MotionFlex = m.create(Flex);
 
 const glowAnimation = {
     animate: {

@@ -16,12 +16,12 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useChallengeContext } from '../context/ChallengeContext';
 import useChallengeExecution from '../hooks/useChallengeExecution';
 import TestResultCard from './TestResultCard';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const PlayIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>

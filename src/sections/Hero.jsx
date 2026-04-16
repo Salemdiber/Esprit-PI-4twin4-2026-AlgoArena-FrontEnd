@@ -14,10 +14,10 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-// Fix for deprecated motion() usage
-const MotionBox = motion.create(Box);
+// Fix for deprecated m() usage
+const MotionBox = m.create(Box);
 
 const languages = ['C', 'C++', 'Java', 'Python', 'JS', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript', 'Scala', 'Perl', 'R'];
 

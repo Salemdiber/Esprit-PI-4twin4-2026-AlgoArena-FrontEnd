@@ -28,7 +28,7 @@ import {
   Textarea,
   VStack,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   getComments,
@@ -42,7 +42,7 @@ import {
 import { communityService } from '../../../../services/communityService';
 import { useAuth } from '../../auth/context/AuthContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 const COMMENT_PREVIEW_LIMIT = 3;
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS = [

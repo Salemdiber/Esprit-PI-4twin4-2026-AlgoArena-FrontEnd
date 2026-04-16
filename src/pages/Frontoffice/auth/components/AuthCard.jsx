@@ -6,7 +6,7 @@
  *  - border-top: 2px cyan accent
  *  - rounded-lg shadow
  *  - breathing background glow
- *  - Framer Motion fade-in
+ *  - Framer m fade-in
  *
  * Props:
  *   children   – page content
@@ -14,14 +14,14 @@
  */
 import React from 'react';
 import { Box, keyframes } from '@chakra-ui/react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 
 const breathe = keyframes`
     0%, 100% { opacity: 0.3; }
     50% { opacity: 0.5; }
 `;
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const AuthCard = ({ children, maxW = 'md' }) => {
     const prefersReducedMotion = useReducedMotion();

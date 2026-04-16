@@ -1,9 +1,9 @@
 import React from 'react';
 import { HStack, Text } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const Dot = motion.div;
+const Dot = m.div;
 
 const ChatTypingIndicator = ({ users }) => {
   const { t } = useTranslation();

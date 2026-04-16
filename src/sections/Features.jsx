@@ -11,9 +11,9 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const stepIcons = [
     (

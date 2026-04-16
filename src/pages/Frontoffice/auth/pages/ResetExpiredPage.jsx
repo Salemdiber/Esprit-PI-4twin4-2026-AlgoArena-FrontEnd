@@ -8,11 +8,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Text, Icon, Divider, VStack } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import AuthCard from '../components/AuthCard';
 import AuthHeader from '../components/AuthHeader';
 
-const MotionIcon = motion.create(Icon);
+const MotionIcon = m.create(Icon);
 
 const ClockIcon = (props) => (
     <Icon

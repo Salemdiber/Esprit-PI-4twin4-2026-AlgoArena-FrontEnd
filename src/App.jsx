@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Text, VStack } from '@chakra-ui/react';
 import { LockIcon } from '@chakra-ui/icons';
+import { LazyMotion, domAnimation } from 'framer-motion';
 
 // Accessibility
 import AccessibilityProvider from './accessibility/context/AccessibilityContext';
@@ -723,10 +724,11 @@ function App() {
   const { t } = useTranslation();
   return (
     <ErrorBoundary>
-      <AccessibilityProvider>
-        <LoadingProvider>
-          <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
-          <Router>
+      <LazyMotion features={domAnimation} strict>
+        <AccessibilityProvider>
+          <LoadingProvider>
+            <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
+            <Router>
             <NavigateRegistrar />
             <GlobalAccessibilityUI />
             <AuthProvider>
@@ -799,9 +801,10 @@ function App() {
                 </Suspense>
               </ChatProvider>
             </AuthProvider>
-          </Router>
-        </LoadingProvider>
-      </AccessibilityProvider>
+            </Router>
+          </LoadingProvider>
+        </AccessibilityProvider>
+      </LazyMotion>
     </ErrorBoundary>
   );
 }

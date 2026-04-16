@@ -9,10 +9,10 @@
  */
 import React from 'react';
 import { Box, Flex, Text } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const LeaderboardHeader = ({
     eyebrow: eyebrowProp,

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, HStack, Icon, Text } from '@chakra-ui/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const WarningIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>

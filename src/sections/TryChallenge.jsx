@@ -25,10 +25,10 @@ import {
     useDisclosure,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { CodeEditor, EditorToolbar, OutputTerminal, useEditorState } from '../editor';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 /* ── Icons ──────────────────────────────────────────────────── */
 const CodeIcon = (props) => (

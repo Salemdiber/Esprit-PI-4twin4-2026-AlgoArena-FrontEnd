@@ -15,11 +15,11 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useProfile } from '../context/ProfileContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 /* Inline icons */
 const ShieldOffIcon = (props) => (

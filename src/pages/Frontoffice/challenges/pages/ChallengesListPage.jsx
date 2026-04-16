@@ -21,7 +21,7 @@ import {
     Icon,
     useToast,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
@@ -32,7 +32,7 @@ import useChallenges from '../hooks/useChallenges';
 import ChallengesListSkeleton from '../../../../shared/skeletons/ChallengesListSkeleton';
 import { useChallengeContext } from '../context/ChallengeContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const ChallengesListPage = () => {
     const { t } = useTranslation();

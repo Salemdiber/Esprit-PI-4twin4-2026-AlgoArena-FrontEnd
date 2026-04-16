@@ -34,7 +34,7 @@ import {
     AlertDescription,
     IconButton,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { FiBookmark, FiCheckCircle, FiClock, FiInfo, FiPlay, FiSave, FiStar, FiX } from 'react-icons/fi';
 import { useChallengeContext } from '../context/ChallengeContext';
 import ChallengeHeader from '../components/ChallengeHeader';
@@ -47,7 +47,7 @@ import ChallengePlaySkeleton from '../../../../shared/skeletons/ChallengePlaySke
 import { judgeService } from '../../../../services/judgeService';
 import { getToken } from '../../../../services/cookieUtils';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const MenuIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>

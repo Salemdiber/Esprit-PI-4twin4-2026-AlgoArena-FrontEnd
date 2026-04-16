@@ -21,12 +21,17 @@ const vendorChunk = (id) => {
   }
 
   if (
-    id.includes('/node_modules/@chakra-ui/') ||
-    id.includes('/node_modules/@emotion/') ||
-    id.includes('/node_modules/@zag-js/') ||
     id.includes('/node_modules/framer-motion/') ||
     id.includes('/node_modules/motion-') ||
     id.includes('/node_modules/framesync/')
+  ) {
+    return 'vendor-motion';
+  }
+
+  if (
+    id.includes('/node_modules/@chakra-ui/') ||
+    id.includes('/node_modules/@emotion/') ||
+    id.includes('/node_modules/@zag-js/')
   ) {
     return 'vendor-ui';
   }

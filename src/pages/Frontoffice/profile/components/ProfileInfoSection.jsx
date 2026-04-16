@@ -18,11 +18,11 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { CheckIcon } from '@chakra-ui/icons';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useProfile } from '../context/ProfileContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 /* Inline edit icon */
 const PencilIcon = (props) => (

@@ -9,15 +9,15 @@
  */
 import React from 'react';
 import { Box, Flex, Text, Image, Grid, Badge } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import RankBadge from './RankBadge';
 import EnergyBar from './EnergyBar';
 import StreakIndicator from './StreakIndicator';
 import TrendIndicator from './TrendIndicator';
 
-const MotionBox = motion.create(Box);
-const MotionFlex = motion.create(Flex);
+const MotionBox = m.create(Box);
+const MotionFlex = m.create(Flex);
 
 /* ──────── colour maps for border accents per rank / tier ──────── */
 const rankBorderColors = {

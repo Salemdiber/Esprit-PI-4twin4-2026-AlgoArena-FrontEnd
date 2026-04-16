@@ -5,10 +5,10 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Box } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import useAccessibility from '../../accessibility/hooks/useAccessibility';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const RouteLoader = () => {
     const [progress, setProgress] = useState(0);
