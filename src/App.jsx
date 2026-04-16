@@ -39,9 +39,9 @@ const ActiveBattlePage = lazy(() => import('./pages/Frontoffice/battles/pages/Ac
 const BattleSummaryPage = lazy(() => import('./pages/Frontoffice/battles/pages/BattleSummaryPage'));
 
 // Battle, Challenge & Profile Providers (light, load eagerly)
-import { BattleProvider } from './pages/Frontoffice/battles';
-import { ChallengeProvider } from './pages/Frontoffice/challenges';
-import { ProfileProvider } from './pages/Frontoffice/profile';
+import { BattleProvider } from './pages/Frontoffice/battles/hooks/useBattleState';
+import { ChallengeProvider } from './pages/Frontoffice/challenges/context/ChallengeContext';
+import { ProfileProvider } from './pages/Frontoffice/profile/context/ProfileContext';
 import { AuthProvider, useAuth, hasCompletedSpeedChallenge } from './pages/Frontoffice/auth/context/AuthContext';
 import { settingsService } from './services/settingsService';
 import { getToken } from './services/cookieUtils';
