@@ -247,6 +247,12 @@ export default defineConfig({
     },
   },
   server: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    },
     proxy: {
       '/api/docs': createProxyConfig(),
       '/api': createProxyConfig({
@@ -258,6 +264,14 @@ export default defineConfig({
         bypass: (req) => (req.headers.accept?.includes('text/html') ? req.url : null),
       }),
       '/uploads': createProxyConfig(),
+    },
+  },
+  preview: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     },
   },
 });

@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /challenges
+Allow: /leaderboard
+Allow: /battles
+Allow: /signin
+Allow: /signup
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://algo-arena.vercel.app/sitemap.xml

@@ -591,13 +591,13 @@ const Users = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
-                    <select className="form-select w-full md:w-40 bg-(--color-bg-input)" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                    <select aria-label={t('admin.users.role')} className="form-select w-full md:w-40 bg-(--color-bg-input)" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
                         <option value="All">{t('admin.users.allRoles')}</option>
                         <option value="Admin">{t('admin.users.admin')}</option>
                         <option value="Player">{t('admin.users.player')}</option>
                         <option value="Premium">{t('admin.users.premium')}</option>
                     </select>
-                    <select className="form-select w-full md:w-40 bg-(--color-bg-input)" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <select aria-label={t('admin.users.status')} className="form-select w-full md:w-40 bg-(--color-bg-input)" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                         <option value="All">{t('admin.users.allStatus')}</option>
                         <option value="Active">{t('admin.users.active')}</option>
                         <option value="Disabled">{t('admin.users.disabled')}</option>

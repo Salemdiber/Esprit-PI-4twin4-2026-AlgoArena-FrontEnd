@@ -260,6 +260,7 @@ const ChallengesListPage = () => {
                                 {t('challengePage.challengesCount')}
                             </Text>
                             <Select
+                                aria-label={t('challengePage.sortByPrefix')}
                                 value={sortOption}
                                 onChange={(e) => setSortOption(e.target.value)}
                                 w="220px"

@@ -493,6 +493,7 @@ const ActiveBattlePage = () => {
                         <div className="battle-panel-header">
                             <div className="battle-editor-title">{t('battles.yourSolution')}</div>
                             <select
+                                aria-label={t('battles.language')}
                                 className="battle-language-select"
                                 value={language}
                                 onChange={(e) => setLanguage(e.target.value)}
