@@ -1,5 +1,6 @@
 ﻿import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const BACKEND_TARGET = 'http://localhost:3000';
 let lastBackendNoticeAt = 0;
@@ -113,7 +114,95 @@ const createProxyConfig = (pathOptions = {}) => ({
 });
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
+      includeAssets: ['logo_algoarena.svg', 'assets/cursors/cursor.svg'],
+      manifest: {
+        name: 'AlgoArena',
+        short_name: 'AlgoArena',
+        description: 'Algorithm battles, challenges, leaderboards, and developer practice.',
+        theme_color: '#0f172a',
+        background_color: '#0f172a',
+        display: 'standalone',
+        start_url: '/',
+        icons: [
+          {
+            src: '/logo_algoarena.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+      workbox: {
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'algoarena-pages',
+              networkTimeoutSeconds: 3,
+            },
+          },
+          {
+            urlPattern: ({ request }) =>
+              request.destination === 'script' || request.destination === 'style',
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'algoarena-static',
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 7 * 24 * 60 * 60,
+              },
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'algoarena-images',
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+              },
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'font',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'algoarena-fonts',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 365 * 24 * 60 * 60,
+              },
+            },
+          },
+          {
+            urlPattern: ({ url }) =>
+              ['/settings', '/challenges', '/battles', '/leaderboard'].some((path) =>
+                url.pathname.startsWith(path),
+              ),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'algoarena-api',
+              networkTimeoutSeconds: 2,
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60,
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ],
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
     exclude: ['monaco-editor', '@monaco-editor/react'],
