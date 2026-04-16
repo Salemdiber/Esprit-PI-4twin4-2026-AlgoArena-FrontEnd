@@ -1,34 +1,38 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-import en from './en.json';
-import fr from './fr.json';
+import HttpBackend from 'i18next-http-backend';
 
 const normalizeLng = (lng) => (lng && String(lng).toLowerCase().startsWith('fr') ? 'fr' : 'en');
+const detectLanguage = () => {
+  if (typeof window === 'undefined') return 'en';
+  const stored = window.localStorage?.getItem('i18nextLng');
+  return normalizeLng(stored || window.navigator?.language || 'en');
+};
 
 i18n
-  .use(LanguageDetector)
+  .use(HttpBackend)
   .use(initReactI18next)
   .init({
-    resources: {
-      en: { translation: en },
-      fr: { translation: fr },
+    backend: {
+      loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
+    lng: detectLanguage(),
     fallbackLng: 'en',
     supportedLngs: ['en', 'fr'],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
+    ns: ['translation'],
+    defaultNS: 'translation',
     interpolation: { escapeValue: false },
-    detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
-      caches: ['localStorage'],
-      lookupLocalStorage: 'i18nextLng',
-    },
+    react: { useSuspense: false },
   });
 
 i18n.on('languageChanged', (lng) => {
   const n = normalizeLng(lng);
   if (n !== lng) i18n.changeLanguage(n);
+  if (typeof window !== 'undefined') {
+    window.localStorage?.setItem('i18nextLng', n);
+  }
 });
 
 export function getAcceptLanguageHeader() {
