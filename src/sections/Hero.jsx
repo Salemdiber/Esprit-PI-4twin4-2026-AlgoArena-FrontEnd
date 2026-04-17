@@ -356,6 +356,7 @@ const Hero = () => {
                                             <Text>{progress}%</Text>
                                         </HStack>
                                         <Progress
+                                            aria-label={t('landing.hero.progress')}
                                             value={progress}
                                             size="sm"
                                             colorScheme="cyan"
