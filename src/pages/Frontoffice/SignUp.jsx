@@ -152,11 +152,14 @@ const SignUp = () => {
     useEffect(() => {
         if (!RECAPTCHA_SITE_KEY) return;
 
-        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
-            // Token fetch will still surface submit-time errors if loading fails
-        });
+        const timerId = window.setTimeout(() => {
+            mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+                // Token fetch will still surface submit-time errors if loading fails
+            });
+        }, 6000);
 
         return () => {
+            window.clearTimeout(timerId);
             unmountReCaptchaV3();
         };
     }, [RECAPTCHA_SITE_KEY]);
