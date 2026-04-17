@@ -14,9 +14,9 @@ import {
     Code,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const gameStatic = {
     tetris: {
@@ -236,6 +236,7 @@ const Games = () => {
                                         <Box w={3} h={3} borderRadius="full" bg="green.500" />
                                     </HStack>
                                     <Select
+                                        aria-label={t('landing.games.languageSelect', 'Select programming language')}
                                         bg={selectBg}
                                         color={textColor}
                                         size="sm"

@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import SupportHub from './SupportHub';
-import ScheduleMeetingForm from './ScheduleMeetingForm';
-import ContactSupportForm from './ContactSupportForm';
-import ReportBugForm from './ReportBugForm';
-import SupportRequestHistory from './SupportRequestHistory';
+import React, { Suspense, createContext, lazy, useContext, useMemo, useState } from 'react';
+
+const SupportHub = lazy(() => import('./SupportHub'));
+const ScheduleMeetingForm = lazy(() => import('./ScheduleMeetingForm'));
+const ContactSupportForm = lazy(() => import('./ContactSupportForm'));
+const ReportBugForm = lazy(() => import('./ReportBugForm'));
+const SupportRequestHistory = lazy(() => import('./SupportRequestHistory'));
 
 const SupportContext = createContext(null);
 
@@ -40,11 +41,19 @@ export const SupportProvider = ({ children }) => {
   return (
     <SupportContext.Provider value={api}>
       {children}
-      <SupportHub />
-      <ScheduleMeetingForm isOpen={isFormOpen && activeCategory === 'schedule_meeting'} onClose={api.closeForm} onViewHistory={() => { api.closeForm(); api.openHistory(); }} />
-      <ContactSupportForm isOpen={isFormOpen && activeCategory === 'contact_support'} onClose={api.closeForm} onViewHistory={() => { api.closeForm(); api.openHistory(); }} />
-      <ReportBugForm isOpen={isFormOpen && activeCategory === 'report_bug'} onClose={api.closeForm} onViewHistory={() => { api.closeForm(); api.openHistory(); }} />
-      <SupportRequestHistory isOpen={isHistoryOpen} onClose={api.closeHistory} />
+      <Suspense fallback={null}>
+        {isHubOpen && <SupportHub />}
+        {isFormOpen && activeCategory === 'schedule_meeting' && (
+          <ScheduleMeetingForm isOpen onClose={api.closeForm} onViewHistory={() => { api.closeForm(); api.openHistory(); }} />
+        )}
+        {isFormOpen && activeCategory === 'contact_support' && (
+          <ContactSupportForm isOpen onClose={api.closeForm} onViewHistory={() => { api.closeForm(); api.openHistory(); }} />
+        )}
+        {isFormOpen && activeCategory === 'report_bug' && (
+          <ReportBugForm isOpen onClose={api.closeForm} onViewHistory={() => { api.closeForm(); api.openHistory(); }} />
+        )}
+        {isHistoryOpen && <SupportRequestHistory isOpen onClose={api.closeHistory} />}
+      </Suspense>
     </SupportContext.Provider>
   );
 };

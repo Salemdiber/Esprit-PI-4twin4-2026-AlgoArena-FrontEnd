@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Text, VStack } from '@chakra-ui/react';
 import { LockIcon } from '@chakra-ui/icons';
+import { LazyMotion, domAnimation } from 'framer-motion';
 
 // Accessibility
 import AccessibilityProvider from './accessibility/context/AccessibilityContext';
@@ -12,13 +13,13 @@ import GlobalAccessibilityUI from './accessibility/components/GlobalAccessibilit
 // Loading System
 import { LoadingProvider } from './shared/context/LoadingContext';
 import RouteLoader from './shared/components/RouteLoader';
+import NavigationProgress from './shared/components/NavigationProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Layouts (always loaded – they wrap everything)
-import PublicLayout from './layout/PublicLayout';
-import AdminLayout from './layout/AdminLayout';
-
 // ─── Lazy-loaded pages (code-split per route) ───
+
+const PublicLayout = lazy(() => import('./layout/PublicLayout'));
+const AdminLayout = lazy(() => import('./layout/AdminLayout'));
 
 // Public
 const LandingPage = lazy(() => import('./pages/LandingPage/LandingPage'));
@@ -39,14 +40,17 @@ const ActiveBattlePage = lazy(() => import('./pages/Frontoffice/battles/pages/Ac
 const BattleSummaryPage = lazy(() => import('./pages/Frontoffice/battles/pages/BattleSummaryPage'));
 
 // Battle, Challenge & Profile Providers (light, load eagerly)
-import { BattleProvider } from './pages/Frontoffice/battles';
-import { ChallengeProvider } from './pages/Frontoffice/challenges';
-import { ProfileProvider } from './pages/Frontoffice/profile';
+import { BattleProvider } from './pages/Frontoffice/battles/hooks/useBattleState';
+import { ChallengeProvider } from './pages/Frontoffice/challenges/context/ChallengeContext';
+import { ProfileProvider } from './pages/Frontoffice/profile/context/ProfileContext';
 import { AuthProvider, useAuth, hasCompletedSpeedChallenge } from './pages/Frontoffice/auth/context/AuthContext';
 import { settingsService } from './services/settingsService';
 import { getToken } from './services/cookieUtils';
-import { ChatProvider, ChatPanel } from './features/chat';
-import { SupportProvider } from './features/support';
+import { ChatProvider } from './features/chat/ChatProvider';
+import { SupportProvider } from './features/support/SupportProvider';
+import { prefetchLikelyRoutes } from './routes/prefetchRoutes';
+
+const ChatPanel = lazy(() => import('./features/chat/ChatPanel'));
 
 // Frontoffice Challenge Pages
 const ChallengesListPage = lazy(() => import('./pages/Frontoffice/challenges/pages/ChallengesListPage'));
@@ -57,6 +61,8 @@ const SpeedChallengePage = lazy(() => import('./pages/Frontoffice/speedchallenge
 
 // Frontoffice Leaderboard
 const LeaderboardPage = lazy(() => import('./pages/Frontoffice/leaderboard/pages/LeaderboardPage'));
+const CommunityPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityPage'));
+const CommunityDashboardPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityDashboardPage'));
 
 // Frontoffice Profile
 const ProfilePage = lazy(() => import('./pages/Frontoffice/profile/pages/ProfilePage'));
@@ -70,6 +76,7 @@ const Challenges = lazy(() => import('./pages/Backoffice/Challenges'));
 const AILogs = lazy(() => import('./pages/Backoffice/AILogs'));
 const Leaderboards = lazy(() => import('./pages/Backoffice/Leaderboards'));
 const Analytics = lazy(() => import('./pages/Backoffice/Analytics'));
+const CommunityAnalytics = lazy(() => import('./pages/Backoffice/CommunityAnalytics'));
 const SystemHealth = lazy(() => import('./pages/Backoffice/SystemHealth'));
 const Settings = lazy(() => import('./pages/Backoffice/Settings'));
 const Profile = lazy(() => import('./pages/Backoffice/Profile'));
@@ -714,17 +721,31 @@ const NavigateRegistrar = () => {
   return null;
 };
 
+const IdleRoutePrefetcher = () => {
+  const { currentUser, isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    const role = String(currentUser?.role || '').toUpperCase();
+    prefetchLikelyRoutes(isLoggedIn && (role === 'ADMIN' || role === 'ORGANIZER'));
+  }, [currentUser?.role, isLoggedIn]);
+
+  return null;
+};
+
 function App() {
   const { t } = useTranslation();
   return (
     <ErrorBoundary>
-      <AccessibilityProvider>
-        <LoadingProvider>
-          <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
-          <Router>
+      <LazyMotion features={domAnimation} strict>
+        <AccessibilityProvider>
+          <LoadingProvider>
+            <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
+            <Router>
             <NavigateRegistrar />
+            <NavigationProgress />
             <GlobalAccessibilityUI />
             <AuthProvider>
+              <IdleRoutePrefetcher />
               <ChatProvider>
                 <SupportProvider>
                   <BattleProvider>
@@ -742,6 +763,10 @@ function App() {
                             <Route path="/battles/:id/summary" element={<BattlesAuthGuard><BattleSummaryPage /></BattlesAuthGuard>} />
                             <Route path="/challenges" element={<ChallengesAuthGuard><ChallengesListPage /></ChallengesAuthGuard>} />
                             <Route path="/leaderboard" element={<LeaderboardPage />} />
+                            <Route path="/community" element={<CommunityPage />} />
+                            <Route path="/community/dashboard" element={<CommunityDashboardPage />} />
+                            <Route path="/discussion" element={<Navigate to="/community" replace />} />
+                            <Route path="/discussion/dashboard" element={<Navigate to="/community/dashboard" replace />} />
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/speed-challenge" element={<SpeedChallengePage />} />
                             <Route path="/profile/2fa-setup" element={<TwoFactorSetupPage />} />
@@ -766,6 +791,7 @@ function App() {
                             <Route path="ai-logs" element={<AILogs />} />
                             <Route path="leaderboards" element={<Leaderboards />} />
                             <Route path="analytics" element={<Analytics />} />
+                            <Route path="community-analytics" element={<CommunityAnalytics />} />
                             <Route path="system-health" element={<SystemHealth />} />
                             <Route path="settings" element={<Settings />} />
                             <Route path="sessions" element={<Sessions />} />
@@ -784,12 +810,15 @@ function App() {
                     </ChallengeProvider>
                   </BattleProvider>
                 </SupportProvider>
-                <ChatPanel />
+                <Suspense fallback={null}>
+                  <ChatPanel />
+                </Suspense>
               </ChatProvider>
             </AuthProvider>
-          </Router>
-        </LoadingProvider>
-      </AccessibilityProvider>
+            </Router>
+          </LoadingProvider>
+        </AccessibilityProvider>
+      </LazyMotion>
     </ErrorBoundary>
   );
 }

@@ -1,7 +1,11 @@
-<div align="center">
-  <img src="public/logo_algoarena.png" alt="AlgoArena Logo" width="200" />
-  <h1>AlgoArena — Frontend</h1>
-  <p><strong>A competitive programming platform where developers sharpen their algorithmic skills</strong></p>
+  <img src="public/logo_algoarena.png" alt="AlgoArena Logo" width="220" />
+  <h1>ðŸš€ AlgoArena | Frontend</h1>
+  <p><strong>The ultimate competitive programming platform for mastering algorithms with style.</strong></p>
+  <div align="center">
+    <img src="https://img.shields.io/badge/Status-Live-success?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/Frontend-Vibrant-blue?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/AI-Empowered-9cf?style=for-the-badge" />
+  </div>
 </div>
 
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?logo=react)
@@ -35,67 +39,47 @@ The product is built for students, developers preparing for interviews, and comp
 
 What makes the experience strong is the integration of AI-assisted flows and sandboxed code execution from the backend, combined with gamification (XP, rank progress, streaks) and modern UX patterns.
 
-## Key Features
-**Authentication And Access**
-- ? Sign in and sign up flows with reCAPTCHA integration
-- ? OAuth callback flow for social authentication
-- ? Password recovery and reset pages
-- ? Protected admin routes (role-based)
-- ? Challenge access guard for unauthenticated users
+### ðŸ” Authentication & Security
+- ðŸ›¡ï¸ **Advanced Flow**: Secure sign-in and sign-up with reCAPTCHA v3 protection
+- ðŸŒ **Social Auth**: OAuth2 integration for painless GitHub & Google login
+- ðŸ”‘ **Recovery**: Full password reset and account verification workflows
+- ðŸš” **Security**: Role-based access control (RBAC) ensuring admin integrity
+- ðŸšª **Guards**: Smart navigation guards protecting the challenge ecosystem
 
-**Challenge Experience**
-- ? Challenge list and full challenge play page
-- ? Monaco-based code editor integration
-- ? Submission and progress integration through judge APIs
-- ? AI Judge and submission feedback tabs in challenge flow
-- ? Timer, execution state, and workspace state management through challenge context/hooks
+### ðŸ§© Challenge Experience
+- ðŸ—ï¸ **Workspaces**: Dynamic challenge discovery and interactive workspaces
+- âœï¸ **Code Editor**: Premium Monaco Editor integration with IDE-grade features
+- âš–ï¸ **Judge System**: Real-time evaluation through high-performance judge APIs
+- ðŸ¤– **AI Support**: Intelligent feedback and judge insights powered by LLMs
+- â±ï¸ **Live Tracking**: Real-time timer, execution states, and solution persistence
 
-**Competitive Experience**
-- ? Battle listing, active battle view, and battle summary pages
-- ? Leaderboard page and rank display components
-- ? Speed challenge page and onboarding gate flow
+### ðŸ† Competitive Arena
+- âš”ï¸ **Battles**: Global battle matchmaking and live arena interfaces
+- ðŸ“ˆ **Leaderboard**: Real-time global standings and skill-based rankings
+- âš¡ **Speedrun**: High-stakes speed challenges with onboarding placement flow
 
-**User Account Experience**
-- ? Profile page and two-factor setup page
-- ? Rank stats retrieval and profile-related API integrations
+### ðŸ‘¤ Profile & Dashboard
+- ðŸ–¼ï¸ **Identity**: Comprehensive user profiles with 2FA security controls
+- ðŸŽ–ï¸ **Progression**: Automated rank stats, XP gains, and performance history
+- ðŸŽ¨ **UX**: Seamless theme switching (Dark/Light) and accessibility first design
 
-**Admin Dashboard**
-- ? Dashboard analytics cards and charts
-- ? Challenge management page
-- ? Activity logs page
-- ? Users, sessions, settings, system health, AI logs, and additional admin pages
-- ? Sandbox Monitor widget with backend polling (`/admin/sandbox/status`)
+### ðŸ”§ Admin Powerhouse
+- ðŸ“Š **Analytics**: High-density dashboards with Chart.js visualization
+- ðŸ› ï¸ **Management**: Full-lifecycle challenge and user orchestration tools
+- ðŸ“œ **Audit Logs**: Complete activity transparency with rollback capabilities
+- ðŸ“¡ **Monitoring**: Real-time Docker sandbox telemetry and system health
 
-**Platform UX And Quality**
-- ? Global accessibility provider, accessibility UI, and navigation registration
-- ? Theme provider + Chakra theme setup
-- ? Central API client with token handling and refresh flow
-- ? Vite proxy resilience for backend startup downtime (503 fallback message)
+## ðŸ— Architecture Overview
 
-## Architecture Overview
-```text
-+----------------------------------------------------------------------+
-¦                           Client Browser                            ¦
-¦                                                                      ¦
-¦  +---------------------+   +----------------------+                 ¦
-¦  ¦ Frontoffice UI      ¦   ¦ Backoffice UI        ¦                 ¦
-¦  ¦ - Challenges        ¦   ¦ - Dashboard          ¦                 ¦
-¦  ¦ - Battles           ¦   ¦ - Challenges         ¦                 ¦
-¦  ¦ - Leaderboard       ¦   ¦ - Activity Logs      ¦                 ¦
-¦  ¦ - Profile/Auth      ¦   ¦ - Settings/Users     ¦                 ¦
-¦  +---------------------+   +----------------------+                 ¦
-¦             ¦                         ¦                              ¦
-¦      +-----------------------------------------------------------+   ¦
-¦      ¦ React 19 + Chakra UI + React Router + Context Providers   ¦   ¦
-¦      ¦ API Client (token + refresh), service layer, route guards ¦   ¦
-¦      +------------------------------------------------------------+   ¦
-+--------------------------------------+---------------------------------+
-                                       ¦ HTTP/REST (proxied by Vite)
-                                       ?
-+----------------------------------------------------------------------+
-¦                       NestJS Backend API                            ¦
-¦                 (authentication, judging, analytics)                ¦
-+----------------------------------------------------------------------+
+```mermaid
+graph TD
+    A[User Browser] --> B{Vite Proxy/Router}
+    B --> C[Frontoffice UI]
+    B --> D[Backoffice Admin]
+    C --> E[API Client Layer]
+    D --> E
+    E --> F[Auth/Token Flow]
+    F --> G[NestJS Backend API]
 ```
 
 ## Tech Stack
@@ -127,8 +111,8 @@ src/
 +-- hooks/                  # Generic custom hooks
 +-- layout/                 # Public/Admin layout shells
 +-- pages/
-¦   +-- Backoffice/         # Admin pages (Dashboard, Challenges, ActivityLogs, etc.)
-¦   +-- Frontoffice/        # Auth, challenges, battles, leaderboard, profile, speed challenge
+|   +-- Backoffice/         # Admin pages (Dashboard, Challenges, ActivityLogs, etc.)
+|   +-- Frontoffice/        # Auth, challenges, battles, leaderboard, profile, speed challenge
 +-- sections/               # Landing page sections
 +-- services/               # API client + domain service wrappers
 +-- shared/                 # Shared contexts/loaders/skeletons/cursor

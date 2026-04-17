@@ -25,20 +25,23 @@ import {
     Text,
     Tooltip,
     Badge,
+    Divider,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { Suspense, lazy, useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
-import { MessageCircle } from 'lucide-react';
-import { LifeBuoy } from 'lucide-react';
-import Logo from '../assets/logo_algoarena.png';
-import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
+import { MessageCircle, LifeBuoy } from 'lucide-react';
+import Logo from '../assets/logo_algoarena.svg';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useChat } from '../features/chat';
-import { useSupport } from '../features/support';
+import { useChat } from '../features/chat/ChatProvider';
+import { useSupport } from '../features/support/SupportProvider';
+import { prefetchRoute } from '../routes/prefetchRoutes';
+import { startNavigationProgress } from '../shared/navigation/progress';
+
+const AccessibilityDrawer = lazy(() => import('../accessibility/components/AccessibilityDrawer'));
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
@@ -107,7 +110,6 @@ const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
                 transition="all 0.2s"
                 _hover={{ boxShadow: `0 0 12px ${meta.color}30` }}
                 flexShrink={0}
-                display={{ base: "none", sm: "flex" }}
             >
                 <Text
                     fontSize="xs"
@@ -134,8 +136,6 @@ const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
     );
 };
 
-
-
 /* Inline accessibility icon (universal figure) */
 const AccessibilityIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -151,13 +151,6 @@ const UserIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
         <circle cx="12" cy="7" r="4" />
-    </Icon>
-);
-
-const SettingsIcon = (props) => (
-    <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
     </Icon>
 );
 
@@ -184,21 +177,30 @@ const Header = () => {
     const { toggleChat, unreadCount, isChatOpen } = useChat();
     const { openHub } = useSupport();
 
-    const navItems = useMemo(
+    /* Primary navigation — the main pages users visit */
+    const primaryNav = useMemo(
         () => [
             { label: t('navigation.home'), to: '/' },
-            { label: t('navigation.battles'), to: '/battles' },
             { label: t('navigation.challenges'), to: '/challenges' },
+            { label: t('navigation.battles'), to: '/battles' },
             { label: t('navigation.leaderboard'), to: '/leaderboard' },
-            { label: t('navigation.community'), to: '/#community' },
-            { label: t('navigation.dashboard'), to: '/admin' },
         ],
         [t],
     );
 
-    const filteredNavItems = navItems.filter(
-        (item) => !(item.to === '/admin' && (!isLoggedIn || currentUser?.role === 'Player')),
+    /* Secondary navigation — contextual */
+    const secondaryNav = useMemo(
+        () => {
+            const items = [{ label: t('navigation.community'), to: '/community' }];
+            if (isLoggedIn && currentUser?.role !== 'Player') {
+                items.push({ label: t('navigation.dashboard'), to: '/admin' });
+            }
+            return items;
+        },
+        [t, isLoggedIn, currentUser?.role],
     );
+
+    const allNavItems = useMemo(() => [...primaryNav, ...secondaryNav], [primaryNav, secondaryNav]);
 
     const handleMouseMove = (e) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -206,22 +208,40 @@ const Header = () => {
         setHeaderSpotlight({ left: x - 150 });
     };
 
+    const warmRoute = useCallback((path) => {
+        prefetchRoute(path);
+    }, []);
+
+    const handleNavStart = useCallback((path) => {
+        warmRoute(path);
+        if (path !== location.pathname) {
+            startNavigationProgress();
+        }
+    }, [location.pathname, warmRoute]);
+
+    const handleDrawerNav = useCallback((path) => {
+        handleNavStart(path);
+        onClose();
+    }, [handleNavStart, onClose]);
+
     const isActive = (path) => {
         if (path === '/') return location.pathname === '/';
         return location.pathname.startsWith(path) && !path.startsWith('/#');
     };
 
     /* Color-mode-aware tokens */
-    const headerBg = useColorModeValue('rgba(255, 255, 255, 0.92)', 'rgba(17, 24, 39, 0.9)');
+    const headerBg = useColorModeValue('rgba(255, 255, 255, 0.95)', 'rgba(15, 23, 42, 0.92)');
     const headerBorder = useColorModeValue('gray.200', 'gray.800');
     const spotlightGradient = useColorModeValue(
         'linear(to-r, transparent, rgba(34, 211, 238, 0.04), transparent)',
         'linear(to-r, transparent, rgba(34, 211, 238, 0.05), transparent)',
     );
-    const navLinkColor = useColorModeValue('gray.600', 'gray.300');
+    const navLinkColor = useColorModeValue('gray.600', 'gray.400');
+    const activeNavColor = useColorModeValue('cyan.600', 'cyan.300');
     const drawerBg = useColorModeValue('white', '#0f172a');
     const drawerBorder = useColorModeValue('gray.200', 'gray.800');
     const mobileCtaBorder = useColorModeValue('gray.200', 'gray.800');
+    const separatorColor = useColorModeValue('gray.200', 'gray.700');
 
     return (
         <Box
@@ -231,7 +251,7 @@ const Header = () => {
             left={0}
             right={0}
             zIndex={50}
-            backdropFilter="blur(16px)"
+            backdropFilter="blur(20px)"
             bg={headerBg}
             borderBottom="1px solid"
             borderColor={headerBorder}
@@ -252,33 +272,99 @@ const Header = () => {
 
             <Container maxW="7xl" position="relative" zIndex={10}>
                 <Flex h={16} alignItems="center" justifyContent="space-between">
-                    {/* Logo */}
-                    <Box display="flex" alignItems="center">
-                        <Image src={Logo} alt={t('header.logoAlt')} h="60px" objectFit="contain" />
+                    {/* ──── LEFT: Logo ──── */}
+                    <Box display="flex" alignItems="center" flexShrink={0}>
+                        <Image src={Logo} alt={t('header.logoAlt')} h="52px" objectFit="contain" />
                     </Box>
 
-                    {/* Desktop Navigation */}
+                    {/* ──── CENTER: Desktop Navigation ──── */}
                     <HStack
                         as="nav"
-                        spacing={8}
-                        display={{ base: 'none', md: 'flex' }}
+                        spacing={1}
+                        display={{ base: 'none', lg: 'flex' }}
+                        mx={6}
+                        flex={1}
+                        justifyContent="center"
                     >
-                        {filteredNavItems.map((item) => (
+                        {/* Primary Nav Items */}
+                        {primaryNav.map((item) => (
                             <Link
                                 key={item.to}
                                 as={NavLink}
                                 to={item.to}
-                                color={isActive(item.to) ? 'brand.500' : navLinkColor}
-                                fontWeight={isActive(item.to) ? 'semibold' : 'normal'}
-                                _hover={{ color: 'brand.500' }}
-                                transition="all 0.3s"
+                                color={isActive(item.to) ? activeNavColor : navLinkColor}
+                                fontWeight={isActive(item.to) ? '600' : '500'}
+                                fontSize="sm"
+                                px={3}
+                                py={1.5}
+                                borderRadius="8px"
+                                bg={isActive(item.to) ? useColorModeValue('rgba(34,211,238,0.08)', 'rgba(34,211,238,0.1)') : 'transparent'}
+                                _hover={{
+                                    color: activeNavColor,
+                                    bg: useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)'),
+                                    transform: 'translateY(-1px)',
+                                }}
+                                transition="all 0.2s ease"
                                 position="relative"
+                                onMouseEnter={() => warmRoute(item.to)}
+                                onFocus={() => warmRoute(item.to)}
+                                onPointerDown={() => handleNavStart(item.to)}
                                 _after={isActive(item.to) ? {
                                     content: '""',
                                     position: 'absolute',
-                                    bottom: '-4px',
-                                    left: '0',
-                                    right: '0',
+                                    bottom: '-2px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    width: '20px',
+                                    height: '2px',
+                                    bg: 'brand.500',
+                                    borderRadius: 'full',
+                                } : {}}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+
+                        {/* Visual separator */}
+                        {secondaryNav.length > 0 && (
+                            <Box
+                                w="1px"
+                                h="20px"
+                                bg={separatorColor}
+                                mx={1}
+                            />
+                        )}
+
+                        {/* Secondary Nav Items */}
+                        {secondaryNav.map((item) => (
+                            <Link
+                                key={item.to}
+                                as={NavLink}
+                                to={item.to}
+                                color={isActive(item.to) ? activeNavColor : navLinkColor}
+                                fontWeight={isActive(item.to) ? '600' : '500'}
+                                fontSize="sm"
+                                px={3}
+                                py={1.5}
+                                borderRadius="8px"
+                                bg={isActive(item.to) ? useColorModeValue('rgba(34,211,238,0.08)', 'rgba(34,211,238,0.1)') : 'transparent'}
+                                _hover={{
+                                    color: activeNavColor,
+                                    bg: useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)'),
+                                    transform: 'translateY(-1px)',
+                                }}
+                                transition="all 0.2s ease"
+                                position="relative"
+                                onMouseEnter={() => warmRoute(item.to)}
+                                onFocus={() => warmRoute(item.to)}
+                                onPointerDown={() => handleNavStart(item.to)}
+                                _after={isActive(item.to) ? {
+                                    content: '""',
+                                    position: 'absolute',
+                                    bottom: '-2px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    width: '20px',
                                     height: '2px',
                                     bg: 'brand.500',
                                     borderRadius: 'full',
@@ -289,12 +375,17 @@ const Header = () => {
                         ))}
                     </HStack>
 
-                    {/* CTA Buttons / Profile Avatar – conditional */}
-                    <HStack spacing={3}>
+                    {/* ──── RIGHT: Utility Controls + Profile ──── */}
+                    <HStack spacing={2} flexShrink={0}>
 
-                        {/* Theme Switcher */}
-                        <LanguageSwitcher size="sm" compact />
-                        <ThemeSwitcher size="md" />
+                        {/* Utility cluster: Language + Theme */}
+                        <HStack
+                            spacing={1}
+                            display={{ base: 'none', md: 'flex' }}
+                        >
+                            <LanguageSwitcher size="sm" compact />
+                            <ThemeSwitcher size="sm" />
+                        </HStack>
 
                         {!isLoggedIn ? (
                             /* ─── Logged OUT: show Login + Create Account ─── */
@@ -304,7 +395,11 @@ const Header = () => {
                                     to="/signin"
                                     display={{ base: 'none', sm: 'inline-flex' }}
                                     variant="ghost"
-                                    size="md"
+                                    size="sm"
+                                    fontWeight="500"
+                                    onMouseEnter={() => warmRoute('/signin')}
+                                    onFocus={() => warmRoute('/signin')}
+                                    onPointerDown={() => handleNavStart('/signin')}
                                 >
                                     {t('header.login')}
                                 </Button>
@@ -312,52 +407,77 @@ const Header = () => {
                                     as={RouterLink}
                                     to="/signup"
                                     variant="primary"
-                                    size="md"
+                                    size="sm"
                                     boxShadow="custom"
                                     display={{ base: 'none', sm: 'inline-flex' }}
+                                    onMouseEnter={() => warmRoute('/signup')}
+                                    onFocus={() => warmRoute('/signup')}
+                                    onPointerDown={() => handleNavStart('/signup')}
                                 >
                                     {t('header.createAccount')}
                                 </Button>
                             </>
                         ) : (
-                            /* ─── Logged IN: show rank badge + username + avatar dropdown ─── */
-                            <HStack spacing={2} display={{ base: 'none', sm: 'flex' }}>
-                                <Tooltip label={t('support.title')} hasArrow placement="bottom">
-                                    <IconButton
-                                        aria-label={t('support.title')}
-                                        variant="ghost"
-                                        size="sm"
-                                        icon={<LifeBuoy size={16} />}
-                                        onClick={openHub}
-                                        color="var(--color-text-secondary)"
-                                    />
-                                </Tooltip>
-                                <Box position="relative">
-                                    <Tooltip label={t('chat.title')} hasArrow placement="bottom">
+                            /* ─── Logged IN: utility icons + rank + profile ─── */
+                            <HStack spacing={1.5} display={{ base: 'none', sm: 'flex' }}>
+
+                                {/* ── Action icons cluster ── */}
+                                <HStack
+                                    spacing={0.5}
+                                    px={1}
+                                    py={0.5}
+                                    borderRadius="10px"
+                                    bg={useColorModeValue('rgba(0,0,0,0.03)', 'rgba(255,255,255,0.04)')}
+                                >
+                                    <Tooltip label={t('support.title')} hasArrow placement="bottom">
                                         <IconButton
-                                            aria-label={t('chat.title')}
+                                            aria-label={t('support.title')}
                                             variant="ghost"
                                             size="sm"
-                                            icon={<MessageCircle size={16} />}
-                                            onClick={toggleChat}
-                                            color={isChatOpen ? 'brand.400' : 'var(--color-text-secondary)'}
+                                            icon={<LifeBuoy size={15} />}
+                                            onClick={openHub}
+                                            color="var(--color-text-secondary)"
+                                            borderRadius="8px"
+                                            minW="32px"
+                                            h="32px"
+                                            _hover={{ color: 'brand.400', bg: useColorModeValue('rgba(34,211,238,0.08)', 'rgba(34,211,238,0.12)') }}
                                         />
                                     </Tooltip>
-                                    {!isChatOpen && unreadCount > 0 && (
-                                        <Badge
-                                            colorScheme="cyan"
-                                            position="absolute"
-                                            top="-1"
-                                            right="-1"
-                                            borderRadius="full"
-                                            px={1.5}
-                                            fontSize="10px"
-                                        >
-                                            {unreadCount > 10 ? '10+' : unreadCount}
-                                        </Badge>
-                                    )}
-                                </Box>
-                                {/* Rank + XP badge */}
+                                    <Box position="relative">
+                                        <Tooltip label={t('chat.title')} hasArrow placement="bottom">
+                                            <IconButton
+                                                aria-label={t('chat.title')}
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={<MessageCircle size={15} />}
+                                                onClick={toggleChat}
+                                                color={isChatOpen ? 'brand.400' : 'var(--color-text-secondary)'}
+                                                borderRadius="8px"
+                                                minW="32px"
+                                                h="32px"
+                                                _hover={{ color: 'brand.400', bg: useColorModeValue('rgba(34,211,238,0.08)', 'rgba(34,211,238,0.12)') }}
+                                            />
+                                        </Tooltip>
+                                        {!isChatOpen && unreadCount > 0 && (
+                                            <Badge
+                                                colorScheme="cyan"
+                                                position="absolute"
+                                                top="-1"
+                                                right="-1"
+                                                borderRadius="full"
+                                                px={1.5}
+                                                fontSize="9px"
+                                                minH="16px"
+                                                display="flex"
+                                                alignItems="center"
+                                            >
+                                                {unreadCount > 10 ? '10+' : unreadCount}
+                                            </Badge>
+                                        )}
+                                    </Box>
+                                </HStack>
+
+                                {/* ── Rank badge ── */}
                                 <RankBadge
                                     rank={currentUser?.rank}
                                     xp={currentUser?.xp}
@@ -366,44 +486,50 @@ const Header = () => {
                                     progressPercent={currentUser?.progressPercent}
                                 />
 
-                                <Text
-                                    fontSize="sm"
-                                    fontWeight="600"
-                                    color="var(--color-text-primary)"
-                                    display={{ base: 'none', md: 'block' }}
-                                >
-                                    {currentUser?.username}
-                                </Text>
-
+                                {/* ── Profile avatar menu ── */}
                                 <Menu placement="bottom-end" isLazy>
                                     <MenuButton
-                                        as={IconButton}
-                                        aria-label={t('header.userMenu')}
-                                        variant="unstyled"
+                                        as={Box}
+                                        cursor="pointer"
                                         display="flex"
                                         alignItems="center"
-                                        justifyContent="center"
-                                        minW="auto"
-                                        _focus={{ boxShadow: 'none' }}
+                                        gap={2}
+                                        pl={2}
+                                        pr={1}
+                                        py={1}
+                                        borderRadius="10px"
+                                        transition="all 0.2s"
+                                        _hover={{ bg: useColorModeValue('rgba(0,0,0,0.04)', 'rgba(255,255,255,0.06)') }}
                                     >
-                                        <Avatar
-                                            size="sm"
-                                            name={currentUser?.username}
-                                            src={currentUser?.avatar}
-                                            border="2px solid"
-                                            borderColor="var(--color-border)"
-                                            cursor="pointer"
-                                            _hover={{ borderColor: '#22d3ee', boxShadow: '0 0 12px rgba(34, 211, 238, 0.3)' }}
-                                            transition="all 0.2s"
-                                        />
+                                        <HStack spacing={2}>
+                                            <Text
+                                                fontSize="sm"
+                                                fontWeight="600"
+                                                color="var(--color-text-primary)"
+                                                display={{ base: 'none', lg: 'block' }}
+                                                maxW="120px"
+                                                isTruncated
+                                            >
+                                                {currentUser?.username}
+                                            </Text>
+                                            <Avatar
+                                                size="sm"
+                                                name={currentUser?.username}
+                                                src={currentUser?.avatar}
+                                                border="2px solid"
+                                                borderColor="var(--color-border)"
+                                                _hover={{ borderColor: '#22d3ee', boxShadow: '0 0 12px rgba(34, 211, 238, 0.3)' }}
+                                                transition="all 0.2s"
+                                            />
+                                        </HStack>
                                     </MenuButton>
                                     <MenuList
                                         bg="var(--color-bg-secondary)"
                                         borderColor="var(--color-border)"
-                                        boxShadow="var(--shadow-card)"
-                                        borderRadius="12px"
+                                        boxShadow="0 20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(148,163,184,0.08)"
+                                        borderRadius="14px"
                                         py={2}
-                                        minW="220px"
+                                        minW="240px"
                                     >
                                         {/* User info header */}
                                         <Box px={4} py={3} mb={1} borderBottom="1px solid" borderColor="var(--color-border)">
@@ -441,22 +567,13 @@ const Header = () => {
                                             fontSize="sm"
                                             borderRadius="8px"
                                             mx={2}
-                                            onClick={() => navigate('/profile')}
+                                            onClick={() => {
+                                                handleNavStart('/profile');
+                                                navigate('/profile');
+                                            }}
                                         >
                                             {t('header.viewProfile')}
                                         </MenuItem>
-                                        {/* <MenuItem
-                                            bg="transparent"
-                                            color="var(--color-text-primary)"
-                                            _hover={{ bg: 'rgba(34, 211, 238, 0.08)', color: '#22d3ee' }}
-                                            icon={<SettingsIcon w={4} h={4} />}
-                                            fontSize="sm"
-                                            borderRadius="8px"
-                                            mx={2}
-                                            onClick={() => navigate('/profile')}
-                                        >
-                                            Account Settings
-                                        </MenuItem> */}
                                         <MenuDivider borderColor="var(--color-border)" mx={2} />
                                         <MenuItem
                                             bg="transparent"
@@ -488,7 +605,9 @@ const Header = () => {
                                 border="2px solid"
                                 borderColor="var(--color-border)"
                                 cursor="pointer"
-                                onClick={() => { navigate('/profile'); onClose(); }}
+                                onMouseEnter={() => warmRoute('/profile')}
+                                onFocus={() => warmRoute('/profile')}
+                                onClick={() => { handleDrawerNav('/profile'); navigate('/profile'); }}
                                 _hover={{ borderColor: '#22d3ee' }}
                                 transition="all 0.2s"
                             />
@@ -500,10 +619,11 @@ const Header = () => {
                             icon={<HamburgerIcon />}
                             variant="ghost"
                             color="var(--color-text-secondary)"
-                            fontSize="24px"
-                            display={{ base: 'flex', md: 'none' }}
+                            fontSize="22px"
+                            display={{ base: 'flex', lg: 'none' }}
                             onClick={onOpen}
-                            _hover={{ color: 'brand.500' }}
+                            _hover={{ color: 'brand.500', bg: useColorModeValue('rgba(34,211,238,0.08)', 'rgba(34,211,238,0.12)') }}
+                            borderRadius="10px"
                         />
                     </HStack>
                 </Flex>
@@ -515,22 +635,47 @@ const Header = () => {
                 <DrawerContent bg={drawerBg} borderLeft="1px solid" borderColor={drawerBorder}>
                     <DrawerCloseButton color="var(--color-text-muted)" _hover={{ color: 'brand.500' }} mt={2} />
                     <DrawerBody pt={16}>
-                        <VStack spacing={6} align="stretch">
-                            {filteredNavItems.map((item) => (
+                        <VStack spacing={1} align="stretch">
+                            {/* Mobile utility controls */}
+                            <HStack spacing={2} px={4} pb={4} justify="center">
+                                <LanguageSwitcher size="sm" compact />
+                                <ThemeSwitcher size="sm" />
+                            </HStack>
+
+                            <Divider borderColor={mobileCtaBorder} mb={2} />
+
+                            {/* Primary nav */}
+                            <Text
+                                fontSize="11px"
+                                fontWeight="bold"
+                                textTransform="uppercase"
+                                letterSpacing="0.08em"
+                                color="var(--color-text-muted)"
+                                px={4}
+                                py={2}
+                            >
+                                {t('navigation.home')}
+                            </Text>
+                            {allNavItems.map((item) => (
                                 <Link
                                     key={item.to}
                                     as={NavLink}
                                     to={item.to}
-                                    color={isActive(item.to) ? 'brand.500' : navLinkColor}
+                                    color={isActive(item.to) ? activeNavColor : navLinkColor}
                                     fontWeight={isActive(item.to) ? 'bold' : 'medium'}
-                                    fontSize="lg"
+                                    fontSize="md"
                                     fontFamily="heading"
-                                    _hover={{ color: 'brand.500' }}
-                                    onClick={onClose}
+                                    _hover={{ color: 'brand.500', bg: useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') }}
+                                    onMouseEnter={() => warmRoute(item.to)}
+                                    onFocus={() => warmRoute(item.to)}
+                                    onClick={() => handleDrawerNav(item.to)}
                                     borderLeft={isActive(item.to) ? '3px solid' : '3px solid transparent'}
                                     borderColor={isActive(item.to) ? 'brand.500' : 'transparent'}
+                                    bg={isActive(item.to) ? useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') : 'transparent'}
                                     pl={4}
-                                    transition="all 0.3s"
+                                    py={2.5}
+                                    borderRadius="0 8px 8px 0"
+                                    transition="all 0.2s"
                                 >
                                     {item.label}
                                 </Link>
@@ -538,26 +683,34 @@ const Header = () => {
 
                             {/* Profile link in mobile drawer (logged in only) */}
                             {isLoggedIn && (
-                                <Link
-                                    as={NavLink}
-                                    to="/profile"
-                                    color={isActive('/profile') ? 'brand.500' : 'gray.300'}
-                                    fontWeight={isActive('/profile') ? 'bold' : 'medium'}
-                                    fontSize="lg"
-                                    fontFamily="heading"
-                                    _hover={{ color: 'brand.500' }}
-                                    onClick={onClose}
-                                    borderLeft={isActive('/profile') ? '3px solid' : '3px solid transparent'}
-                                    borderColor={isActive('/profile') ? 'brand.500' : 'transparent'}
-                                    pl={4}
-                                    transition="all 0.3s"
-                                    display="flex"
-                                    alignItems="center"
-                                    gap={3}
-                                >
-                                    <UserIcon w={5} h={5} />
-                                    {t('header.myProfile')}
-                                </Link>
+                                <>
+                                    <Divider borderColor={mobileCtaBorder} my={2} />
+                                    <Link
+                                        as={NavLink}
+                                        to="/profile"
+                                        color={isActive('/profile') ? activeNavColor : navLinkColor}
+                                        fontWeight={isActive('/profile') ? 'bold' : 'medium'}
+                                        fontSize="md"
+                                        fontFamily="heading"
+                                        _hover={{ color: 'brand.500' }}
+                                        onMouseEnter={() => warmRoute('/profile')}
+                                        onFocus={() => warmRoute('/profile')}
+                                        onClick={() => handleDrawerNav('/profile')}
+                                        borderLeft={isActive('/profile') ? '3px solid' : '3px solid transparent'}
+                                        borderColor={isActive('/profile') ? 'brand.500' : 'transparent'}
+                                        bg={isActive('/profile') ? useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') : 'transparent'}
+                                        pl={4}
+                                        py={2.5}
+                                        borderRadius="0 8px 8px 0"
+                                        transition="all 0.2s"
+                                        display="flex"
+                                        alignItems="center"
+                                        gap={3}
+                                    >
+                                        <UserIcon w={5} h={5} />
+                                        {t('header.myProfile')}
+                                    </Link>
+                                </>
                             )}
 
                             {/* Accessibility link in mobile drawer */}
@@ -567,22 +720,25 @@ const Header = () => {
                                 alignItems="center"
                                 gap={3}
                                 color="var(--color-text-muted)"
-                                fontSize="lg"
+                                fontSize="md"
                                 fontFamily="heading"
                                 fontWeight="medium"
                                 pl={4}
-                                _hover={{ color: 'brand.500' }}
+                                py={2.5}
+                                _hover={{ color: 'brand.500', bg: useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') }}
                                 onClick={() => { onClose(); onA11yOpen(); }}
                                 borderLeft="3px solid transparent"
-                                transition="all 0.3s"
+                                borderRadius="0 8px 8px 0"
+                                transition="all 0.2s"
                                 textAlign="left"
+                                w="full"
                             >
                                 <AccessibilityIcon w={5} h={5} />
                                 {t('header.accessibility')}
                             </Box>
 
                             {/* Mobile CTA – conditional */}
-                            <Box pt={4} borderTop="1px solid" borderColor={mobileCtaBorder}>
+                            <Box pt={4} borderTop="1px solid" borderColor={mobileCtaBorder} mt={2}>
                                 <VStack spacing={3}>
                                     {!isLoggedIn ? (
                                         <>
@@ -592,7 +748,9 @@ const Header = () => {
                                                 variant="ghost"
                                                 size="md"
                                                 w="full"
-                                                onClick={onClose}
+                                                onMouseEnter={() => warmRoute('/signin')}
+                                                onFocus={() => warmRoute('/signin')}
+                                                onClick={() => handleDrawerNav('/signin')}
                                             >
                                                 {t('header.login')}
                                             </Button>
@@ -602,7 +760,9 @@ const Header = () => {
                                                 variant="primary"
                                                 size="md"
                                                 w="full"
-                                                onClick={onClose}
+                                                onMouseEnter={() => warmRoute('/signup')}
+                                                onFocus={() => warmRoute('/signup')}
+                                                onClick={() => handleDrawerNav('/signup')}
                                             >
                                                 {t('header.createAccount')}
                                             </Button>
@@ -619,7 +779,7 @@ const Header = () => {
                                             leftIcon={<LogoutIcon w={4} h={4} />}
                                             onClick={() => {
                                                 logout();
-                                                onClose();
+                                                handleDrawerNav('/');
                                                 navigate('/');
                                             }}
                                         >
@@ -634,8 +794,11 @@ const Header = () => {
             </Drawer>
 
             {/* Accessibility Settings Drawer */}
-            <AccessibilityDrawer isOpen={isA11yOpen} onClose={onA11yClose} />
-
+            {isA11yOpen && (
+                <Suspense fallback={null}>
+                    <AccessibilityDrawer isOpen={isA11yOpen} onClose={onA11yClose} />
+                </Suspense>
+            )}
 
         </Box>
     );

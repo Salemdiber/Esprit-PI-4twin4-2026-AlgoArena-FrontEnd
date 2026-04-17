@@ -18,6 +18,18 @@ const normalizeIncoming = (payload) => ({
   _id: String(payload._id),
 });
 
+const dedupeById = (items) => {
+  const seen = new Set();
+  const next = [];
+  for (const item of items || []) {
+    const normalized = normalizeIncoming(item);
+    if (seen.has(normalized._id)) continue;
+    seen.add(normalized._id);
+    next.push(normalized);
+  }
+  return next;
+};
+
 export const useChatSocket = ({ isAuthenticated, currentUser }) => {
   const socketRef = useRef(null);
   const reconnectTimerRef = useRef(null);
@@ -69,7 +81,7 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
     try {
       roomPageRef.current = 1;
       const result = await chatApi.getHistory(roomRef.current, 1, CHAT_PAGE_SIZE);
-      const incoming = (result?.messages || []).map(normalizeIncoming);
+      const incoming = dedupeById(result?.messages || []);
       setMessages(incoming);
       hasMoreRef.current = !!result?.hasMore;
       setHasMore(!!result?.hasMore);
@@ -86,11 +98,15 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
     try {
       const nextPage = roomPageRef.current + 1;
       const result = await chatApi.getHistory(roomRef.current, nextPage, CHAT_PAGE_SIZE);
-      const incoming = (result?.messages || []).map(normalizeIncoming);
+      const incoming = dedupeById(result?.messages || []);
       roomPageRef.current = nextPage;
       hasMoreRef.current = !!result?.hasMore;
       setHasMore(!!result?.hasMore);
-      setMessages((prev) => [...incoming, ...prev]);
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((msg) => String(msg._id)));
+        const toPrepend = incoming.filter((msg) => !existingIds.has(String(msg._id)));
+        return [...toPrepend, ...prev];
+      });
     } catch (error) {
       setHistoryError(error?.message || 'Failed to load history');
     } finally {
@@ -103,6 +119,20 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
     const token = getToken();
     if (!token) return;
 
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+
+    const existing = socketRef.current;
+    if (
+      existing &&
+      (existing.readyState === WebSocket.OPEN ||
+        existing.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
     setIsConnecting(true);
     setConnectionError(null);
 
@@ -110,6 +140,7 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
     socketRef.current = ws;
 
     ws.onopen = async () => {
+      if (socketRef.current !== ws) return;
       setIsConnecting(false);
       setIsConnected(true);
       reconnectAttemptsRef.current = 0;
@@ -119,18 +150,25 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
     };
 
     ws.onmessage = (evt) => {
+      if (socketRef.current !== ws) return;
       try {
         const packet = JSON.parse(evt.data);
         const { event, data } = packet || {};
         if (event === 'roomJoined') {
-          const incoming = (data?.messages || []).map(normalizeIncoming);
+          const incoming = dedupeById(data?.messages || []);
           setMessages(incoming);
           hasMoreRef.current = !!data?.hasMore;
           setHasMore(!!data?.hasMore);
           roomPageRef.current = 1;
         }
         if (event === 'newMessage') {
-          setMessages((prev) => [...prev, normalizeIncoming(data)]);
+          setMessages((prev) => {
+            const incoming = normalizeIncoming(data);
+            if (prev.some((msg) => String(msg._id) === String(incoming._id))) {
+              return prev;
+            }
+            return [...prev, incoming];
+          });
         }
         if (event === 'reactionUpdated') {
           setMessages((prev) =>
@@ -167,10 +205,14 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
     };
 
     ws.onerror = () => {
+      if (socketRef.current !== ws) return;
       setConnectionError('Connection error');
     };
 
     ws.onclose = async (event) => {
+      if (socketRef.current === ws) {
+        socketRef.current = null;
+      }
       setIsConnected(false);
       setIsConnecting(false);
       if (!isAuthenticated) return;

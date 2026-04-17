@@ -1,7 +1,7 @@
 /**
  * ThemeSwitcher — Premium dropdown for Light / Dark / Auto mode.
  *
- * Uses Chakra UI Menu + Framer Motion for smooth micro-interactions.
+ * Uses Chakra UI Menu + Framer m for smooth micro-interactions.
  * Follows the project's design language: cyan accents, glass-panel
  * styling, 8 px spacing, Montserrat headings, Inter body.
  */
@@ -18,12 +18,12 @@ import {
     useColorModeValue,
     Tooltip,
 } from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useThemePreference } from '../shared/context/ThemeContext';
 
-/* ─── Motion wrapper ─── */
-const MotionBox = motion.create(Box);
+/* ─── m wrapper ─── */
+const MotionBox = m.create(Box);
 
 /* ─── SVG Icons (inline, no external deps) ─── */
 
@@ -237,7 +237,7 @@ const ThemeSwitcher = ({ size = 'md', ...rest }) => {
                     transition="all 0.25s"
                     icon={
                         <Box
-                            as={motion.div}
+                            as={m.div}
                             key={themePreference}
                             initial={{ rotate: -30, opacity: 0, scale: 0.8 }}
                             animate={{ rotate: 0, opacity: 1, scale: 1 }}

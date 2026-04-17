@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Performance testing reports - local only, never commit
+perf-reports/
+*.report.html
+lighthouse-*.html
+lighthouse-*.json
+vite-bundle-analyzer.json
+source-map-*.json

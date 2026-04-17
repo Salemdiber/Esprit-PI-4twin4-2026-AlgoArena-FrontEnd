@@ -518,9 +518,15 @@ export const ChallengeProvider = ({ children }) => {
                 if (cancelled) return;
 
                 if (shouldLoadChallenges) {
+                    const challengeList = Array.isArray(apiChallenges)
+                        ? apiChallenges
+                        : Array.isArray(apiChallenges?.challenges)
+                            ? apiChallenges.challenges
+                            : [];
+
                     dispatch({
                         type: ActionTypes.SET_CHALLENGES,
-                        payload: Array.isArray(apiChallenges) ? apiChallenges.map(transformChallenge) : [],
+                        payload: challengeList.map(transformChallenge),
                     });
                 }
 

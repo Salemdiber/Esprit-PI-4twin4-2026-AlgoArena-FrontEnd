@@ -3,14 +3,14 @@ import { getDiceBearUrl } from '../../services/dicebear';
 import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
 import { Box, Heading, Text, Button, VStack, HStack, Input, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon, Grid, Image, Spinner } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
-import { useAuth } from './auth/context/AuthContext';
+import { useAuth, hasCompletedSpeedChallenge } from './auth/context/AuthContext';
 import { authService } from '../../services/authService';
 import FormFeedbackAlert from './auth/components/FormFeedbackAlert';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const EyeIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -152,11 +152,14 @@ const SignUp = () => {
     useEffect(() => {
         if (!RECAPTCHA_SITE_KEY) return;
 
-        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
-            // Token fetch will still surface submit-time errors if loading fails
-        });
+        const timerId = window.setTimeout(() => {
+            mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+                // Token fetch will still surface submit-time errors if loading fails
+            });
+        }, 6000);
 
         return () => {
+            window.clearTimeout(timerId);
             unmountReCaptchaV3();
         };
     }, [RECAPTCHA_SITE_KEY]);
@@ -205,7 +208,11 @@ const SignUp = () => {
         try {
             // Obtenir le token reCAPTCHA v3 dynamiquement
             const token = await getReCaptchaV3Token(RECAPTCHA_SITE_KEY, 'signup');
-            await signup(username, email, password, token, avatarUrl);
+            const user = await signup(username, email, password, token, avatarUrl);
+            if (!hasCompletedSpeedChallenge(user)) {
+                navigate('/speed-challenge', { replace: true });
+                return;
+            }
             navigate('/', { replace: true });
         } catch {
             // error handled by toast in AuthContext
@@ -219,6 +226,15 @@ const SignUp = () => {
             : password.length < 6 ? { w: '50%', l: t('auth.signUp.strengthFair'), c: 'yellow.400' }
                 : password.length < 8 ? { w: '75%', l: t('auth.signUp.strengthGood'), c: 'blue.400' }
                     : { w: '100%', l: t('auth.signUp.strengthStrong'), c: 'green.400' };
+
+    // Rank preview aligned with backend rank config in UserService.
+    const rankPreview = {
+        startName: 'BRONZE',
+        startTitle: t('rankTitles.BRONZE'),
+        firstMilestoneXp: 1500,
+        topName: 'ALGOARENA CHAMPION',
+        tiers: 10,
+    };
 
     const inputStyles = {
         bg: 'var(--color-bg-input)', border: '1px solid', borderColor: 'var(--color-border)', borderRadius: '10px',
@@ -289,18 +305,18 @@ const SignUp = () => {
                                     <Text fontSize="xs" color="gray.400" fontFamily="mono">{t('auth.signUp.currentRank')}</Text>
                                     <HStack spacing={1}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
-                                        <Text fontSize="xs" fontWeight="bold" color="yellow.400">{t('auth.signUp.rookieIII')}</Text>
+                                        <Text fontSize="xs" fontWeight="bold" color="yellow.400">{rankPreview.startName} · {rankPreview.startTitle}</Text>
                                     </HStack>
                                 </Flex>
                                 <Box w="100%" bg="gray.600" h="6px" borderRadius="full" overflow="hidden">
-                                    <Box h="100%" w="75%" borderRadius="full" bgGradient="linear(to-r, brand.500, cyan.400)" boxShadow="0 0 10px rgba(34,211,238,0.5)" />
+                                    <Box h="100%" w="18%" borderRadius="full" bgGradient="linear(to-r, brand.500, cyan.400)" boxShadow="0 0 10px rgba(34,211,238,0.5)" />
                                 </Box>
                                 <Flex justify="space-between" mt={1}><Text fontSize="10px" color="gray.500">{t('auth.signUp.xpStart')}</Text><Text fontSize="10px" color="gray.500">{t('auth.signUp.xpEnd')}</Text></Flex>
                             </Box>
 
                             <Flex w="100%" bg="rgba(30,41,59,0.8)" backdropFilter="blur(8px)" border="1px solid" borderColor="var(--color-border)" borderRadius="lg" p={4} align="center" gap={4}>
-                                <Flex w={10} h={10} borderRadius="full" bgGradient="linear(to-br, purple.500, purple.700)" align="center" justify="center" fontWeight="bold" color="var(--color-text-primary)" fontSize="sm">{t('auth.signUp.js')}</Flex>
-                                <Box><Text fontSize="xs" color="gray.400">{t('auth.signUp.primaryWeapon')}</Text><Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)">{t('auth.signUp.javascript')}</Text></Box>
+                                <Flex w={10} h={10} borderRadius="full" bgGradient="linear(to-br, purple.500, purple.700)" align="center" justify="center" fontWeight="bold" color="var(--color-text-primary)" fontSize="sm">{rankPreview.tiers}</Flex>
+                                <Box><Text fontSize="xs" color="gray.400">{t('auth.signUp.rankLadder')}</Text><Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)">{rankPreview.topName}</Text></Box>
                                 <Box ml="auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg></Box>
                             </Flex>
                         </VStack>
@@ -367,7 +383,7 @@ const SignUp = () => {
                                         <Box mt={2}>
                                             <FormFeedbackAlert message={usernameHasError ? t('auth.signUp.usernameTaken') : ''} />
                                         </Box>
-                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>{t('auth.signUp.rankStarts')}<Text as="span" color="yellow.500" fontWeight="bold">{t('auth.signUp.rookie')}</Text></Text>                                    </Box>
+                                        <Text fontSize="10px" color="gray.500" ml={1} mt={1}>{t('auth.signUp.rankStarts')}<Text as="span" color="yellow.500" fontWeight="bold">{rankPreview.startName}</Text></Text>                                    </Box>
 
                                     {/* Email */}
                                     <Box w="100%">

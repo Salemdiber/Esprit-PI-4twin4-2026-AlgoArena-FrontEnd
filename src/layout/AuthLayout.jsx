@@ -2,7 +2,9 @@ import React from 'react';
 import { Box, Flex, HStack, Text, Button, Image, useColorModeValue } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import Logo from '../assets/logo_algoarena.png';
+import Logo from '../assets/logo_algoarena.svg';
+import { prefetchRoute } from '../routes/prefetchRoutes';
+import { startNavigationProgress } from '../shared/navigation/progress';
 
 const AuthLayout = ({ children, activeTab = 'signin' }) => {
     const bg = useColorModeValue('#f8fafc', '#0f172a');
@@ -36,19 +38,33 @@ const AuthLayout = ({ children, activeTab = 'signin' }) => {
 
             {/* Nav */}
             <Flex as="nav" position="relative" zIndex={50} w="100%" p={6} justify="space-between" align="center" maxW="7xl" mx="auto">
-                <HStack as={RouterLink} to="/" spacing={2} _hover={{ textDecoration: 'none' }}>
+                <HStack
+                    as={RouterLink}
+                    to="/"
+                    spacing={2}
+                    _hover={{ textDecoration: 'none' }}
+                    onMouseEnter={() => prefetchRoute('/')}
+                    onFocus={() => prefetchRoute('/')}
+                    onPointerDown={() => startNavigationProgress()}
+                >
                     <Image src={Logo} alt={t('auth.layout.logoAlt')} h={{ base: '48px', md: '56px' }} objectFit="contain" />
                 </HStack>
                 <HStack spacing={0} bg={pillBg} backdropFilter="blur(12px)" p={1} borderRadius="lg" border="1px solid" borderColor={pillBorder}>
                     <Button as={RouterLink} to="/signin" size="sm" px={4} borderRadius="md" fontSize="sm" fontWeight="medium"
                         bg={activeTab === 'signin' ? 'brand.500' : 'transparent'} color={activeTab === 'signin' ? activeTextColor : inactiveColor}
                         boxShadow={activeTab === 'signin' ? '0 0 20px -5px rgba(34,211,238,0.3)' : 'none'}
+                        onMouseEnter={() => prefetchRoute('/signin')}
+                        onFocus={() => prefetchRoute('/signin')}
+                        onPointerDown={() => startNavigationProgress()}
                         _hover={activeTab === 'signin' ? { bg: 'brand.400' } : { color: hoverColor }}>
                         {t('auth.layout.signIn')}
                     </Button>
                     <Button as={RouterLink} to="/signup" size="sm" px={4} borderRadius="md" fontSize="sm" fontWeight="medium"
                         bg={activeTab === 'signup' ? 'brand.500' : 'transparent'} color={activeTab === 'signup' ? activeTextColor : inactiveColor}
                         boxShadow={activeTab === 'signup' ? '0 0 20px -5px rgba(34,211,238,0.3)' : 'none'}
+                        onMouseEnter={() => prefetchRoute('/signup')}
+                        onFocus={() => prefetchRoute('/signup')}
+                        onPointerDown={() => startNavigationProgress()}
                         _hover={activeTab === 'signup' ? { bg: 'brand.400' } : { color: hoverColor }}>
                         {t('auth.layout.signUp')}
                     </Button>

@@ -30,7 +30,7 @@ const CTA = () => {
             overflow="hidden"
         >
             {/* Background Blur Effect */}
-            <Box position="absolute" inset={0} opacity={0.2}>
+            <Box position="absolute" inset={0} opacity={1}>
                 <Box
                     position="absolute"
                     top="50%"
@@ -38,7 +38,7 @@ const CTA = () => {
                     transform="translate(-50%, -50%)"
                     w="96"
                     h="96"
-                    bg="brand.500"
+                    bg="rgba(34, 211, 238, 0.04)"
                     borderRadius="full"
                     filter="blur(64px)"
                 />

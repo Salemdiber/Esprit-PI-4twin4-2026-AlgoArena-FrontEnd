@@ -2,9 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Flex, Text, VStack, Button, HStack, Icon } from '@chakra-ui/react';
 import { MdMilitaryTech, MdDiamond, MdSmartToy } from 'react-icons/md';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const RANK_VISUALS = {
     BRONZE: { icon: MdMilitaryTech, glow: 'rgba(205,127,50,0.4)', ring: '#cd7f32' },

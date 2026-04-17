@@ -7,11 +7,11 @@
  */
 import React from 'react';
 import { Box, Grid, GridItem } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import ChampionCard from './ChampionCard';
 import RankCard from './RankCard';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const ArenaStage = ({ players }) => {
     // Expect at least 3 players

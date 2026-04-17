@@ -18,14 +18,14 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import usePasswordStrength from '../hooks/usePasswordStrength';
 import PasswordStrengthMeter from './PasswordStrengthMeter';
 import RequirementChecklist from './RequirementChecklist';
 import { userService } from '../../../../services/userService';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 /* Input style token */
 const inputStyles = {

@@ -60,7 +60,7 @@ const ChatMessageList = ({
   }, [messages]);
 
   return (
-    <Box position="relative" flex={1} overflow="hidden">
+    <Box position="relative" flex={1} minH={0} overflow="hidden">
       <Box
         ref={listRef}
         h="100%"

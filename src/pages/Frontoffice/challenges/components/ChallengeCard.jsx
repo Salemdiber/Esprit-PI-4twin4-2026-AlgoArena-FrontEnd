@@ -18,14 +18,14 @@ import {
     Icon,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiClock, FiEdit3, FiPauseCircle } from 'react-icons/fi';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META, ChallengeUserStatus } from '../data/mockChallenges';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const ClockIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -263,4 +263,4 @@ const ChallengeCard = ({ challenge }) => {
     );
 };
 
-export default ChallengeCard;
+export default React.memo(ChallengeCard);

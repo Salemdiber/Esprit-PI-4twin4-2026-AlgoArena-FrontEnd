@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
 import { Box, Heading, Text, Button, VStack, HStack, Input, Checkbox, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
 import { useAuth, redirectBasedOnRole, hasCompletedSpeedChallenge } from './auth/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const EyeIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -39,11 +39,14 @@ const SignIn = () => {
     useEffect(() => {
         if (!RECAPTCHA_SITE_KEY) return;
 
-        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
-            // Token fetch will still surface submit-time errors if loading fails
-        });
+        const timerId = window.setTimeout(() => {
+            mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+                // Token fetch will still surface submit-time errors if loading fails
+            });
+        }, 6000);
 
         return () => {
+            window.clearTimeout(timerId);
             unmountReCaptchaV3();
         };
     }, [RECAPTCHA_SITE_KEY]);

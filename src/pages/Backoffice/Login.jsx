@@ -3,7 +3,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../Frontoffice/auth/context/AuthContext';
-import Logo from '../../assets/logo_algoarena.png';
+import Logo from '../../assets/logo_algoarena.svg';
 
 const Login = () => {
     const { t } = useTranslation();

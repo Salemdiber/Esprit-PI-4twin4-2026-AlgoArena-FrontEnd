@@ -14,12 +14,39 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-// Fix for deprecated motion() usage
-const MotionBox = motion.create(Box);
+// Fix for deprecated m() usage
+const MotionBox = m.create(Box);
 
 const languages = ['C', 'C++', 'Java', 'Python', 'JS', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript', 'Scala', 'Perl', 'R'];
+
+const pixelGridStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(15, 1fr)',
+    gap: '8px',
+    padding: '20px',
+    pointerEvents: 'none',
+    zIndex: 1,
+};
+
+const pixelStyle = {
+    background: 'rgba(34, 211, 238, 0.05)',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '10px',
+    fontWeight: 600,
+    color: 'transparent',
+    fontFamily: 'monospace',
+    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+};
 
 const PixelGrid = () => {
     const containerRef = useRef(null);
@@ -84,51 +111,23 @@ const PixelGrid = () => {
     }, []);
 
     return (
-        <Box
+        <div
             ref={containerRef}
-            position="absolute"
-            top={0}
-            left={0}
-            width="100%"
-            height="100%"
-            display="grid"
-            gridTemplateColumns={`repeat(${gridSize}, 1fr)`}
-            gap="8px"
-            p="20px"
-            pointerEvents="none"
-            zIndex={1}
+            style={pixelGridStyle}
             id="pixelGrid"
         >
             {pixels.map((pixel, i) => (
-                <Box
+                <div
                     key={pixel.id}
                     ref={el => pixelsRef.current[i] = el}
                     data-lang={pixel.lang || ''}
                     className="pixel"
-                    // Inline styles for base pixel look to match CSS
-                    bg="rgba(34, 211, 238, 0.05)"
-                    borderRadius="4px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontSize="10px"
-                    fontWeight="600"
-                    color="transparent" // Initially transparent
-                    fontFamily="monospace"
-                    transition="all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                    sx={{
-                        '&.revealed': {
-                            bg: 'rgba(34, 211, 238, 0.2)',
-                            color: 'rgba(34, 211, 238, 0.9)',
-                            boxShadow: '0 0 20px rgba(34, 211, 238, 0.4)',
-                            transform: 'scale(1.1)',
-                        }
-                    }}
+                    style={pixelStyle}
                 >
                     {pixel.lang}
-                </Box>
+                </div>
             ))}
-        </Box>
+        </div>
     );
 };
 
@@ -357,6 +356,7 @@ const Hero = () => {
                                             <Text>{progress}%</Text>
                                         </HStack>
                                         <Progress
+                                            aria-label={t('landing.hero.progress')}
                                             value={progress}
                                             size="sm"
                                             colorScheme="cyan"
@@ -373,6 +373,13 @@ const Hero = () => {
 
             {/* Keyframes for floating animation */}
             <style>{`
+        .pixel.revealed {
+          background: rgba(34, 211, 238, 0.2) !important;
+          color: rgba(34, 211, 238, 0.9) !important;
+          box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+          transform: scale(1.1);
+        }
+
         @keyframes float {
           0% {
             transform: translateY(100vh) translateX(0);

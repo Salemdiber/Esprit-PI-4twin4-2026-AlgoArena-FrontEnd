@@ -20,7 +20,7 @@ import {
     Tooltip,
     VStack,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 import LeaderboardHeader from '../components/LeaderboardHeader';
@@ -33,7 +33,7 @@ import LeaderboardSkeleton from '../../../../shared/skeletons/LeaderboardSkeleto
 import { userService } from '../../../../services/userService';
 import { useAuth } from '../../auth/context/AuthContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
 const RANK_THRESHOLDS = {

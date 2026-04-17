@@ -8,7 +8,8 @@ import i18n from '../../../../i18n';
 import { useBattleState } from '../hooks/useBattleState';
 import { BattleStatus, BattleMode, RoundStatus, difficultyBadgeMap } from '../types/battle.types';
 import BattleTimeline from '../components/BattleTimeline';
-import { CodeEditor, OutputTerminal } from '../../../../editor';
+import CodeEditor from '../../../../editor/components/CodeEditor';
+import OutputTerminal from '../../../../editor/components/OutputTerminal';
 import { battlesService } from '../../../../services/battlesService';
 import { judgeService } from '../../../../services/judgeService';
 import '../battles.css';
@@ -492,6 +493,7 @@ const ActiveBattlePage = () => {
                         <div className="battle-panel-header">
                             <div className="battle-editor-title">{t('battles.yourSolution')}</div>
                             <select
+                                aria-label={t('battles.language')}
                                 className="battle-language-select"
                                 value={language}
                                 onChange={(e) => setLanguage(e.target.value)}

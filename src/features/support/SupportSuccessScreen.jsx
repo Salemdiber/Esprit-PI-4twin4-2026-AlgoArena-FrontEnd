@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Button, HStack, Text, VStack } from '@chakra-ui/react';
 import { CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion(Box);
+const MotionBox = m(Box);
 
 const SupportSuccessScreen = ({ request, onDone, onViewHistory }) => {
   const { t } = useTranslation();

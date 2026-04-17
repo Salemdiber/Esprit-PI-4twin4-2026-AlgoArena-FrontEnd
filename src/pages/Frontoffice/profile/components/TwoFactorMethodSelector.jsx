@@ -7,10 +7,10 @@
  */
 import React from 'react';
 import { SimpleGrid, Box, VStack, Text, Icon, useColorModeValue } from '@chakra-ui/react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 /* Inline icons */
 const SmartphoneIcon = (props) => (

@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { userService } from '../../services/userService';
-import ExcelJS from 'exceljs';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 // ── Edit Modal ──────────────────────────────────────────────────────────
 const EditUserModal = ({ user, onClose, onSave }) => {
@@ -372,6 +369,8 @@ const Users = () => {
 
     // ── Excel Export ────────────────────────────────────────────────────
     const handleExportExcel = async () => {
+        const ExcelJSModule = await import('exceljs');
+        const ExcelJS = ExcelJSModule.default || ExcelJSModule;
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet(t('admin.users.excelSheetName'));
 
@@ -425,8 +424,12 @@ const Users = () => {
     };
 
     // ── PDF Export (Professional branded report) ────────────────────────
-    const handleExportPDF = () => {
+    const handleExportPDF = async () => {
         try {
+            const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+                import('jspdf'),
+                import('jspdf-autotable'),
+            ]);
             const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
             const pageW = doc.internal.pageSize.getWidth();
             const pageH = doc.internal.pageSize.getHeight();
@@ -588,13 +591,13 @@ const Users = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
-                    <select className="form-select w-full md:w-40 bg-(--color-bg-input)" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                    <select aria-label={t('admin.users.role')} className="form-select w-full md:w-40 bg-(--color-bg-input)" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
                         <option value="All">{t('admin.users.allRoles')}</option>
                         <option value="Admin">{t('admin.users.admin')}</option>
                         <option value="Player">{t('admin.users.player')}</option>
                         <option value="Premium">{t('admin.users.premium')}</option>
                     </select>
-                    <select className="form-select w-full md:w-40 bg-(--color-bg-input)" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <select aria-label={t('admin.users.status')} className="form-select w-full md:w-40 bg-(--color-bg-input)" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                         <option value="All">{t('admin.users.allStatus')}</option>
                         <option value="Active">{t('admin.users.active')}</option>
                         <option value="Disabled">{t('admin.users.disabled')}</option>
