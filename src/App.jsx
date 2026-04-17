@@ -569,14 +569,21 @@ const MaintenanceGate = ({ children }) => {
   const { currentUser, isLoggedIn } = useAuth();
   const location = useLocation();
   const [maintenanceMode, setMaintenanceMode] = React.useState(false);
-  const [checked, setChecked] = React.useState(false);
+  const [checked, setChecked] = React.useState(!isLoggedIn);
 
   // Auth-related paths that should never be blocked
   const authPaths = ['/signin', '/signup', '/login', '/auth/callback', '/forgot-password', '/email-sent', '/reset-password', '/reset-success', '/reset-expired'];
   const isAuthRoute = authPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   useEffect(() => {
+    if (!isLoggedIn) {
+      setChecked(true);
+      setMaintenanceMode(false);
+      return () => {};
+    }
+
     let cancelled = false;
+    setChecked(false);
     settingsService.getSettings()
       .then((data) => {
         if (!cancelled) {
@@ -593,10 +600,10 @@ const MaintenanceGate = ({ children }) => {
   // Always allow auth routes
   if (isAuthRoute) return children;
 
-  if (!checked) return null; // wait for settings check
-
   // Not logged in → let through (they'll hit signin anyway)
   if (!isLoggedIn) return children;
+
+  if (!checked) return <RouteLoader />; // wait for settings check only for authenticated users
 
   const role = String(currentUser?.role || '').toUpperCase();
   const isAdmin = role === 'ADMIN';

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Avatar,
   Badge,
@@ -305,6 +305,7 @@ const CommunityPage = () => {
   const [activeSection, setActiveSection] = useState('discussion');
   const [sortOrder, setSortOrder] = useState('recent');
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedTag, setSelectedTag] = useState('all');
   const [showSavedOnly, setShowSavedOnly] = useState(false);
 
@@ -429,25 +430,37 @@ const CommunityPage = () => {
     try {
       setLoading(true);
       setError('');
-      let data = getPosts();
-
-      // Restore/transfer any existing community dataset into the backoffice local store without deleting local entries.
-      try {
-        const remotePosts = await communityService.getPosts();
-        if (Array.isArray(remotePosts) && remotePosts.length > 0) {
-          mergeCommunitySnapshot(remotePosts);
-          data = getPosts();
-        }
-      } catch {
-        // keep local store when remote source is unavailable
-      }
-
-      setPosts(Array.isArray(data) ? data : []);
+      const localData = getPosts();
+      setPosts(Array.isArray(localData) ? localData : []);
     } catch (err) {
       setError(err.message || 'Failed to load community posts.');
     } finally {
       setLoading(false);
     }
+
+    // Keep first paint fast, then hydrate the local snapshot in idle time.
+    const hydrateRemoteSnapshot = async () => {
+      try {
+        const remotePosts = await communityService.getPosts();
+        if (!Array.isArray(remotePosts) || remotePosts.length === 0) return;
+        mergeCommunitySnapshot(remotePosts);
+        const mergedData = getPosts();
+        setPosts(Array.isArray(mergedData) ? mergedData : []);
+      } catch {
+        // keep local store when remote source is unavailable
+      }
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => {
+        void hydrateRemoteSnapshot();
+      }, { timeout: 2000 });
+      return;
+    }
+
+    window.setTimeout(() => {
+      void hydrateRemoteSnapshot();
+    }, 250);
   };
 
   useEffect(() => {
@@ -474,7 +487,7 @@ const CommunityPage = () => {
 
     list = list.filter((post) => (activeSection === 'problems' ? post.type === 'problem' : post.type !== 'problem'));
 
-    const q = searchTerm.trim().toLowerCase();
+    const q = deferredSearchTerm.trim().toLowerCase();
     if (q) {
       list = list.filter((post) => {
         const titleHit = String(post.title || '').toLowerCase().includes(q);
@@ -511,7 +524,7 @@ const CommunityPage = () => {
     });
 
     return list;
-  }, [posts, activeSection, searchTerm, selectedTag, sortOrder, savedItems, showSavedOnly, currentUserId, postReactions, commentReactions]);
+  }, [posts, activeSection, deferredSearchTerm, selectedTag, sortOrder, savedItems, showSavedOnly, currentUserId, postReactions, commentReactions]);
 
   const resetCreateForm = () => {
     setTitle('');
@@ -563,6 +576,8 @@ const CommunityPage = () => {
       .slice(0, 8);
   };
 
+  const parsedTagsInput = useMemo(() => parseTags(tagsInput), [tagsInput]);
+
   const normalizeTagList = (list) => {
     if (!Array.isArray(list)) return [];
     const unique = [];
@@ -585,18 +600,17 @@ const CommunityPage = () => {
   };
 
   const mergeTagsToInput = (tags) => {
-    const merged = normalizeTagList([...parseTags(tagsInput), ...tags]);
+    const merged = normalizeTagList([...parsedTagsInput, ...tags]);
     setTagsInput(merged.join(', '));
   };
 
   const removeTagFromInput = (tagToRemove) => {
-    const next = parseTags(tagsInput).filter((tag) => tag !== tagToRemove);
+    const next = parsedTagsInput.filter((tag) => tag !== tagToRemove);
     setTagsInput(next.join(', '));
   };
 
   const toggleSuggestedTag = (tag) => {
-    const existing = parseTags(tagsInput);
-    if (existing.includes(tag)) {
+    if (parsedTagsInput.includes(tag)) {
       removeTagFromInput(tag);
       return;
     }
@@ -855,7 +869,7 @@ const CommunityPage = () => {
         content: content.trim(),
         type: activeSection === 'problems' ? 'problem' : 'normal',
         problemType: activeSection === 'problems' ? problemType : undefined,
-        tags: parseTags(tagsInput),
+        tags: parsedTagsInput,
         imageUrl,
         videoUrl,
         authorId: currentUserId,
@@ -1485,7 +1499,12 @@ const CommunityPage = () => {
     if (isVideo) {
       return (
         <Box mt={2} borderRadius="8px" overflow="hidden" border="1px solid rgba(34, 211, 238, 0.2)">
-          <video src={src} controls style={{ width: '100%', maxHeight: '220px', background: '#020617' }} />
+          <video
+            src={src}
+            controls
+            preload="metadata"
+            style={{ width: '100%', maxHeight: '220px', background: '#020617' }}
+          />
         </Box>
       );
     }
@@ -1500,7 +1519,16 @@ const CommunityPage = () => {
         bg="rgba(0, 0, 0, 0.3)"
         border="1px solid rgba(34, 211, 238, 0.2)"
       >
-        <Box w="full" h="full" backgroundImage={`url(${src})`} backgroundPosition="center" backgroundSize="cover" />
+        <Box
+          as="img"
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          width="100%"
+          height="100%"
+          objectFit="cover"
+        />
       </Box>
     );
   };
@@ -1531,6 +1559,7 @@ const CommunityPage = () => {
           p={2.5}
           ml={depth > 0 ? `${Math.min(depth, 5) * 20}px` : '0'}
           mt={2}
+          sx={{ contentVisibility: 'auto', containIntrinsicSize: '220px' }}
         >
           <Flex justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={2}>
             <HStack spacing={2}>
@@ -1826,6 +1855,7 @@ const CommunityPage = () => {
             />
 
             <Select
+              aria-label="Sort community posts"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
               bg="#1e293b"
@@ -1839,6 +1869,7 @@ const CommunityPage = () => {
             </Select>
 
             <Select
+              aria-label="Filter community posts by tag"
               value={selectedTag}
               onChange={(e) => setSelectedTag(e.target.value)}
               bg="#1e293b"
@@ -1876,10 +1907,13 @@ const CommunityPage = () => {
               ) : (
                 filteredAndSortedPosts.map((post) => {
                   const postId = post._id;
-                  const allComments = moveCommentToTopById(sortCommentsPinnedFirst(post.comments || []), bestAnswerByPost[postId]);
                   const discussionSummary = String(discussionSummaries[postId] || '').trim();
                   const summaryError = String(summaryErrors[postId] || '').trim();
                   const commentsOpen = Boolean(commentsVisible[postId]);
+                  const baseComments = Array.isArray(post.comments) ? post.comments : [];
+                  const allComments = commentsOpen
+                    ? moveCommentToTopById(sortCommentsPinnedFirst(baseComments), bestAnswerByPost[postId])
+                    : baseComments;
                   const expanded = Boolean(showAllComments[postId]);
                   const visibleComments = expanded ? allComments : allComments.slice(0, COMMENT_PREVIEW_LIMIT);
                   const hiddenCount = Math.max(0, allComments.length - visibleComments.length);
@@ -1909,6 +1943,7 @@ const CommunityPage = () => {
                       borderColor={post?.pinned ? 'rgba(34, 211, 238, 0.75)' : 'rgba(34, 211, 238, 0.12)'}
                       borderRadius="14px"
                       p={{ base: 3, md: 4 }}
+                      sx={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
                       transition="all 0.25s ease"
                       _hover={{
                         borderColor: 'rgba(34, 211, 238, 0.45)',
@@ -1957,8 +1992,8 @@ const CommunityPage = () => {
                               <HStack spacing={2} mt={2} flexWrap="wrap">
                                 <Avatar size="xs" src={post.authorAvatar || undefined} name={post.authorUsername || 'unknown'} />
                                 <Text color="brand.500" fontWeight="semibold" fontSize="sm">@{post.authorUsername || 'unknown'}</Text>
-                                <Text color="gray.500" fontSize="xs">{relativeTime(post.createdAt)}</Text>
-                                <Text color="gray.500" fontSize="xs">{totalComments} comments</Text>
+                                <Text color="gray.400" fontSize="xs">{relativeTime(post.createdAt)}</Text>
+                                <Text color="gray.400" fontSize="xs">{totalComments} comments</Text>
                               </HStack>
 
                               {(post.tags || []).length > 0 && (
@@ -2352,7 +2387,7 @@ const CommunityPage = () => {
                       <Text color="gray.400" fontSize="xs">Suggested Tags</Text>
                       <HStack spacing={2} flexWrap="wrap">
                         {aiSuggestedTags.map((tag) => {
-                          const isSelected = parseTags(tagsInput).includes(tag);
+                          const isSelected = parsedTagsInput.includes(tag);
                           return (
                             <Badge
                               key={`ai-tag-${tag}`}
@@ -2374,11 +2409,11 @@ const CommunityPage = () => {
                     </VStack>
                   )}
 
-                  {parseTags(tagsInput).length > 0 && (
+                  {parsedTagsInput.length > 0 && (
                     <VStack mt={3} align="stretch" spacing={2}>
                       <Text color="gray.400" fontSize="xs">Selected Tags</Text>
                       <HStack spacing={2} flexWrap="wrap">
-                        {parseTags(tagsInput).map((tag) => (
+                        {parsedTagsInput.map((tag) => (
                           <Badge
                             key={`selected-tag-${tag}`}
                             px={2}
