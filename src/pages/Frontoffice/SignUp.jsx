@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDiceBearUrl } from '../../services/dicebear';
-import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
+import { getReCaptchaV3Token } from '../../services/recaptchaV3';
 import { Box, Heading, Text, Button, VStack, HStack, Input, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon, Grid, Image, Spinner } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { m } from 'framer-motion';
@@ -148,18 +148,6 @@ const SignUp = () => {
 
         return () => clearTimeout(timeoutId);
     }, [email, t]);
-
-    useEffect(() => {
-        if (!RECAPTCHA_SITE_KEY) return;
-
-        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
-            // Token fetch will still surface submit-time errors if loading fails
-        });
-
-        return () => {
-            unmountReCaptchaV3();
-        };
-    }, [RECAPTCHA_SITE_KEY]);
 
     const hasSensitivePasswordContent = passwordContainsIdentityData(password, username, email);
     const isFormInvalid =
