@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { getReCaptchaV3Token } from '../../services/recaptchaV3';
+import React, { useState, useEffect } from 'react';
+import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
 import { Box, Heading, Text, Button, VStack, HStack, Input, Checkbox, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { m } from 'framer-motion';
@@ -35,6 +35,18 @@ const SignIn = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
+
+    useEffect(() => {
+        if (!RECAPTCHA_SITE_KEY) return;
+
+        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+            // Token fetch will still surface submit-time errors if loading fails
+        });
+
+        return () => {
+            unmountReCaptchaV3();
+        };
+    }, [RECAPTCHA_SITE_KEY]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
