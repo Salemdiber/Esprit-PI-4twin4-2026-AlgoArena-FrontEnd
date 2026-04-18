@@ -42,16 +42,6 @@ export const prefetchRoute = (path) => {
 
 export const prefetchLikelyRoutes = (isAdmin = false) => {
     const preload = () => {
-        const path = window.location.pathname;
-        if (
-            path === '/signin' ||
-            path === '/signup' ||
-            path === '/forgot-password' ||
-            path.startsWith('/reset-password')
-        ) {
-            return;
-        }
-
         prefetchRoute('/challenges');
         prefetchRoute('/leaderboard');
         prefetchRoute('/battles');
@@ -61,5 +51,10 @@ export const prefetchLikelyRoutes = (isAdmin = false) => {
         }
     };
 
-    window.setTimeout(preload, 9000);
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(preload, { timeout: 2500 });
+        return;
+    }
+
+    window.setTimeout(preload, 1500);
 };
