@@ -220,6 +220,120 @@
             color: var(--aa-cyan);
         }
 
+        .auth-shell {
+            min-height: 100vh;
+            display: none;
+            place-items: center;
+            padding: 92px 18px 40px;
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.16), transparent 26%),
+                radial-gradient(circle at 82% 86%, rgba(59, 130, 246, 0.16), transparent 28%),
+                linear-gradient(180deg, #07111f 0%, #0f172a 100%);
+        }
+
+        .auth-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: 0.35;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 36%, transparent 76%);
+        }
+
+        .auth-shell__nav {
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(1120px, calc(100% - 32px));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .auth-shell__card {
+            width: min(440px, 100%);
+            position: relative;
+            z-index: 1;
+            padding: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.76);
+            box-shadow: 0 28px 72px rgba(2, 6, 23, 0.38);
+        }
+
+        .auth-shell__card h1 {
+            margin: 0;
+            font-size: clamp(28px, 8vw, 36px);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .auth-shell__card p {
+            margin: 10px 0 28px;
+            color: var(--aa-muted);
+            line-height: 1.55;
+        }
+
+        .auth-shell__form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .auth-shell__field {
+            display: grid;
+            gap: 7px;
+        }
+
+        .auth-shell__field label {
+            color: var(--aa-muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .auth-shell__field input {
+            width: 100%;
+            min-height: 52px;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 8px;
+            background: rgba(2, 6, 23, 0.38);
+            color: var(--aa-text);
+            font: inherit;
+            padding: 0 14px;
+        }
+
+        .auth-shell__form button {
+            min-height: 50px;
+            border: 0;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--aa-cyan), var(--aa-blue));
+            color: #04111d;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .auth-shell__swap {
+            margin-top: 22px;
+            color: var(--aa-muted);
+            text-align: center;
+        }
+
+        .auth-shell__swap a {
+            color: var(--aa-cyan);
+            font-weight: 800;
+            text-decoration: none;
+        }
+
         @media (max-width: 720px) {
             .home-shell {
                 padding-top: 104px;
@@ -291,11 +405,66 @@
 }</code></pre>
             </section>
         </main>
+        <main class="auth-shell" data-auth-shell aria-label="AlgoArena authentication">
+            <nav class="auth-shell__nav" aria-label="Authentication navigation">
+                <a class="home-shell__brand" href="/">
+                    <img src="/logo_algoarena.svg" width="36" height="36" alt="" decoding="async" />
+                    <span>AlgoArena</span>
+                </a>
+                <a class="home-shell__button" data-auth-alt-link href="/signup">Join now</a>
+            </nav>
+            <section class="auth-shell__card">
+                <h1 data-auth-title>Welcome back, challenger.</h1>
+                <p data-auth-subtitle>Sign in to continue your arena progress.</p>
+                <form class="auth-shell__form" onsubmit="event.preventDefault(); window.dispatchEvent(new Event('algoarena:boot'));">
+                    <div class="auth-shell__field">
+                        <label for="auth-shell-identity">Username</label>
+                        <input id="auth-shell-identity" name="identity" autocomplete="username" />
+                    </div>
+                    <div class="auth-shell__field">
+                        <label for="auth-shell-password">Password</label>
+                        <input id="auth-shell-password" name="password" type="password" autocomplete="current-password" />
+                    </div>
+                    <button type="submit" data-auth-button>Enter arena</button>
+                </form>
+                <div class="auth-shell__swap" data-auth-swap>
+                    New here? <a href="/signup">Create an account</a>
+                </div>
+            </section>
+        </main>
     </div>
     <script>
-        if (window.location.pathname !== '/') {
-            document.getElementById('root').textContent = '';
-        }
+        (function () {
+            var path = window.location.pathname;
+            var root = document.getElementById('root');
+            var homeShell = root.querySelector('.home-shell');
+            var authShell = root.querySelector('[data-auth-shell]');
+
+            if (path === '/') {
+                authShell.remove();
+                return;
+            }
+
+            if (path === '/signin' || path === '/signup') {
+                homeShell.remove();
+                authShell.style.display = 'grid';
+
+                if (path === '/signup') {
+                    authShell.querySelector('[data-auth-title]').textContent = 'Create your arena account.';
+                    authShell.querySelector('[data-auth-subtitle]').textContent = 'Start practicing, battling, and climbing the leaderboard.';
+                    authShell.querySelector('[data-auth-button]').textContent = 'Create account';
+                    authShell.querySelector('[data-auth-alt-link]').textContent = 'Sign in';
+                    authShell.querySelector('[data-auth-alt-link]').setAttribute('href', '/signin');
+                    authShell.querySelector('[data-auth-swap]').innerHTML = 'Already competing? <a href="/signin">Sign in</a>';
+                    authShell.querySelector('#auth-shell-identity').setAttribute('autocomplete', 'username');
+                    authShell.querySelector('#auth-shell-password').setAttribute('autocomplete', 'new-password');
+                }
+
+                return;
+            }
+
+            root.textContent = '';
+        })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
 </body>
