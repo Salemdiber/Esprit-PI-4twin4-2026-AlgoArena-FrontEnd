@@ -28,11 +28,12 @@ import {
     Divider,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Suspense, lazy, useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { MessageCircle, LifeBuoy } from 'lucide-react';
 import Logo from '../assets/logo_algoarena.svg';
+import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -40,8 +41,6 @@ import { useChat } from '../features/chat/ChatProvider';
 import { useSupport } from '../features/support/SupportProvider';
 import { prefetchRoute } from '../routes/prefetchRoutes';
 import { startNavigationProgress } from '../shared/navigation/progress';
-
-const AccessibilityDrawer = lazy(() => import('../accessibility/components/AccessibilityDrawer'));
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
@@ -794,11 +793,7 @@ const Header = () => {
             </Drawer>
 
             {/* Accessibility Settings Drawer */}
-            {isA11yOpen && (
-                <Suspense fallback={null}>
-                    <AccessibilityDrawer isOpen={isA11yOpen} onClose={onA11yClose} />
-                </Suspense>
-            )}
+            <AccessibilityDrawer isOpen={isA11yOpen} onClose={onA11yClose} />
 
         </Box>
     );

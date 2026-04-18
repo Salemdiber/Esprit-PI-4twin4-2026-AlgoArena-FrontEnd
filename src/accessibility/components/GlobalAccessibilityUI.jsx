@@ -1,9 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { IconButton, useDisclosure, Icon } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-const AccessibilityDrawer = lazy(() => import('./AccessibilityDrawer'));
+import AccessibilityDrawer from './AccessibilityDrawer';
 
 const AccessibilityIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -21,11 +21,7 @@ const GlobalAccessibilityUI = () => {
 
     return (
         <>
-            {isOpen && (
-                <Suspense fallback={null}>
-                    <AccessibilityDrawer isOpen={isOpen} onClose={onClose} />
-                </Suspense>
-            )}
+            <AccessibilityDrawer isOpen={isOpen} onClose={onClose} />
 
             <m.div
                 drag

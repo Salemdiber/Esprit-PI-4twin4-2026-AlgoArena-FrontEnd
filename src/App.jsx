@@ -16,10 +16,11 @@ import RouteLoader from './shared/components/RouteLoader';
 import NavigationProgress from './shared/components/NavigationProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// ─── Lazy-loaded pages (code-split per route) ───
+// Layouts (always loaded – they wrap everything)
+import PublicLayout from './layout/PublicLayout';
+import AdminLayout from './layout/AdminLayout';
 
-const PublicLayout = lazy(() => import('./layout/PublicLayout'));
-const AdminLayout = lazy(() => import('./layout/AdminLayout'));
+// ─── Lazy-loaded pages (code-split per route) ───
 
 // Public
 const LandingPage = lazy(() => import('./pages/LandingPage/LandingPage'));
