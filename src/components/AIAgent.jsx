@@ -3,35 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 
-let puterSdkPromise = null;
-
-const loadPuterSdk = () => {
-    if (typeof window === 'undefined') return Promise.reject(new Error('Browser unavailable'));
-    if (window.puter?.ai) return Promise.resolve(window.puter);
-
-    if (!puterSdkPromise) {
-        puterSdkPromise = new Promise((resolve, reject) => {
-            const existing = document.querySelector('script[data-puter-sdk="true"]');
-            if (existing) {
-                existing.addEventListener('load', () => resolve(window.puter), { once: true });
-                existing.addEventListener('error', reject, { once: true });
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = 'https://js.puter.com/v2/';
-            script.async = true;
-            script.defer = true;
-            script.dataset.puterSdk = 'true';
-            script.onload = () => resolve(window.puter);
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
-
-    return puterSdkPromise;
-};
-
 const AIAgent = () => {
     const { t } = useTranslation();
     const { currentUser, isLoggedIn } = useAuth();
@@ -94,9 +65,8 @@ const AIAgent = () => {
         setPlayingMessageId(msgId); // Set to loading/playing state visually immediately
 
         try {
-            const sdk = await loadPuterSdk();
-            if (!sdk?.ai) throw new Error("Puter SDK not loaded");
-            const audio = await sdk.ai.txt2speech(text);
+            if (typeof puter === 'undefined') throw new Error("Puter SDK not loaded");
+            const audio = await puter.ai.txt2speech(text);
             currentAudioPlaybackRef.current = audio;
 
             audio.onended = () => {
@@ -119,15 +89,14 @@ const AIAgent = () => {
         setIsLoading(true);
 
         try {
-            const sdk = await loadPuterSdk();
-            if (!sdk?.ai) throw new Error("Puter SDK not loaded");
+            if (typeof puter === 'undefined') throw new Error("Puter SDK not loaded");
 
             const systemPrompt = `Analyze the user's intent to navigate. 
 Valid destinations: 'home', 'landing', 'battles', 'challenges', 'leaderboard', 'community', 'dashboard', 'profile', 'signin', 'signup'.
 Extract ONLY the single word destination representing the platform page. If unclear, return 'unknown'.
 User input: "${userText}"`;
 
-            const response = await sdk.ai.chat([{ role: "user", content: systemPrompt }]);
+            const response = await puter.ai.chat([{ role: "user", content: systemPrompt }]);
             let target = response.message.content.toLowerCase().replace(/[^a-z]/g, '');
 
             let route = '';
@@ -198,8 +167,7 @@ User input: "${userText}"`;
         setIsLoading(true);
 
         try {
-            const sdk = await loadPuterSdk();
-            if (!sdk?.ai) throw new Error("Puter SDK not loaded");
+            if (typeof puter === 'undefined') throw new Error("Puter SDK not loaded");
 
             const systemPrompt = `You are the official AI assistant for AlgoArena. 
 AlgoArena is a Next-Gen Developer Combat Platform featuring coding challenges, AI battles, and skill improvement. 
@@ -218,7 +186,7 @@ Your primary responsibilities:
                 { role: "user", content: userText }
             ];
 
-            const response = await sdk.ai.chat(chatHistory);
+            const response = await puter.ai.chat(chatHistory);
             const aiMsg = { id: Date.now() + 1, text: response.message.content, isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
             setChatMessages(prev => [...prev, aiMsg]);
 
@@ -257,9 +225,7 @@ Your primary responsibilities:
                 const audioFile = new File([audioBlob], "speech.webm", { type: 'audio/webm' });
 
                 try {
-                    const sdk = await loadPuterSdk();
-                    if (!sdk?.ai) throw new Error("Puter SDK not loaded");
-                    const response = await sdk.ai.speech2txt(audioFile);
+                    const response = await puter.ai.speech2txt(audioFile);
                     if (response && response.text) {
                         processNavigation(response.text);
                     } else {

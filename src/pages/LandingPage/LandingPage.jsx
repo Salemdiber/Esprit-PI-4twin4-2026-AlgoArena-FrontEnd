@@ -1,40 +1,22 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React from 'react';
 import Hero from '../../sections/Hero';
-
-const Games = lazy(() => import('../../sections/Games'));
-const Arena = lazy(() => import('../../sections/Arena'));
-const Features = lazy(() => import('../../sections/Features'));
-const Stats = lazy(() => import('../../sections/Stats'));
-const TryChallenge = lazy(() => import('../../sections/TryChallenge'));
-const CTA = lazy(() => import('../../sections/CTA'));
+import Games from '../../sections/Games';
+import Arena from '../../sections/Arena';
+import Features from '../../sections/Features';
+import Stats from '../../sections/Stats';
+import TryChallenge from '../../sections/TryChallenge';
+import CTA from '../../sections/CTA';
 
 const LandingPage = () => {
-    const [showBelowFold, setShowBelowFold] = useState(false);
-
-    useEffect(() => {
-        const reveal = () => setShowBelowFold(true);
-        if ('requestIdleCallback' in window) {
-            const id = window.requestIdleCallback(reveal, { timeout: 1200 });
-            return () => window.cancelIdleCallback(id);
-        }
-
-        const id = window.setTimeout(reveal, 800);
-        return () => window.clearTimeout(id);
-    }, []);
-
     return (
         <>
             <Hero />
-            {showBelowFold && (
-                <Suspense fallback={null}>
-                    <Games />
-                    <Arena />
-                    <Features />
-                    <Stats />
-                    <TryChallenge />
-                    <CTA />
-                </Suspense>
-            )}
+            <Games />
+            <Arena />
+            <Features />
+            <Stats />
+            <TryChallenge />
+            <CTA />
         </>
     );
 };
