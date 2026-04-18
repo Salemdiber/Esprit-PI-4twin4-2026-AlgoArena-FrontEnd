@@ -30,3 +30,6 @@ lighthouse-*.html
 lighthouse-*.json
 vite-bundle-analyzer.json
 source-map-*.json
+.lighthouseci/
+*.lighthouse.json
+*.lighthouse.html

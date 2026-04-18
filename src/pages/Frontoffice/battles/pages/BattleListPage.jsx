@@ -12,12 +12,12 @@ import { useBattleState } from '../hooks/useBattleState';
 import { BattleStatus } from '../types/battle.types';
 import BattleCard from '../components/BattleCard';
 import BattleFilters from '../components/BattleFilters';
-import CreateBattleModal from '../components/CreateBattleModal';
 import BattlesListSkeleton from '../../../../shared/skeletons/BattlesListSkeleton';
 import { settingsService } from '../../../../services/settingsService';
 import UserRankStatsBar from '../../challenges/components/UserRankStatsBar';
-import { useChallengeContext } from '../../challenges/context/ChallengeContext';
 import '../battles.css';
+
+const CreateBattleModal = React.lazy(() => import('../components/CreateBattleModal'));
 
 const BattleListPage = () => {
     const { t } = useTranslation();
@@ -29,8 +29,8 @@ const BattleListPage = () => {
         cancelBattle,
         isLoading,
         error,
+        createModal,
     } = useBattleState();
-    const { refreshUserStats } = useChallengeContext();
 
     const [filters, setFilters] = useState({ modes: [], statuses: [], search: '' });
     const [aiBattlesEnabled, setAiBattlesEnabled] = useState(true);
@@ -41,10 +41,6 @@ const BattleListPage = () => {
             .then((data) => setAiBattlesEnabled(data?.aiBattles ?? true))
             .catch(() => setAiBattlesEnabled(true));
     }, []);
-
-    useEffect(() => {
-        refreshUserStats?.();
-    }, [refreshUserStats]);
 
     // Filter battles
     const filteredBattles = useMemo(() => {
@@ -158,7 +154,11 @@ const BattleListPage = () => {
             </div>
 
             {/* Create Battle Modal */}
-            <CreateBattleModal />
+            {createModal?.isOpen && (
+                <React.Suspense fallback={null}>
+                    <CreateBattleModal />
+                </React.Suspense>
+            )}
         </div>
     );
 };

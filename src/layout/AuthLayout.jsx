@@ -1,8 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { Box, Flex, HStack, Text, Button, Image, useColorModeValue } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import Logo from '../assets/logo_algoarena.svg';
+import Logo from '../assets/logo_algoarena.png';
 import { prefetchRoute } from '../routes/prefetchRoutes';
 import { startNavigationProgress } from '../shared/navigation/progress';
 

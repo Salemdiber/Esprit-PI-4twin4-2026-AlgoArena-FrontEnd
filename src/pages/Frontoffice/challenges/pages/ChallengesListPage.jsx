@@ -64,7 +64,7 @@ const ChallengesListPage = () => {
     const listParentRef = React.useRef(null);
     const [listScrollMargin, setListScrollMargin] = React.useState(0);
 
-    React.useLayoutEffect(() => {
+    React.useEffect(() => {
         const updateScrollMargin = () => {
             setListScrollMargin(listParentRef.current?.offsetTop ?? 0);
         };
@@ -99,22 +99,34 @@ const ChallengesListPage = () => {
         sessionStorage.setItem(sessionKey, '1');
     }, [streakDetails, toast]);
 
+    const challengesById = React.useMemo(() => {
+        const map = new Map();
+        (Array.isArray(challenges) ? challenges : []).forEach((challenge) => {
+            if (challenge?.id) map.set(challenge.id, challenge);
+        });
+        return map;
+    }, [challenges]);
+
+    const inProgressItems = React.useMemo(() => (
+        (Array.isArray(userProgress) ? userProgress : [])
+            .filter((item) => item?.userStatus === 'in_progress')
+            .map((item) => ({
+                ...item,
+                challenge: challengesById.get(item.challengeId),
+            }))
+            .filter((item) => Boolean(item.challenge))
+    ), [userProgress, challengesById]);
+
+    const mostRecentInProgress = React.useMemo(() => (
+        inProgressItems
+            .slice()
+            .sort((a, b) => new Date(b.lastActiveAt || b.lastAttemptAt || 0).getTime() - new Date(a.lastActiveAt || a.lastAttemptAt || 0).getTime())[0] || null
+    ), [inProgressItems]);
+
     // Show skeleton during loading
     if (isLoadingChallenges) {
         return <ChallengesListSkeleton />;
     }
-
-    const inProgressItems = (Array.isArray(userProgress) ? userProgress : [])
-        .filter((item) => item?.userStatus === 'in_progress')
-        .map((item) => ({
-            ...item,
-            challenge: (Array.isArray(challenges) ? challenges : []).find((challenge) => challenge.id === item.challengeId),
-        }))
-        .filter((item) => Boolean(item.challenge));
-
-    const mostRecentInProgress = inProgressItems
-        .slice()
-        .sort((a, b) => new Date(b.lastActiveAt || b.lastAttemptAt || 0).getTime() - new Date(a.lastActiveAt || a.lastAttemptAt || 0).getTime())[0] || null;
 
     const getRelative = (iso) => {
         if (!iso) return t('challengePage.recently');

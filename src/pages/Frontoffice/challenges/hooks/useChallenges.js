@@ -4,27 +4,27 @@
  * Consumes ChallengeContext and exposes the filtered + sorted list
  * together with filter state & setters.
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useDeferredValue } from 'react';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { ChallengeUserStatus } from '../data/mockChallenges';
-import i18n from '../../../../i18n';
+import { useTranslation } from 'react-i18next';
 
 const DIFFICULTY_ORDER = { EASY: 0, Easy: 0, MEDIUM: 1, Medium: 1, HARD: 2, Hard: 2, EXPERT: 3, Expert: 3 };
 
 export default function useChallenges() {
-    const SORT_OPTIONS = [
-        { value: 'recommended', label: i18n.t('challengePage.sortRecommended') },
-        { value: 'newest', label: i18n.t('challengePage.sortNewest') },
-        { value: 'difficulty', label: i18n.t('challengePage.sortDifficulty') },
-        { value: 'acceptance', label: i18n.t('challengePage.sortAcceptance') },
-        { value: 'xp', label: i18n.t('challengePage.sortXp') },
-        { value: 'popularity', label: i18n.t('challengePage.sortPopularity') },
-    ];
+    const { t } = useTranslation();
+    const SORT_OPTIONS = useMemo(() => ([
+        { value: 'recommended', label: t('challengePage.sortRecommended') },
+        { value: 'newest', label: t('challengePage.sortNewest') },
+        { value: 'difficulty', label: t('challengePage.sortDifficulty') },
+        { value: 'acceptance', label: t('challengePage.sortAcceptance') },
+        { value: 'xp', label: t('challengePage.sortXp') },
+        { value: 'popularity', label: t('challengePage.sortPopularity') },
+    ]), [t]);
 
     const {
         challenges,
         userProgress,
-        getUserProgress,
         isRecommended,
         isLoadingChallenges,
     } = useChallengeContext();
@@ -35,6 +35,7 @@ export default function useChallenges() {
     const [selectedStatuses, setSelectedStatuses] = useState([]);
     const [recommendedOnly, setRecommendedOnly] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const deferredSearchQuery = useDeferredValue(searchQuery);
     const [sortOption, setSortOption] = useState('recommended');
 
     // Toggle helpers
@@ -57,10 +58,17 @@ export default function useChallenges() {
     }, []);
 
     // ── Derive user status for a challenge ───────────────────
-    const getChallengeStatus = useCallback((challengeId) => {
-        const progress = userProgress.find(p => p.challengeId === challengeId);
-        return progress?.status || ChallengeUserStatus.UNSOLVED;
+    const progressByChallengeId = useMemo(() => {
+        const map = new Map();
+        userProgress.forEach((entry) => {
+            if (entry?.challengeId) map.set(entry.challengeId, entry.status || ChallengeUserStatus.UNSOLVED);
+        });
+        return map;
     }, [userProgress]);
+
+    const getChallengeStatus = useCallback((challengeId) => (
+        progressByChallengeId.get(challengeId) || ChallengeUserStatus.UNSOLVED
+    ), [progressByChallengeId]);
 
     // ── Counts (for sidebar) ─────────────────────────────────
     const difficultyCounts = useMemo(() => {

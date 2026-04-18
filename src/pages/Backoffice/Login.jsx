@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../Frontoffice/auth/context/AuthContext';
-import Logo from '../../assets/logo_algoarena.svg';
+import Logo from '../../assets/logo_algoarena.png';
 
 const Login = () => {
     const { t } = useTranslation();
@@ -96,7 +96,7 @@ const Login = () => {
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
+                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                     required
                                     className="form-input w-full pl-12 pr-12"
                                 />

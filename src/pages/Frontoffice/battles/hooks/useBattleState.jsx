@@ -24,6 +24,7 @@ import { battlesService } from '../../../../services/battlesService';
 import { challengeService } from '../../../../services/challengeService';
 import { useAuth } from '../../auth/context/AuthContext';
 import i18n from '../../../../i18n';
+import { useLocation } from 'react-router-dom';
 
 const BATTLE_RESULTS_PREFIX = 'battle-results:';
 const BATTLE_PLAN_PREFIX = 'battle-plan:';
@@ -423,7 +424,9 @@ const BattleContext = createContext(null);
 
 export function BattleProvider({ children }) {
     const [state, dispatch] = useReducer(battleReducer, initialState);
-    const { currentUser } = useAuth();
+    const { currentUser, isLoggedIn, isAuthLoading } = useAuth();
+    const location = useLocation();
+    const isBattlesRoute = location.pathname === '/battles' || location.pathname.startsWith('/battles/');
     const timerRef = useRef(null);
     const currentUserId = currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username || null;
 
@@ -597,7 +600,9 @@ export function BattleProvider({ children }) {
         });
     }, [state.battles, currentUserId]);
 
-    const refreshChallenges = useCallback(async () => {
+    const refreshChallenges = useCallback(async ({ force = false } = {}) => {
+        if (!isBattlesRoute || !isLoggedIn || isAuthLoading) return;
+        if (!force && state.challenges.length > 0) return;
         try {
             const resp = await challengeService.getPublished({ sort: 'newest' });
             const list = Array.isArray(resp) ? resp : Array.isArray(resp?.data) ? resp.data : [];
@@ -605,9 +610,13 @@ export function BattleProvider({ children }) {
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadChallenges') });
         }
-    }, []);
+    }, [isBattlesRoute, isLoggedIn, isAuthLoading, state.challenges.length]);
 
     const refreshBattles = useCallback(async () => {
+        if (!isBattlesRoute || !isLoggedIn || isAuthLoading) {
+            dispatch({ type: ActionTypes.SET_BATTLES, payload: [] });
+            return;
+        }
         dispatch({ type: ActionTypes.SET_LOADING, payload: true });
         dispatch({ type: ActionTypes.SET_ERROR, payload: '' });
         try {
@@ -624,7 +633,7 @@ export function BattleProvider({ children }) {
         } finally {
             dispatch({ type: ActionTypes.SET_LOADING, payload: false });
         }
-    }, [currentUserId, currentUser, challengesById]);
+    }, [isBattlesRoute, isLoggedIn, isAuthLoading, currentUserId, currentUser, challengesById]);
 
     useEffect(() => {
         refreshChallenges();
@@ -632,7 +641,7 @@ export function BattleProvider({ children }) {
 
     useEffect(() => {
         refreshBattles();
-    }, [refreshBattles, state.challenges.length]);
+    }, [refreshBattles]);
 
     // ── Action creators ────────────────────────────────
 
@@ -665,6 +674,10 @@ export function BattleProvider({ children }) {
     }, []);
 
     const confirmCreateBattle = useCallback(async () => {
+        if (state.challenges.length === 0) {
+            await refreshChallenges({ force: true });
+        }
+
         const { mode, totalRounds, difficulty, challengeType } = state.createModal;
         const pool = filterChallengesByType(challengeType);
         const assigned = Array.from({ length: totalRounds }, (_, idx) => pool[idx % Math.max(1, pool.length)]);
@@ -720,7 +733,16 @@ export function BattleProvider({ children }) {
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCreateBattle') });
         }
-    }, [state.createModal, currentUser, currentUserId, refreshBattles, filterChallengesByType, resolveChallengeType]);
+    }, [
+        state.createModal,
+        state.challenges.length,
+        currentUser,
+        currentUserId,
+        refreshBattles,
+        refreshChallenges,
+        filterChallengesByType,
+        resolveChallengeType,
+    ]);
 
     const cancelBattle = useCallback(async (id) => {
         try {

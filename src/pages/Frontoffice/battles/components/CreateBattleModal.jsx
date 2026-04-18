@@ -21,17 +21,21 @@ const CreateBattleModal = () => {
         setCreateConfig,
         confirmCreateBattle,
         challenges,
+        refreshChallenges,
     } = useBattleState();
 
     const [aiBattlesEnabled, setAiBattlesEnabled] = useState(true);
 
     useEffect(() => {
         if (createModal.isOpen) {
-            settingsService.getSettings()
-                .then((data) => setAiBattlesEnabled(data?.aiBattles ?? true))
+            Promise.all([
+                settingsService.getSettings(),
+                refreshChallenges(),
+            ])
+                .then(([data]) => setAiBattlesEnabled(data?.aiBattles ?? true))
                 .catch(() => setAiBattlesEnabled(true));
         }
-    }, [createModal.isOpen]);
+    }, [createModal.isOpen, refreshChallenges]);
 
     const { step, mode, totalRounds, difficulty, timeLimit, challengeType } = createModal;
 
