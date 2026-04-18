@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import {
     Box,
     Container,
@@ -14,130 +14,32 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { m } from 'framer-motion';
-
-// Fix for deprecated m() usage
-const MotionBox = m.create(Box);
-
-const languages = ['C', 'C++', 'Java', 'Python', 'JS', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript', 'Scala', 'Perl', 'R'];
 
 const PixelGrid = () => {
-    const containerRef = useRef(null);
-    const pixelsRef = useRef([]);
-    const gridSize = 15;
-
-    // Generate static grid data once
-    const pixels = useMemo(() => {
-        const newPixels = [];
-        for (let i = 0; i < gridSize * gridSize; i++) {
-            const hasLang = Math.random() > 0.7;
-            newPixels.push({
-                id: i,
-                lang: hasLang ? languages[Math.floor(Math.random() * languages.length)] : null,
-            });
-        }
-        return newPixels;
-    }, []);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const handleMouseMove = (e) => {
-            const rect = container.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            pixelsRef.current.forEach((pixel, index) => {
-                if (!pixel) return;
-
-                // Only process pixels that have a language (optimization)
-                if (!pixel.dataset.lang) return;
-
-                const row = Math.floor(index / gridSize);
-                const col = index % gridSize;
-
-                // Calculate center of pixel
-                // Using exact logic from HTML: (col / gridSize) * width + width / (gridSize * 2)
-                const pixelX = (col / gridSize) * rect.width + rect.width / (gridSize * 2);
-                const pixelY = (row / gridSize) * rect.height + rect.height / (gridSize * 2);
-
-                const distance = Math.sqrt(
-                    Math.pow(x - pixelX, 2) + Math.pow(y - pixelY, 2)
-                );
-
-                const revealRadius = 150;
-
-                if (distance < revealRadius) {
-                    pixel.classList.add('revealed');
-                } else {
-                    pixel.classList.remove('revealed');
-                }
-            });
-        };
-
-        container.closest('section')?.addEventListener('mousemove', handleMouseMove);
-
-        return () => {
-            container.closest('section')?.removeEventListener('mousemove', handleMouseMove);
-        };
-    }, []);
-
     return (
         <Box
-            ref={containerRef}
             position="absolute"
             top={0}
             left={0}
             width="100%"
             height="100%"
-            display="grid"
-            gridTemplateColumns={`repeat(${gridSize}, 1fr)`}
-            gap="8px"
-            p="20px"
             pointerEvents="none"
             zIndex={1}
-            id="pixelGrid"
-        >
-            {pixels.map((pixel, i) => (
-                <Box
-                    key={pixel.id}
-                    ref={el => pixelsRef.current[i] = el}
-                    data-lang={pixel.lang || ''}
-                    className="pixel"
-                    // Inline styles for base pixel look to match CSS
-                    bg="rgba(34, 211, 238, 0.05)"
-                    borderRadius="4px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontSize="10px"
-                    fontWeight="600"
-                    color="transparent" // Initially transparent
-                    fontFamily="monospace"
-                    transition="all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                    sx={{
-                        '&.revealed': {
-                            bg: 'rgba(34, 211, 238, 0.2)',
-                            color: 'rgba(34, 211, 238, 0.9)',
-                            boxShadow: '0 0 20px rgba(34, 211, 238, 0.4)',
-                            transform: 'scale(1.1)',
-                        }
-                    }}
-                >
-                    {pixel.lang}
-                </Box>
-            ))}
-        </Box>
+            opacity={0.7}
+            bgImage="
+                linear-gradient(rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px)
+            "
+            bgSize="44px 44px"
+            maskImage="radial-gradient(circle at center, black 0%, transparent 72%)"
+        />
     );
 };
 
 const Hero = () => {
     const { t } = useTranslation();
     const spotlightRef = useRef(null);
-    const [progress, setProgress] = useState(0);
-    const [gridCubes, setGridCubes] = useState([]);
-    const timeoutsRef = useRef([]);
+    const previewCells = [0.25, 0.38, 0.5, 0.62, 0.72, 0.82, 0.9, 1];
 
     /* Theme-aware colors */
     const headingColor = useColorModeValue('gray.800', 'gray.100');
@@ -159,42 +61,6 @@ const Hero = () => {
             spotlightRef.current.style.top = `${y}px`;
         }
     };
-
-    // Animate hero grid
-    useEffect(() => {
-        const animateGrid = () => {
-            // Clear any existing timeouts for this cycle
-            timeoutsRef.current.forEach(clearTimeout);
-            timeoutsRef.current = [];
-
-            setGridCubes([]); // Reset state
-            const totalCubes = 8;
-            const newCubes = Array(totalCubes).fill(0).map((_, i) => ({ id: i }));
-
-            newCubes.forEach((cube, i) => {
-                const timeoutId = setTimeout(() => {
-                    setGridCubes(prev => {
-                        // Prevent duplicates strictly
-                        if (prev.some(c => c.id === cube.id)) return prev;
-                        return [...prev, {
-                            ...cube,
-                            opacity: (i + 1) / totalCubes
-                        }];
-                    });
-                    setProgress(Math.round(((i + 1) / totalCubes) * 100));
-                }, i * 200);
-                timeoutsRef.current.push(timeoutId);
-            });
-        };
-
-        animateGrid();
-        const interval = setInterval(animateGrid, 5000);
-
-        return () => {
-            clearInterval(interval);
-            timeoutsRef.current.forEach(clearTimeout);
-        };
-    }, []);
 
     return (
         <Box
@@ -339,25 +205,23 @@ const Hero = () => {
                                         {t('landing.hero.gameSimulation')}
                                     </Text>
                                     <Grid templateColumns="repeat(4, 1fr)" gap={1} mb={4}>
-                                        {gridCubes.map((cube) => (
-                                            <MotionBox
-                                                key={cube.id}
+                                        {previewCells.map((opacity, index) => (
+                                            <Box
+                                                key={index}
                                                 aspectRatio={1}
                                                 bg="brand.500"
                                                 borderRadius="4px"
-                                                initial={{ opacity: 0, scale: 0.5, y: -20 }}
-                                                animate={{ opacity: cube.opacity, scale: 1, y: 0 }}
-                                                transition={{ duration: 0.5 }}
+                                                opacity={opacity}
                                             />
                                         ))}
                                     </Grid>
                                     <VStack spacing={2}>
                                         <HStack justify="space-between" width="100%" fontSize="xs" color={mutedColor}>
                                             <Text>{t('landing.hero.progress')}</Text>
-                                            <Text>{progress}%</Text>
+                                            <Text>100%</Text>
                                         </HStack>
                                         <Progress
-                                            value={progress}
+                                            value={100}
                                             size="sm"
                                             colorScheme="cyan"
                                             borderRadius="full"
