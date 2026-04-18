@@ -1,13 +1,19 @@
-const bootApp = () => {
-  import('./bootstrap.jsx').then(({ mountApp }) => mountApp());
-};
+import './i18n';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
+import App from './App';
+import theme from './theme/index';
+import { ThemeProvider } from './shared/context/ThemeContext';
+import './index.css';
 
-const isStaticHome = window.location.pathname === '/' && !window.location.hash;
-
-if (isStaticHome) {
-  window.addEventListener('pointerdown', bootApp, { once: true, passive: true });
-  window.addEventListener('keydown', bootApp, { once: true });
-  window.setTimeout(bootApp, 9000);
-} else {
-  bootApp();
-}
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+    <ChakraProvider theme={theme}>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </ChakraProvider>
+  </React.StrictMode>
+);
