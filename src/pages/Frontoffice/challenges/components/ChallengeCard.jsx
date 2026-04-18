@@ -263,4 +263,4 @@ const ChallengeCard = ({ challenge }) => {
     );
 };
 
-export default React.memo(ChallengeCard);
+export default ChallengeCard;
