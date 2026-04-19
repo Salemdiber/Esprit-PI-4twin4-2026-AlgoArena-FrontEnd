@@ -39,14 +39,11 @@ const SignIn = () => {
     useEffect(() => {
         if (!RECAPTCHA_SITE_KEY) return;
 
-        const timerId = window.setTimeout(() => {
-            mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
-                // Token fetch will still surface submit-time errors if loading fails
-            });
-        }, 6000);
+        mountReCaptchaV3(RECAPTCHA_SITE_KEY).catch(() => {
+            // Token fetch will still surface submit-time errors if loading fails
+        });
 
         return () => {
-            window.clearTimeout(timerId);
             unmountReCaptchaV3();
         };
     }, [RECAPTCHA_SITE_KEY]);

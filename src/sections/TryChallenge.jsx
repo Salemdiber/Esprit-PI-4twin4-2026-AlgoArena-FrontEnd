@@ -341,7 +341,6 @@ const TryChallenge = () => {
                                 </Box>
                                 <Box
                                     as="textarea"
-                                    aria-label={t('landing.tryChallenge.editorLabel', 'Code editor')}
                                     value={code}
                                     onChange={(event) => setCode(event.target.value)}
                                     onKeyDown={handleEditorKeyDown}

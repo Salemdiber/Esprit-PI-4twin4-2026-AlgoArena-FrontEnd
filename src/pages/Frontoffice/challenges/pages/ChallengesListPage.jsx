@@ -25,7 +25,6 @@ import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import UserRankStatsBar from '../components/UserRankStatsBar';
 import ChallengesFilters from '../components/ChallengesFilters';
 import ChallengeCard from '../components/ChallengeCard';

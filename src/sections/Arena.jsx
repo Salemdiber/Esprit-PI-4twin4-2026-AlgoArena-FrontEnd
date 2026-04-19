@@ -114,7 +114,7 @@ const Arena = () => {
                                         <Text fontSize="xs" color={useColorModeValue("gray.500", "gray.400")} mb={3}>
                                             {t('landing.arena.sampleDescription')}
                                         </Text>
-                                        <HStack justify="space-between" fontSize="xs" color={useColorModeValue("gray.600", "gray.300")}>
+                                        <HStack justify="space-between" fontSize="xs" color="gray.500">
                                             <Text>{t('landing.arena.timeMin')}</Text>
                                             <Text>{t('landing.arena.points')}</Text>
                                         </HStack>
@@ -148,7 +148,7 @@ const Arena = () => {
                                                 <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue("gray.800", "gray.100")}>
                                                     {t('landing.arena.yourSolution')}
                                                 </Text>
-                                                <Select aria-label={t('landing.games.languageSelect', 'Select programming language')} size="xs" width="auto" bg={useColorModeValue("gray.50", "gray.800")} borderColor={useColorModeValue("gray.200", "gray.700")}>
+                                                <Select size="xs" width="auto" bg={useColorModeValue("gray.50", "gray.800")} borderColor={useColorModeValue("gray.200", "gray.700")}>
                                                     <option>{t('landing.games.javascript')}</option>
                                                     <option>{t('landing.games.python')}</option>
                                                 </Select>

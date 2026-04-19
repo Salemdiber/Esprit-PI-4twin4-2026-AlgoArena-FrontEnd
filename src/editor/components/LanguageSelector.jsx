@@ -34,7 +34,6 @@ const LanguageSelector = ({
     <HStack spacing={2}>
         <CodeIcon w={4} h={4} color="gray.500" />
         <Select
-            aria-label={t('editor.languageSelect', 'Select programming language')}
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             bg="var(--color-bg-primary)"
