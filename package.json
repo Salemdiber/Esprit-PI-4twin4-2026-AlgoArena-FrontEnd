@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lighthouse:prod": "npm run build && npm run preview",
+    "lh:landing": "lighthouse http://localhost:4173/ --view --preset desktop --only-categories performance",
+    "lh:community": "lighthouse http://localhost:4173/community --view --preset desktop --only-categories performance",
+    "lh:challenges": "lighthouse http://localhost:4173/challenges --view --preset desktop --only-categories performance",
+    "lh:full": "lighthouse http://localhost:4173/ --view --preset desktop"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",

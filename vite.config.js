@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -86,6 +86,13 @@ const vendorChunk = (id) => {
     return 'vendor-icons';
   }
 
+  if (
+    id.includes('/node_modules/@dicebear/') ||
+    id.includes('/node_modules/@fontsource/')
+  ) {
+    return 'vendor-avatars';
+  }
+
   return undefined;
 };
 
@@ -119,7 +126,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
-      includeAssets: ['logo_algoarena.svg', 'assets/cursors/cursor.svg'],
+      includeAssets: ['logo_algoarena.png', 'assets/cursors/cursor.svg'],
       manifest: {
         name: 'AlgoArena',
         short_name: 'AlgoArena',
@@ -130,10 +137,10 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/logo_algoarena.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            src: '/logo_algoarena.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
           },
         ],
       },
@@ -247,6 +254,26 @@ export default defineConfig({
     },
   },
   server: {
+    proxy: {
+      '/api/docs': createProxyConfig(),
+      '/api': createProxyConfig({
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      }),
+      '/settings': createProxyConfig(),
+      '/user': createProxyConfig(),
+      '/challenges': createProxyConfig({
+        bypass: (req) => (req.headers.accept?.includes('text/html') ? req.url : null),
+      }),
+      '/uploads': createProxyConfig(),
+    },
+  },
+  preview: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    },
     proxy: {
       '/api/docs': createProxyConfig(),
       '/api': createProxyConfig({

@@ -178,4 +178,4 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
     );
 };
 
-export default BattleCard;
+export default React.memo(BattleCard);

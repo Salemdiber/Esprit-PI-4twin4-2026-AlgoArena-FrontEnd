@@ -21,6 +21,7 @@ import {
     SliderFilledTrack,
     SliderThumb,
     Tooltip,
+    useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
@@ -65,12 +66,20 @@ const EditorToolbar = () => {
         isEditorFullscreen,
         setEditorFullscreen,
     } = useChallengeContext();
+    const borderColor = useColorModeValue('gray.200', 'gray.700');
+    const selectColor = useColorModeValue('gray.700', 'gray.300');
+    const optionBg = useColorModeValue('#ffffff', '#0f172a');
+    const iconColor = useColorModeValue('gray.600', 'gray.400');
+    const iconHoverColor = useColorModeValue('gray.800', 'gray.100');
+    const iconHoverBg = useColorModeValue('gray.100', 'whiteAlpha.100');
+    const popoverTextColor = useColorModeValue('gray.700', 'gray.200');
+    const helperTextColor = useColorModeValue('gray.600', 'gray.400');
 
     return (
         <Flex
             bg="var(--color-bg-secondary)"
             borderBottom="1px solid"
-            borderColor="gray.700"
+            borderColor={borderColor}
             px={4}
             py={3}
             align="center"
@@ -81,15 +90,15 @@ const EditorToolbar = () => {
                 onChange={(e) => setLanguage(e.target.value)}
                 bg="var(--color-bg-primary)"
                 border="1px solid"
-                borderColor="gray.700"
+                borderColor={borderColor}
                 borderRadius="8px"
                 fontSize="sm"
-                color="gray.300"
+                color={selectColor}
                 w="160px"
                 _focus={{ borderColor: 'brand.500', boxShadow: 'none' }}
             >
                 {LANGUAGES.map(lang => (
-                    <option key={lang.value} value={lang.value} style={{ background: '#0f172a' }}>
+                    <option key={lang.value} value={lang.value} style={{ background: optionBg }}>
                         {lang.label}
                     </option>
                 ))}
@@ -101,28 +110,29 @@ const EditorToolbar = () => {
                         <IconButton
                             icon={<SettingsIcon w={5} h={5} />}
                             variant="ghost"
-                            color="gray.400"
-                            _hover={{ color: 'gray.100' }}
+                            color={iconColor}
+                            _hover={{ color: iconHoverColor, bg: iconHoverBg }}
                             size="sm"
                             aria-label={t('challengePage.editorSettingsAria')}
                         />
                     </PopoverTrigger>
-                    <PopoverContent bg="var(--color-bg-secondary)" borderColor="gray.700" color="gray.200" w="280px">
-                        <PopoverArrow bg="var(--color-bg-secondary)" borderColor="gray.700" />
-                        <PopoverHeader borderColor="gray.700" fontWeight="semibold">{t('challengePage.editorSettings')}</PopoverHeader>
+                    <PopoverContent bg="var(--color-bg-secondary)" borderColor={borderColor} color={popoverTextColor} w="280px">
+                        <PopoverArrow bg="var(--color-bg-secondary)" borderColor={borderColor} />
+                        <PopoverHeader borderColor={borderColor} fontWeight="semibold">{t('challengePage.editorSettings')}</PopoverHeader>
                         <PopoverBody>
                             <VStack align="stretch" spacing={4}>
                                 <VStack align="stretch" spacing={2}>
-                                    <Text fontSize="xs" color="gray.400">{t('challengePage.fontFamily')}</Text>
+                                    <Text fontSize="xs" color={helperTextColor}>{t('challengePage.fontFamily')}</Text>
                                     <Select
                                         size="sm"
                                         value={editorSettings.fontFamily}
                                         onChange={(e) => setEditorSettings({ fontFamily: e.target.value })}
                                         bg="var(--color-bg-primary)"
-                                        borderColor="gray.700"
+                                        borderColor={borderColor}
+                                        color={selectColor}
                                     >
                                         {FONT_OPTIONS.map((font) => (
-                                            <option key={font.value} value={font.value} style={{ background: '#0f172a' }}>
+                                            <option key={font.value} value={font.value} style={{ background: optionBg }}>
                                                 {font.label}
                                             </option>
                                         ))}
@@ -130,7 +140,7 @@ const EditorToolbar = () => {
                                 </VStack>
 
                                 <VStack align="stretch" spacing={2}>
-                                    <Text fontSize="xs" color="gray.400">{t('challengePage.fontSize', { size: editorSettings.fontSize })}</Text>
+                                    <Text fontSize="xs" color={helperTextColor}>{t('challengePage.fontSize', { size: editorSettings.fontSize })}</Text>
                                     <Slider
                                         min={12}
                                         max={28}
@@ -153,8 +163,8 @@ const EditorToolbar = () => {
                     <IconButton
                         icon={isEditorFullscreen ? <ExitFullscreenIcon w={5} h={5} /> : <FullscreenIcon w={5} h={5} />}
                         variant="ghost"
-                        color="gray.400"
-                        _hover={{ color: 'gray.100' }}
+                        color={iconColor}
+                        _hover={{ color: iconHoverColor, bg: iconHoverBg }}
                         size="sm"
                         aria-label={t('challengePage.toggleFullscreenAria')}
                         onClick={() => setEditorFullscreen(!isEditorFullscreen)}

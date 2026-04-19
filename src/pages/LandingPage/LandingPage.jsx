@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import Hero from '../../sections/Hero';
 import Games from '../../sections/Games';
 import Arena from '../../sections/Arena';
@@ -11,12 +11,14 @@ const LandingPage = () => {
     return (
         <>
             <Hero />
-            <Games />
-            <Arena />
-            <Features />
-            <Stats />
-            <TryChallenge />
-            <CTA />
+            <Suspense fallback={null}>
+                <Games />
+                <Arena />
+                <Features />
+                <Stats />
+                <TryChallenge />
+                <CTA />
+            </Suspense>
         </>
     );
 };

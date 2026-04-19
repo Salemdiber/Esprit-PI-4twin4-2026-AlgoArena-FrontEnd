@@ -31,18 +31,18 @@ const SystemHealth = () => {
         return (
             <div className="space-y-6 animate-pulse">
                 <div className="mb-6">
-                    <div className="h-8 bg-gray-700 rounded w-1/4 mb-2"></div>
-                    <div className="h-4 bg-gray-800 rounded w-1/3"></div>
+                    <div className="h-8 rounded w-1/4 mb-2" style={{ background: 'var(--color-bg-secondary)' }}></div>
+                    <div className="h-4 rounded w-1/3" style={{ background: 'var(--color-bg-input)' }}></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                         <div key={i} className="glass-panel rounded-2xl p-6 shadow-custom h-48 border ">
                             <div className="flex justify-between items-center mb-4">
-                                <div className="h-6 bg-gray-700 rounded w-1/3"></div>
-                                <div className="h-6 bg-gray-700 rounded-full w-16"></div>
+                                <div className="h-6 rounded w-1/3" style={{ background: 'var(--color-bg-secondary)' }}></div>
+                                <div className="h-6 rounded-full w-16" style={{ background: 'var(--color-bg-secondary)' }}></div>
                             </div>
                             <div className="flex justify-center mb-4">
-                                <div className="w-24 h-24 rounded-full bg-gray-700/50"></div>
+                                <div className="w-24 h-24 rounded-full" style={{ background: 'var(--color-bg-input)' }}></div>
                             </div>
                         </div>
                     ))}

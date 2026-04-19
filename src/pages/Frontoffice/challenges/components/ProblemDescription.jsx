@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ProblemDescription - renders description, submissions and AI judge panels.
  */
 import React, { useState } from 'react';
@@ -103,11 +103,14 @@ const ProblemDescription = () => {
 
     const [openHints, setOpenHints] = useState({});
 
-    const gray800_100 = useColorModeValue('gray.800', 'gray.100');
+    const gray800_100 = useColorModeValue('gray.800', 'white');
     const gray600_300 = useColorModeValue('gray.600', 'gray.300');
     const gray500_400 = useColorModeValue('gray.500', 'gray.400');
     const gray200_700 = useColorModeValue('gray.200', 'gray.700');
     const gray50_800 = useColorModeValue('gray.50', 'gray.800');
+    const xpBadgeBg = useColorModeValue('rgba(250, 204, 21, 0.12)', 'rgba(250, 204, 21, 0.08)');
+    const xpBadgeColor = useColorModeValue('yellow.600', 'yellow.400');
+    const solvedBadgeColor = useColorModeValue('green.600', 'green.300');
 
     if (!selectedChallenge) return null;
 
@@ -262,8 +265,8 @@ const ProblemDescription = () => {
             <Box>
                 <HStack spacing={3} mb={4}>
                     <Badge
-                        bg={diffMeta.hex}
-                        color={selectedChallenge.difficulty === 'HARD' || selectedChallenge.difficulty === 'EXPERT' ? 'white' : '#0f172a'}
+                        bg={diffMeta.hex || diffMeta.color}
+                        color={selectedChallenge.difficulty === 'HARD' || selectedChallenge.difficulty === 'EXPERT' ? 'white' : useColorModeValue('gray.800', 'gray.900')}
                         fontSize="xs"
                         fontWeight="bold"
                         px={3}
@@ -273,7 +276,16 @@ const ProblemDescription = () => {
                         {diffMeta.label.toUpperCase()}
                     </Badge>
                     {selectedChallenge.tags.map((tag) => (
-                        <Tag key={tag} bg="var(--color-tag-bg)" color={gray600_300} size="sm" borderRadius="8px" fontSize="xs">
+                        <Tag 
+                            key={tag} 
+                            bg={useColorModeValue('gray.100', 'rgba(255,255,255,0.06)')} 
+                            color={gray600_300} 
+                            size="sm" 
+                            borderRadius="8px" 
+                            fontSize="xs"
+                            border="1px solid"
+                            borderColor={useColorModeValue('gray.200', 'transparent')}
+                        >
                             {tag}
                         </Tag>
                     ))}
@@ -310,8 +322,9 @@ const ProblemDescription = () => {
                                     px={2}
                                     py={0.5}
                                     borderRadius="md"
-                                    color="brand.500"
+                                    color={useColorModeValue('brand.600', 'cyan.400')}
                                     fontSize="sm"
+                                    fontWeight="600"
                                 >
                                     {segment}
                                 </Code>

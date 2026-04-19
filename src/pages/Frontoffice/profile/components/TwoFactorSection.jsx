@@ -110,10 +110,10 @@ const TwoFactorSection = () => {
                         borderRadius="6px"
                         fontSize="xs"
                         fontWeight="600"
-                        bg={twoFactorEnabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(71, 85, 105, 0.5)'}
-                        color={twoFactorEnabled ? '#10b981' : 'gray.400'}
+                        bg={twoFactorEnabled ? 'rgba(16, 185, 129, 0.1)' : useColorModeValue('rgba(100, 116, 139, 0.16)', 'rgba(71, 85, 105, 0.45)')}
+                        color={twoFactorEnabled ? '#10b981' : useColorModeValue('#475569', '#cbd5e1')}
                         border="1px solid"
-                        borderColor={twoFactorEnabled ? 'rgba(16, 185, 129, 0.2)' : '#475569'}
+                        borderColor={twoFactorEnabled ? 'rgba(16, 185, 129, 0.2)' : useColorModeValue('rgba(100, 116, 139, 0.32)', 'rgba(100, 116, 139, 0.5)')}
                     >
                         {twoFactorEnabled ? (
                             <ShieldCheckIcon w={3} h={3} />

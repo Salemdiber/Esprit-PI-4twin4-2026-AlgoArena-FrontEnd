@@ -21,7 +21,7 @@ import {
 import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FiClock, FiEdit3, FiPauseCircle } from 'react-icons/fi';
+import { FiCheck, FiClock, FiEdit3, FiPauseCircle, FiPlay } from 'react-icons/fi';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META, ChallengeUserStatus } from '../data/mockChallenges';
 
@@ -71,6 +71,11 @@ const ChallengeCard = ({ challenge }) => {
     const incompleteAttempts = Number(progress?.incompleteAttemptCount || 0);
     const recommended = isRecommended(challenge);
     const diffMeta = DIFFICULTY_META[challenge.difficulty];
+    const solvedBtnBg = useColorModeValue('gray.100', 'gray.700');
+    const solvedBtnColor = useColorModeValue('gray.700', 'gray.300');
+    const solvedBtnHoverBg = useColorModeValue('gray.200', 'gray.600');
+    const solvedMetaColor = useColorModeValue('green.600', 'green.400');
+    const unsolvedMetaColor = useColorModeValue('gray.600', 'gray.500');
 
     const handleStart = () => {
         selectChallenge(challenge.id);
@@ -241,9 +246,10 @@ const ChallengeCard = ({ challenge }) => {
                 <Flex direction="column" gap={2} align={{ sm: 'flex-end' }}>
                     <Button
                         variant={isSolved ? 'ghost' : 'primary'}
-                        bg={isSolved ? 'gray.700' : undefined}
-                        color={isSolved ? 'gray.300' : undefined}
-                        _hover={isSolved ? { bg: 'gray.600' } : undefined}
+                        leftIcon={<Icon as={isSolved ? FiCheck : userStatus === 'in_progress' ? FiClock : FiPlay} boxSize={4} />}
+                        bg={isSolved ? solvedBtnBg : undefined}
+                        color={isSolved ? solvedBtnColor : undefined}
+                        _hover={isSolved ? { bg: solvedBtnHoverBg } : undefined}
                         px={6}
                         fontSize="sm"
                         onClick={(e) => {
@@ -254,7 +260,7 @@ const ChallengeCard = ({ challenge }) => {
                     >
                         {isSolved ? t('challengePage.viewSolution') : userStatus === 'in_progress' ? t('challengePage.resumeChallenge') : t('challengePage.startChallenge')}
                     </Button>
-                    <Text fontSize="xs" color={isSolved ? 'green.400' : 'gray.500'}>
+                    <Text fontSize="xs" color={isSolved ? solvedMetaColor : unsolvedMetaColor}>
                         {isSolved ? t('challengePage.xpEarned', { xp: progress.earnedXp }) : t('challengePage.solvedByUsers', { count: (challenge.solvedCount || 0).toLocaleString() })}
                     </Text>
                 </Flex>

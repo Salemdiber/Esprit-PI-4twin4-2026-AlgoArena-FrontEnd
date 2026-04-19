@@ -76,6 +76,8 @@ const getDuplicateMessage = (err) => {
     return '';
 };
 
+const isLightTheme = () => typeof document !== 'undefined' && document.documentElement?.getAttribute('data-theme') === 'light';
+
 /* ═══════════════════════════════════════════════════════════════════
    TOAST
    ═══════════════════════════════════════════════════════════════════ */
@@ -129,6 +131,7 @@ const ConfirmModal = ({ title, message, onConfirm, onClose }) => {
    ═══════════════════════════════════════════════════════════════════ */
 const Challenges = () => {
     const { t } = useTranslation();
+    const lightTheme = isLightTheme();
     const [view, setView] = useState('list'); // 'list' | 'ai' | 'manual'
     const [challenges, setChallenges] = useState([]);
     const [drafts, setDrafts] = useState([]);
@@ -511,7 +514,7 @@ const Challenges = () => {
                             background: view === 'manual'
                                 ? 'linear-gradient(180deg, rgba(34,197,94,0.22), rgba(34,197,94,0.12))'
                                 : 'linear-gradient(180deg, rgba(34,197,94,0.16), rgba(34,197,94,0.08))',
-                            color: '#dcfce7',
+                            color: lightTheme ? '#166534' : '#dcfce7',
                             border: '1px solid rgba(34,197,94,0.3)',
                             boxShadow: '0 10px 30px rgba(34,197,94,0.12)',
                         }}>
@@ -529,7 +532,7 @@ const Challenges = () => {
                                 </span>
                                 <span className="flex min-w-0 flex-col items-start text-left">
                                     <span>{t('admin.challenges.createManually')}</span>
-                                    <span className="text-[10px] font-medium text-green-100/80">{t('admin.challenges.primaryWorkflow')}</span>
+                                    <span className="text-[10px] font-medium" style={{ color: lightTheme ? '#166534' : 'rgba(220, 252, 231, 0.8)' }}>{t('admin.challenges.primaryWorkflow')}</span>
                                 </span>
                             </>
                         )}
@@ -652,7 +655,7 @@ const Challenges = () => {
                                 {t('admin.challenges.draftChallenges')} <span className="ml-2 text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>({drafts.length})</span>
                             </h2>
                         </div>
-                        <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.25)' }}>{t('admin.challenges.notVisibleToUsers')}</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: lightTheme ? 'rgba(217,119,6,0.12)' : 'rgba(250,204,21,0.1)', color: lightTheme ? '#92400e' : '#facc15', border: lightTheme ? '1px solid rgba(217,119,6,0.24)' : '1px solid rgba(250,204,21,0.25)' }}>{t('admin.challenges.notVisibleToUsers')}</span>
                     </div>
                     <div className="space-y-2">
                         {drafts.map(ch => (
@@ -887,6 +890,7 @@ const PreviewModal = ({ form, onClose, onPublish }) => {
    ═══════════════════════════════════════════════════════════════════ */
 const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
     const { t } = useTranslation();
+    const lightTheme = isLightTheme();
     const dc = DIFF_COLORS[ch.difficulty] || DIFF_COLORS.Medium;
     return (
         <div className="flex items-center gap-4 p-3 rounded-xl transition-all"
@@ -895,7 +899,7 @@ const DraftRow = ({ challenge: ch, onPublish, onDelete, onEdit }) => {
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{ch.title}</span>
                     <span style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}`, borderRadius: '6px', padding: '1px 8px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>{t(DIFFICULTY_I18N[ch.difficulty])}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(250,204,21,0.1)', color: '#facc15', border: '1px solid rgba(250,204,21,0.2)' }}>{t('admin.challenges.draftBadge')}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: lightTheme ? 'rgba(217,119,6,0.12)' : 'rgba(250,204,21,0.1)', color: lightTheme ? '#92400e' : '#facc15', border: lightTheme ? '1px solid rgba(217,119,6,0.24)' : '1px solid rgba(250,204,21,0.2)' }}>{t('admin.challenges.draftBadge')}</span>
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
                     <span>{ch.tags?.[0] || t('admin.challenges.general')}</span>
@@ -1314,6 +1318,7 @@ const AIResultCard = ({ aiResult, aiForm, publishing, onPublish, onSaveDraft, on
    ═══════════════════════════════════════════════════════════════════ */
 const ChallengeRow = ({ challenge, onTogglePublish, onEdit, onDelete }) => {
     const { t } = useTranslation();
+    const lightTheme = isLightTheme();
     const dc = DIFF_COLORS[challenge.difficulty] || DIFF_COLORS.Medium;
     const isPublished = challenge.status === 'published';
     return (
@@ -1329,7 +1334,20 @@ const ChallengeRow = ({ challenge, onTogglePublish, onEdit, onDelete }) => {
                         {challenge.aiGenerated && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase tracking-wide shrink-0">AI</span>
                         )}
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 ${isPublished ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'}`}>
+                        <span
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0"
+                            style={isPublished
+                                ? {
+                                    background: lightTheme ? 'rgba(22,163,74,0.12)' : 'rgba(34,197,94,0.10)',
+                                    color: lightTheme ? '#166534' : '#4ade80',
+                                    border: lightTheme ? '1px solid rgba(22,163,74,0.24)' : '1px solid rgba(34,197,94,0.20)',
+                                }
+                                : {
+                                    background: lightTheme ? 'rgba(217,119,6,0.12)' : 'rgba(234,179,8,0.10)',
+                                    color: lightTheme ? '#92400e' : '#facc15',
+                                    border: lightTheme ? '1px solid rgba(217,119,6,0.24)' : '1px solid rgba(234,179,8,0.20)',
+                                }}
+                        >
                             {isPublished ? t('admin.challenges.publishedStatus') : t('admin.challenges.draftStatus')}
                         </span>
                     </div>

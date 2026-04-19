@@ -580,7 +580,7 @@ const ChallengePlayPage = () => {
                             w={{ lg: '40%' }}
                             bg="var(--color-bg-primary)"
                             borderRight="1px solid"
-                            borderColor={headerBorderColor}
+                            borderColor="var(--color-border)"
                             overflow="hidden"
                         >
                             <Box
@@ -589,7 +589,7 @@ const ChallengePlayPage = () => {
                                 p={5}
                                 sx={{
                                     '&::-webkit-scrollbar': { width: '5px' },
-                                    '&::-webkit-scrollbar-track': { bg: 'var(--color-bg-primary)' },
+                                    '&::-webkit-scrollbar-track': { bg: 'transparent' },
                                     '&::-webkit-scrollbar-thumb': { bg: 'var(--color-border)', borderRadius: '3px' },
                                     overscrollBehavior: 'contain',
                                 }}

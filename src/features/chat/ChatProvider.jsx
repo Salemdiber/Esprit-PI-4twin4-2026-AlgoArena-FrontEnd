@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../pages/Frontoffice/auth/context/AuthContext';
 import { useChatSocket } from './useChatSocket';
 
@@ -11,8 +11,35 @@ export const ChatProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [replyTarget, setReplyTarget] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [bootSocket, setBootSocket] = useState(false);
 
-  const socketState = useChatSocket({ isAuthenticated: isLoggedIn, currentUser });
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setBootSocket(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const start = () => {
+      if (!cancelled) setBootSocket(true);
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(start, { timeout: 3000 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(id);
+      };
+    }
+
+    const timeoutId = window.setTimeout(start, 1200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [isLoggedIn]);
+
+  const socketState = useChatSocket({ isAuthenticated: isLoggedIn && bootSocket, currentUser });
 
   React.useEffect(() => {
     if (!socketState.messages.length) return;
