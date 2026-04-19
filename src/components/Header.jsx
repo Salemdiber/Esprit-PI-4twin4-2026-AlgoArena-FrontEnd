@@ -28,45 +28,132 @@ import {
     Divider,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { MessageCircle, LifeBuoy } from 'lucide-react';
 import Logo from '../assets/logo_algoarena.png';
-import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useChat } from '../features/chat';
-import { useSupport } from '../features/support';
+import { useChat } from '../features/chat/ChatProvider';
+import { useSupport } from '../features/support/SupportProvider';
+import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
+import { prefetchRoute } from '../routes/prefetchRoutes';
+import { startNavigationProgress } from '../shared/navigation/progress';
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
+/* ─── Rank colour palette ─────────────────────────────────────────── */
 const RANK_META = {
-    BRONZE: { color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)' },
-    SILVER: { color: '#c0c0c0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.25)' },
-    GOLD: { color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.3)' },
-    PLATINUM: { color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.3)' },
-    DIAMOND: { color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
-    RUBY: { color: '#E0115F', bg: 'rgba(224,17,95,0.12)', border: 'rgba(224,17,95,0.3)' },
-    EMERALD: { color: '#50C878', bg: 'rgba(80,200,120,0.12)', border: 'rgba(80,200,120,0.3)' },
-    SAPPHIRE: { color: '#0F52BA', bg: 'rgba(15,82,186,0.12)', border: 'rgba(15,82,186,0.3)' },
-    OBSIDIAN: { color: '#3D3635', bg: 'rgba(61,54,53,0.18)', border: 'rgba(61,54,53,0.35)' },
-    'ALGOARENA CHAMPION': { color: '#D4AF37', bg: 'rgba(212,175,55,0.18)', border: 'rgba(212,175,55,0.35)' },
+    BRONZE: { 
+        color: '#92400E', 
+        darkColor: '#F59E0B',
+        bg: 'rgba(146,64,14,0.1)', 
+        darkBg: 'rgba(245,158,11,0.12)',
+        border: 'rgba(146,64,14,0.2)', 
+        darkBorder: 'rgba(245,158,11,0.3)',
+        glow: 'rgba(146,64,14,0.15)' 
+    },
+    SILVER: { 
+        color: '#475569', 
+        darkColor: '#CBD5E1',
+        bg: 'rgba(71,85,105,0.08)', 
+        darkBg: 'rgba(203,213,225,0.1)',
+        border: 'rgba(71,85,105,0.25)', 
+        darkBorder: 'rgba(203,213,225,0.3)',
+        glow: 'rgba(148,163,184,0.2)' 
+    },
+    GOLD: { 
+        color: '#854D0E', 
+        darkColor: '#FACC15',
+        bg: 'rgba(133,77,14,0.08)', 
+        darkBg: 'rgba(250,204,21,0.1)',
+        border: 'rgba(133,77,14,0.25)', 
+        darkBorder: 'rgba(250,204,21,0.3)',
+        glow: 'rgba(250,204,21,0.25)' 
+    },
+    PLATINUM: { 
+        color: '#0891B2', 
+        darkColor: '#22D3EE',
+        bg: 'rgba(8,145,178,0.08)', 
+        darkBg: 'rgba(34,211,238,0.1)',
+        border: 'rgba(8,145,178,0.25)', 
+        darkBorder: 'rgba(34,211,238,0.3)',
+        glow: 'rgba(34,211,238,0.3)' 
+    },
+    DIAMOND: { 
+        color: '#7E22CE', 
+        darkColor: '#A855F7',
+        bg: 'rgba(126,34,206,0.08)', 
+        darkBg: 'rgba(168,85,247,0.12)',
+        border: 'rgba(126,34,206,0.25)', 
+        darkBorder: 'rgba(168,85,247,0.3)',
+        glow: 'rgba(168,85,247,0.3)' 
+    },
+    RUBY: { 
+        color: '#BE123C', 
+        darkColor: '#FB7185',
+        bg: 'rgba(190,18,60,0.08)', 
+        darkBg: 'rgba(251,113,133,0.12)',
+        border: 'rgba(190,18,60,0.25)', 
+        darkBorder: 'rgba(251,113,133,0.3)',
+        glow: 'rgba(225,29,72,0.3)' 
+    },
+    EMERALD: { 
+        color: '#059669', 
+        darkColor: '#34D399',
+        bg: 'rgba(5,150,105,0.08)', 
+        darkBg: 'rgba(52,211,153,0.12)',
+        border: 'rgba(5,150,105,0.25)', 
+        darkBorder: 'rgba(52,211,153,0.3)',
+        glow: 'rgba(16,185,129,0.3)' 
+    },
+    SAPPHIRE: { 
+        color: '#1D4ED8', 
+        darkColor: '#60A5FA',
+        bg: 'rgba(29,78,216,0.08)', 
+        darkBg: 'rgba(96,165,250,0.12)',
+        border: 'rgba(29,78,216,0.25)', 
+        darkBorder: 'rgba(96,165,250,0.3)',
+        glow: 'rgba(59,130,246,0.3)' 
+    },
+    OBSIDIAN: { 
+        color: '#1E293B', 
+        darkColor: '#94A3B8',
+        bg: 'rgba(30,41,59,0.1)', 
+        darkBg: 'rgba(148,163,184,0.18)',
+        border: 'rgba(30,41,59,0.3)', 
+        darkBorder: 'rgba(148,163,184,0.35)',
+        glow: 'rgba(71,85,105,0.4)' 
+    },
+    'ALGOARENA CHAMPION': { 
+        color: '#92400E', 
+        darkColor: '#FBBF24',
+        bg: 'rgba(146,64,14,0.1)', 
+        darkBg: 'rgba(251,191,36,0.18)',
+        border: 'rgba(146,64,14,0.3)', 
+        darkBorder: 'rgba(251,191,36,0.35)',
+        glow: 'rgba(245,158,11,0.4)' 
+    },
 };
 
 const rankI18nKey = (rank) => String(rank || '').toUpperCase().replace(/\s+/g, '_');
 
 const fmtXp = (xp) => {
-    if (xp === null || xp === undefined) return null;
-    return xp >= 1000 ? `${(xp / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(xp);
+    if (xp === null || xp === undefined) return '0';
+    return Number(xp) >= 1000 ? `${(Number(xp) / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(xp);
 };
 
 /** Compact rank + XP badge displayed in the navbar */
 const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
     const { t } = useTranslation();
+    const mode = useColorModeValue('light', 'dark');
     const key = String(rank || "").toUpperCase();
-    const meta = RANK_META[key];
-    if (!meta) return null;
+    const meta = RANK_META[key] || RANK_META.BRONZE;
+
+    const rankColor = mode === 'light' ? meta.color : meta.darkColor;
+    const rankBg = mode === 'light' ? meta.bg : meta.darkBg;
+    const rankBorder = mode === 'light' ? meta.border : meta.darkBorder;
 
     const rk = rankI18nKey(key);
     const title = rankDetails?.title || t(`rankTitles.${rk}`);
@@ -88,47 +175,85 @@ const RankBadge = ({ rank, xp, rankDetails, nextRank, progressPercent }) => {
             label={tooltipLabel}
             placement="bottom"
             hasArrow
-            bg="#1e293b"
-            color="gray.200"
+            bg={useColorModeValue('gray.800', 'slate.900')}
+            color="white"
             fontSize="xs"
             borderRadius="8px"
             px={3}
             py={1.5}
+            zIndex={100}
         >
-            <HStack
-                spacing={1.5}
-                px={2.5}
-                py={1}
-                borderRadius="8px"
+            <Box
+                display="flex"
+                alignItems="center"
+                h="36px"
+                bg={useColorModeValue('white', 'rgba(15, 23, 42, 0.6)')}
+                backdropFilter="blur(8px)"
                 border="1px solid"
-                borderColor={meta.border}
-                bg={meta.bg}
+                borderColor={rankBorder}
+                borderRadius="12px"
+                pl={1}
+                pr={3}
                 cursor="default"
-                transition="all 0.2s"
-                _hover={{ boxShadow: `0 0 12px ${meta.color}30` }}
-                flexShrink={0}
+                transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                boxShadow={mode === 'light' ? 'sm' : `0 0 15px ${meta.glow}`}
+                _hover={{ 
+                    transform: 'translateY(-1px)',
+                    boxShadow: `0 8px 20px ${meta.glow}, var(--shadow-md)`,
+                    borderColor: rankColor
+                }}
             >
-                <Text
-                    fontSize="xs"
-                    fontWeight="bold"
-                    fontFamily="mono"
-                    color={meta.color}
-                    letterSpacing="0.04em"
-                >
-                    {key}
-                </Text>
-                <Text fontSize="sm" fontWeight="medium" color={meta.color}>
-                    {title}
-                </Text>
-                {xp !== null && xp !== undefined && (
-                    <>
-                        <Box w="1px" h="10px" bg={meta.border} display={{ base: "none", lg: "block" }} />
-                        <Text fontSize="10px" fontFamily="mono" color={meta.color} opacity={0.85} display={{ base: "none", lg: "block" }}>
-                            {nextXp ? t('header.xpSlash', { current: fmtXp(xp), next: fmtXp(nextXp) }) : t('header.xpOnly', { xp: fmtXp(xp) })}
+                <HStack spacing={2.5}>
+                    <Box 
+                        bg={rankColor}
+                        color={mode === 'light' ? 'white' : 'gray.900'}
+                        px={2.5}
+                        h="28px"
+                        borderRadius="9px"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        boxShadow="lg"
+                    >
+                        <Text
+                            fontSize="10px"
+                            fontWeight="900"
+                            fontFamily="heading"
+                            letterSpacing="0.05em"
+                            textTransform="uppercase"
+                        >
+                            {key}
                         </Text>
-                    </>
-                )}
-            </HStack>
+                    </Box>
+
+                    <VStack spacing={0} align="flex-start" justify="center">
+                        <Text 
+                            fontSize="11px" 
+                            fontWeight="800" 
+                            lineHeight="1"
+                            color={useColorModeValue('gray.800', 'white')}
+                            letterSpacing="0.02em"
+                            textTransform="capitalize"
+                        >
+                            {title}
+                        </Text>
+                        <Text 
+                            fontSize="9px" 
+                            fontWeight="bold" 
+                            fontFamily="mono"
+                            color={rankColor}
+                            opacity={0.9}
+                            lineHeight="1.5"
+                        >
+                            {nextXp ? (
+                                <Text as="span">
+                                    {fmtXp(xp)} / {fmtXp(nextXp)} XP
+                                </Text>
+                            ) : `${fmtXp(xp)} XP`}
+                        </Text>
+                    </VStack>
+                </HStack>
+            </Box>
         </Tooltip>
     );
 };
@@ -204,6 +329,22 @@ const Header = () => {
         const x = e.clientX - rect.left;
         setHeaderSpotlight({ left: x - 150 });
     };
+
+    const warmRoute = useCallback((path) => {
+        prefetchRoute(path);
+    }, []);
+
+    const handleNavStart = useCallback((path) => {
+        warmRoute(path);
+        if (path !== location.pathname) {
+            startNavigationProgress();
+        }
+    }, [location.pathname, warmRoute]);
+
+    const handleDrawerNav = useCallback((path) => {
+        handleNavStart(path);
+        onClose();
+    }, [handleNavStart, onClose]);
 
     const isActive = (path) => {
         if (path === '/') return location.pathname === '/';
@@ -287,6 +428,9 @@ const Header = () => {
                                 }}
                                 transition="all 0.2s ease"
                                 position="relative"
+                                onMouseEnter={() => warmRoute(item.to)}
+                                onFocus={() => warmRoute(item.to)}
+                                onPointerDown={() => handleNavStart(item.to)}
                                 _after={isActive(item.to) ? {
                                     content: '""',
                                     position: 'absolute',
@@ -333,6 +477,9 @@ const Header = () => {
                                 }}
                                 transition="all 0.2s ease"
                                 position="relative"
+                                onMouseEnter={() => warmRoute(item.to)}
+                                onFocus={() => warmRoute(item.to)}
+                                onPointerDown={() => handleNavStart(item.to)}
                                 _after={isActive(item.to) ? {
                                     content: '""',
                                     position: 'absolute',
@@ -372,6 +519,9 @@ const Header = () => {
                                     variant="ghost"
                                     size="sm"
                                     fontWeight="500"
+                                    onMouseEnter={() => warmRoute('/signin')}
+                                    onFocus={() => warmRoute('/signin')}
+                                    onPointerDown={() => handleNavStart('/signin')}
                                 >
                                     {t('header.login')}
                                 </Button>
@@ -382,6 +532,9 @@ const Header = () => {
                                     size="sm"
                                     boxShadow="custom"
                                     display={{ base: 'none', sm: 'inline-flex' }}
+                                    onMouseEnter={() => warmRoute('/signup')}
+                                    onFocus={() => warmRoute('/signup')}
+                                    onPointerDown={() => handleNavStart('/signup')}
                                 >
                                     {t('header.createAccount')}
                                 </Button>
@@ -536,7 +689,10 @@ const Header = () => {
                                             fontSize="sm"
                                             borderRadius="8px"
                                             mx={2}
-                                            onClick={() => navigate('/profile')}
+                                            onClick={() => {
+                                                handleNavStart('/profile');
+                                                navigate('/profile');
+                                            }}
                                         >
                                             {t('header.viewProfile')}
                                         </MenuItem>
@@ -571,7 +727,9 @@ const Header = () => {
                                 border="2px solid"
                                 borderColor="var(--color-border)"
                                 cursor="pointer"
-                                onClick={() => { navigate('/profile'); onClose(); }}
+                                onMouseEnter={() => warmRoute('/profile')}
+                                onFocus={() => warmRoute('/profile')}
+                                onClick={() => { handleDrawerNav('/profile'); navigate('/profile'); }}
                                 _hover={{ borderColor: '#22d3ee' }}
                                 transition="all 0.2s"
                             />
@@ -630,7 +788,9 @@ const Header = () => {
                                     fontSize="md"
                                     fontFamily="heading"
                                     _hover={{ color: 'brand.500', bg: useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') }}
-                                    onClick={onClose}
+                                    onMouseEnter={() => warmRoute(item.to)}
+                                    onFocus={() => warmRoute(item.to)}
+                                    onClick={() => handleDrawerNav(item.to)}
                                     borderLeft={isActive(item.to) ? '3px solid' : '3px solid transparent'}
                                     borderColor={isActive(item.to) ? 'brand.500' : 'transparent'}
                                     bg={isActive(item.to) ? useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') : 'transparent'}
@@ -655,7 +815,9 @@ const Header = () => {
                                         fontSize="md"
                                         fontFamily="heading"
                                         _hover={{ color: 'brand.500' }}
-                                        onClick={onClose}
+                                        onMouseEnter={() => warmRoute('/profile')}
+                                        onFocus={() => warmRoute('/profile')}
+                                        onClick={() => handleDrawerNav('/profile')}
                                         borderLeft={isActive('/profile') ? '3px solid' : '3px solid transparent'}
                                         borderColor={isActive('/profile') ? 'brand.500' : 'transparent'}
                                         bg={isActive('/profile') ? useColorModeValue('rgba(34,211,238,0.06)', 'rgba(34,211,238,0.08)') : 'transparent'}
@@ -708,7 +870,9 @@ const Header = () => {
                                                 variant="ghost"
                                                 size="md"
                                                 w="full"
-                                                onClick={onClose}
+                                                onMouseEnter={() => warmRoute('/signin')}
+                                                onFocus={() => warmRoute('/signin')}
+                                                onClick={() => handleDrawerNav('/signin')}
                                             >
                                                 {t('header.login')}
                                             </Button>
@@ -718,7 +882,9 @@ const Header = () => {
                                                 variant="primary"
                                                 size="md"
                                                 w="full"
-                                                onClick={onClose}
+                                                onMouseEnter={() => warmRoute('/signup')}
+                                                onFocus={() => warmRoute('/signup')}
+                                                onClick={() => handleDrawerNav('/signup')}
                                             >
                                                 {t('header.createAccount')}
                                             </Button>
@@ -735,7 +901,7 @@ const Header = () => {
                                             leftIcon={<LogoutIcon w={4} h={4} />}
                                             onClick={() => {
                                                 logout();
-                                                onClose();
+                                                handleDrawerNav('/');
                                                 navigate('/');
                                             }}
                                         >

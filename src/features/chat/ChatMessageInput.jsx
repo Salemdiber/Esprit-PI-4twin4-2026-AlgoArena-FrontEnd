@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, HStack, IconButton, Text, Textarea, useToast, VStack } from '@chakra-ui/react';
+import { Box, HStack, IconButton, Text, Textarea, useToast, VStack, useColorModeValue } from '@chakra-ui/react';
 import { Check, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ChatReplyPreview from './ChatReplyPreview';
@@ -17,6 +17,12 @@ const ChatMessageInput = ({
 }) => {
   const { t } = useTranslation();
   const toast = useToast();
+  const borderColor = useColorModeValue('var(--color-border)', 'whiteAlpha.200');
+  const inputBg = useColorModeValue('var(--color-bg-input)', 'rgba(2,6,23,0.5)');
+  const inputTextColor = useColorModeValue('gray.800', 'gray.100');
+  const inputPlaceholderColor = useColorModeValue('gray.500', 'gray.400');
+  const footerBg = useColorModeValue('var(--color-bg-secondary)', 'rgba(2,6,23,0.96)');
+  const errorColor = useColorModeValue('red.600', 'red.300');
   const [value, setValue] = useState('');
   const [inlineError, setInlineError] = useState(null);
   const timerRef = useRef(null);
@@ -52,8 +58,8 @@ const ChatMessageInput = ({
       p={2}
       pb={{ base: 'calc(8px + env(safe-area-inset-bottom))', sm: 2 }}
       borderTop="1px solid"
-      borderColor="whiteAlpha.200"
-      bg="rgba(2,6,23,0.96)"
+      borderColor={borderColor}
+      bg={footerBg}
     >
       {replyTarget && <ChatReplyPreview target={replyTarget} onCancel={() => setReplyTarget(null)} />}
       {editingMessage && <ChatReplyPreview target={editingMessage} onCancel={() => setEditingMessage(null)} isEditing />}
@@ -77,9 +83,13 @@ const ChatMessageInput = ({
                 submit();
               }
             }}
+            bg={inputBg}
+            color={inputTextColor}
+            borderColor={borderColor}
+            _placeholder={{ color: inputPlaceholderColor }}
           />
           {inlineError && (
-            <Text mt={1} fontSize="xs" color="red.300">
+            <Text mt={1} fontSize="xs" color={errorColor}>
               {inlineError}
             </Text>
           )}

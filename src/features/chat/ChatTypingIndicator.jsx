@@ -1,12 +1,14 @@
 import React from 'react';
-import { HStack, Text } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { HStack, Text, useColorModeValue } from '@chakra-ui/react';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const Dot = motion.div;
+const Dot = m.div;
 
 const ChatTypingIndicator = ({ users }) => {
   const { t } = useTranslation();
+  const textColor = useColorModeValue('gray.600', 'gray.400');
+  const dotColor = useColorModeValue('#64748b', '#94a3b8');
   const names = Array.from(users || []);
   if (!names.length) return null;
 
@@ -16,14 +18,14 @@ const ChatTypingIndicator = ({ users }) => {
 
   return (
     <HStack px={2} py={1} spacing={2}>
-      <Text fontSize="xs" color="gray.400">
+      <Text fontSize="xs" color={textColor}>
         {label}
       </Text>
       <HStack spacing={1}>
         {[0, 1, 2].map((i) => (
           <Dot
             key={i}
-            style={{ width: 4, height: 4, borderRadius: 9999, background: '#94a3b8' }}
+            style={{ width: 4, height: 4, borderRadius: 9999, background: dotColor }}
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.1 }}
           />

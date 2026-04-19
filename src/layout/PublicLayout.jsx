@@ -11,7 +11,7 @@ const PublicLayout = () => {
     return (
         <Box minH="100vh" bg={bg} transition="background-color 0.3s ease">
             <Header />
-            <Box as="main" id="main-content">
+            <Box as="main">
                 <Outlet />
             </Box>
             <Footer />

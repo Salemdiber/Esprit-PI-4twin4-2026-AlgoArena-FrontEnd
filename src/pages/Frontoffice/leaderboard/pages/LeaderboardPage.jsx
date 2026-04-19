@@ -18,9 +18,10 @@ import {
     SimpleGrid,
     Text,
     Tooltip,
+    useColorModeValue,
     VStack,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 import LeaderboardHeader from '../components/LeaderboardHeader';
@@ -33,7 +34,7 @@ import LeaderboardSkeleton from '../../../../shared/skeletons/LeaderboardSkeleto
 import { userService } from '../../../../services/userService';
 import { useAuth } from '../../auth/context/AuthContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
 const RANK_THRESHOLDS = {
@@ -160,27 +161,35 @@ const buildLeaderboardRow = (user, currentUser) => {
     };
 };
 
-const StatCard = ({ label, value, tone, hint }) => (
-    <Box
-        p={{ base: 4, md: 5 }}
-        borderRadius="22px"
-        border="1px solid rgba(148, 163, 184, 0.16)"
-        bg="rgba(15, 23, 42, 0.62)"
-        boxShadow="0 18px 40px rgba(2, 6, 23, 0.18)"
-    >
-        <Text fontSize="xs" letterSpacing="0.18em" textTransform="uppercase" color="gray.400" mb={2}>
-            {label}
-        </Text>
-        <Text fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800" color={tone} lineHeight="1">
-            {value}
-        </Text>
-        {hint ? (
-            <Text mt={2} fontSize="sm" color="var(--color-text-secondary)">
-                {hint}
+const StatCard = ({ label, value, tone, hint }) => {
+    const defaultTone = useColorModeValue('gray.800', 'white');
+    const actualTone = tone === 'var(--color-text-primary)' ? defaultTone : tone;
+    
+    return (
+        <Box
+            p={{ base: 4, md: 5 }}
+            borderRadius="22px"
+            border="1px solid"
+            borderColor="var(--color-border)"
+            bg="var(--color-bg-secondary)"
+            boxShadow="var(--shadow-custom)"
+            transition="transform 0.2s"
+            _hover={{ transform: 'translateY(-2px)' }}
+        >
+            <Text fontSize="xs" letterSpacing="0.18em" textTransform="uppercase" color="var(--color-text-muted)" mb={2}>
+                {label}
             </Text>
-        ) : null}
-    </Box>
-);
+            <Text fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800" color={actualTone} lineHeight="1">
+                {value}
+            </Text>
+            {hint ? (
+                <Text mt={2} fontSize="sm" color="var(--color-text-secondary)">
+                    {hint}
+                </Text>
+            ) : null}
+        </Box>
+    );
+};
 
 /* Inline speaker icon */
 const SpeakerIcon = (props) => (
@@ -199,6 +208,7 @@ const LeaderboardPage = () => {
     const { settings } = useAccessibility();
     const { currentUser } = useAuth();
     const { t } = useTranslation();
+    const mode = useColorModeValue('light', 'dark');
 
     const noMotion = settings.reducedMotion;
 
@@ -231,7 +241,7 @@ const LeaderboardPage = () => {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [t]);
 
     const leaderboardRows = useMemo(() => {
         return users
@@ -269,6 +279,10 @@ const LeaderboardPage = () => {
         else readAloud(t('leaderboardPage.noReadableContent'));
     };
 
+    const cyanColor = useColorModeValue('cyan.600', '#22d3ee');
+    const amberColor = useColorModeValue('orange.600', '#fbbf24');
+    const blueColor = useColorModeValue('blue.600', '#60a5fa');
+
     return (
         <MotionBox
             initial={noMotion ? false : { opacity: 0 }}
@@ -301,25 +315,25 @@ const LeaderboardPage = () => {
                         <StatCard
                             label={t('leaderboardPage.competitors')}
                             value={totalCompetitors.toLocaleString()}
-                            tone="#22d3ee"
+                            tone={cyanColor}
                             hint={isFallbackData ? t('leaderboardPage.demoHint') : t('leaderboardPage.liveHint')}
                         />
                         <StatCard
                             label={t('leaderboardPage.mode')}
                             value={t('leaderboardPage.allPlayers')}
-                            tone="white"
+                            tone="var(--color-text-primary)"
                             hint={t('leaderboardPage.publicHint')}
                         />
                         <StatCard
                             label={t('leaderboardPage.topCutoff')}
                             value="#10"
-                            tone="#60a5fa"
+                            tone={blueColor}
                             hint={t('leaderboardPage.topCutoffHint')}
                         />
                         <StatCard
                             label={t('leaderboardPage.averageXp')}
                             value={averageXp.toLocaleString()}
-                            tone="#fbbf24"
+                            tone={amberColor}
                             hint={currentUserRow ? t('leaderboardPage.yourCurrentRank', { position: currentUserRow.rankPosition }) : t('leaderboardPage.signInHint')}
                         />
                     </SimpleGrid>
@@ -330,12 +344,13 @@ const LeaderboardPage = () => {
                         mb={8}
                         p={4}
                         borderRadius="18px"
-                        border="1px solid rgba(245, 158, 11, 0.28)"
-                        bg="rgba(245, 158, 11, 0.08)"
-                        color="orange.100"
+                        border="1px solid"
+                        borderColor="orange.200"
+                        bg={useColorModeValue('orange.50', 'rgba(245, 158, 11, 0.08)')}
+                        color={useColorModeValue('orange.800', 'orange.100')}
                     >
                         <Text fontWeight="700">{t('leaderboardPage.liveDataUnavailable')}</Text>
-                        <Text mt={1} fontSize="sm" color="rgba(255, 237, 213, 0.92)">
+                        <Text mt={1} fontSize="sm" color={useColorModeValue('orange.700', 'rgba(255, 237, 213, 0.92)')}>
                             {loadError} {t('leaderboardPage.demoFallback')}
                         </Text>
                     </Box>
@@ -353,17 +368,17 @@ const LeaderboardPage = () => {
                             <Text fontFamily="heading" fontSize="2xl" fontWeight="bold" color="var(--color-text-primary)">
                                 {t('leaderboardPage.eliteContenders')}
                             </Text>
-                            <Text fontFamily="body" fontSize="sm" color="gray.400">
+                            <Text fontFamily="body" fontSize="sm" color="var(--color-text-muted)">
                                 {t('leaderboardPage.showingRanks')}
                             </Text>
                         </Box>
 
-                        <Text fontFamily="body" fontSize="sm" color="gray.400">
-                            <Text as="span" fontWeight="semibold" color="#22d3ee">
+                        <Text fontFamily="body" fontSize="sm" color="var(--color-text-muted)">
+                            <Text as="span" fontWeight="semibold" color={cyanColor}>
                                 {Math.min(leaderboardRows.length, 10)}
                             </Text>{' '}
                             {t('leaderboardPage.of')}{' '}
-                            <Text as="span" fontWeight="semibold" color="#22d3ee">
+                            <Text as="span" fontWeight="semibold" color={cyanColor}>
                                 {totalCompetitors.toLocaleString()}
                             </Text>{' '}
                             {t('leaderboardPage.competitorsVisible')}
@@ -380,8 +395,9 @@ const LeaderboardPage = () => {
                         <Box
                             p={8}
                             borderRadius="24px"
-                            border="1px solid rgba(148, 163, 184, 0.16)"
-                            bg="rgba(15, 23, 42, 0.6)"
+                            border="1px solid"
+                            borderColor="var(--color-border)"
+                            bg="var(--color-bg-secondary)"
                             textAlign="center"
                         >
                             <Text fontFamily="heading" fontSize="xl" fontWeight="700" color="var(--color-text-primary)">
@@ -399,27 +415,28 @@ const LeaderboardPage = () => {
                         mt={10}
                         p={5}
                         borderRadius="24px"
-                        border="1px solid rgba(34, 211, 238, 0.2)"
-                        bg="rgba(15, 23, 42, 0.72)"
-                        boxShadow="0 20px 50px rgba(2, 6, 23, 0.25)"
+                        border="2px solid"
+                        borderColor={useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.2)')}
+                        bg={useColorModeValue('cyan.50', 'rgba(15, 23, 42, 0.72)')}
+                        boxShadow="var(--shadow-custom)"
                     >
                         <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
                             <Box>
-                                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.18em" color="#22d3ee" fontWeight="700">
+                                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.18em" color={useColorModeValue('cyan.700', '#22d3ee')} fontWeight="700">
                                     {t('leaderboardPage.yourPosition')}
                                 </Text>
-                                <Text mt={1} fontFamily="heading" fontSize="2xl" fontWeight="800" color="white">
+                                <Text mt={1} fontFamily="heading" fontSize="2xl" fontWeight="800" color={useColorModeValue('gray.900', 'white')}>
                                     #{currentUserRow.rankPosition} · {currentUserRow.username}
                                 </Text>
                             </Box>
                             <Flex align="center" gap={3} flexWrap="wrap">
-                                <Badge px={3} py={1.5} borderRadius="999px" bg="rgba(34, 211, 238, 0.12)" color="#22d3ee" border="1px solid rgba(34, 211, 238, 0.22)">
+                                <Badge px={3} py={1.5} borderRadius="999px" colorScheme="cyan" variant="subtle" border="1px solid" borderColor="cyan.200">
                                     {currentUserRow.tier}
                                 </Badge>
-                                <Badge px={3} py={1.5} borderRadius="999px" bg="rgba(255, 255, 255, 0.06)" color="white">
+                                <Badge px={3} py={1.5} borderRadius="999px" colorScheme="gray" variant="solid">
                                     {currentUserRow.xp.toLocaleString()} XP
                                 </Badge>
-                                <Badge px={3} py={1.5} borderRadius="999px" bg="rgba(245, 158, 11, 0.12)" color="#fbbf24">
+                                <Badge px={3} py={1.5} borderRadius="999px" colorScheme="orange" variant="subtle">
                                     {t('leaderboardPage.streakCount', { count: currentUserRow.streak })}
                                 </Badge>
                             </Flex>
@@ -439,10 +456,11 @@ const LeaderboardPage = () => {
                         zIndex={100}
                         size="lg"
                         borderRadius="full"
-                        bg="rgba(34, 211, 238, 0.15)"
-                        color="#22d3ee"
-                        border="1px solid rgba(34, 211, 238, 0.4)"
-                        _hover={{ bg: 'rgba(34, 211, 238, 0.3)', transform: 'scale(1.1)' }}
+                        bg={useColorModeValue('cyan.100', 'rgba(34, 211, 238, 0.15)')}
+                        color={useColorModeValue('cyan.700', '#22d3ee')}
+                        border="1px solid"
+                        borderColor={useColorModeValue('cyan.300', 'rgba(34, 211, 238, 0.4)')}
+                        _hover={{ bg: useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.3)'), transform: 'scale(1.1)' }}
                         _active={{ transform: 'scale(0.95)' }}
                         boxShadow="0 0 20px rgba(34, 211, 238, 0.3)"
                         onClick={handleReadPage}

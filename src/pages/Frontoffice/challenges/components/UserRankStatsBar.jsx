@@ -65,32 +65,39 @@ const useAnimatedProgress = (targetValue) => {
     return animatedValue;
 };
 
-const ProgressTrack = ({ value, accentStart, accentEnd, label }) => (
-    <Box
-        role="progressbar"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.max(0, Math.min(100, Math.round(value || 0)))}
-        position="relative"
-        h="14px"
-        borderRadius="full"
-        bg="rgba(148, 163, 184, 0.18)"
-        border="1px solid rgba(148, 163, 184, 0.24)"
-        overflow="hidden"
-        boxShadow="inset 0 1px 2px rgba(15, 23, 42, 0.24)"
-    >
+const ProgressTrack = ({ value, accentStart, accentEnd, label }) => {
+    const trackBg = useColorModeValue('gray.100', 'rgba(148, 163, 184, 0.18)');
+    const trackBorder = useColorModeValue('gray.200', 'rgba(148, 163, 184, 0.24)');
+    const glowColor = useColorModeValue('rgba(34, 211, 238, 0.08)', 'rgba(34, 211, 238, 0.14)');
+
+    return (
         <Box
-            h="100%"
-            w={`${Math.max(0, Math.min(100, value || 0))}%`}
-            minW={(value || 0) > 0 ? '10px' : '0'}
-            bgGradient={`linear(to-r, ${accentStart}, ${accentEnd})`}
+            role="progressbar"
+            aria-label={label}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.max(0, Math.min(100, Math.round(value || 0)))}
+            position="relative"
+            h="14px"
             borderRadius="full"
-            transition="width 0.95s ease"
-            boxShadow="0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 8px 18px rgba(34, 211, 238, 0.14)"
-        />
-    </Box>
-);
+            bg={trackBg}
+            border="1px solid"
+            borderColor={trackBorder}
+            overflow="hidden"
+            boxShadow="inset 0 1px 2px var(--color-shadow-primary)"
+        >
+            <Box
+                h="100%"
+                w={`${Math.max(0, Math.min(100, value || 0))}%`}
+                minW={(value || 0) > 0 ? '10px' : '0'}
+                bgGradient={`linear(to-r, ${accentStart}, ${accentEnd})`}
+                borderRadius="full"
+                transition="width 0.95s ease"
+                boxShadow={`0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 8px 18px ${glowColor}`}
+            />
+        </Box>
+    );
+};
 
 const RankStatsSkeleton = () => (
     <Flex
@@ -123,21 +130,49 @@ const RankStatsSkeleton = () => (
     </Flex>
 );
 
-const getStreakTheme = (streak) => {
-    if (streak >= 50) return { accent: '#facc15', bg: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.35)', pulse: true };
-    if (streak >= 20) return { accent: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.35)', pulse: true };
-    if (streak >= 10) return { accent: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', pulse: true };
-    if (streak >= 5) return { accent: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', pulse: false };
-    return { accent: '#fb923c', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.35)', pulse: false };
+const getStreakTheme = (streak, mode) => {
+    const isLight = mode === 'light';
+    if (streak >= 50) return { 
+        accent: isLight ? '#A16207' : '#facc15', 
+        bg: isLight ? 'rgba(251,191,36,0.1)' : 'rgba(250,204,21,0.12)', 
+        border: isLight ? 'rgba(217,119,6,0.25)' : 'rgba(250,204,21,0.35)', 
+        pulse: true 
+    };
+    if (streak >= 20) return { 
+        accent: isLight ? '#6D28D9' : '#a78bfa', 
+        bg: isLight ? 'rgba(139,92,246,0.1)' : 'rgba(167,139,250,0.12)', 
+        border: isLight ? 'rgba(139,92,246,0.25)' : 'rgba(167,139,250,0.35)', 
+        pulse: true 
+    };
+    if (streak >= 10) return { 
+        accent: isLight ? '#BE123C' : '#ef4444', 
+        bg: isLight ? 'rgba(225,29,72,0.1)' : 'rgba(239,68,68,0.12)', 
+        border: isLight ? 'rgba(225,29,72,0.25)' : 'rgba(239,68,68,0.35)', 
+        pulse: true 
+    };
+    if (streak >= 5) return { 
+        accent: isLight ? '#C2410C' : '#f97316', 
+        bg: isLight ? 'rgba(249,115,22,0.1)' : 'rgba(249,115,22,0.12)', 
+        border: isLight ? 'rgba(249,115,22,0.25)' : 'rgba(249,115,22,0.35)', 
+        pulse: false 
+    };
+    return { 
+        accent: isLight ? '#EA580C' : '#fb923c', 
+        bg: isLight ? 'rgba(251,146,60,0.1)' : 'rgba(251,146,60,0.12)', 
+        border: isLight ? 'rgba(251,146,60,0.25)' : 'rgba(251,146,60,0.35)', 
+        pulse: false 
+    };
 };
+
 const StreakPanel = ({ streakDetails, t }) => {
+    const mode = useColorModeValue('light', 'dark');
     const currentStreak = Number(streakDetails?.currentStreak || 0);
     const longestStreak = Number(streakDetails?.longestStreak || 0);
     const recentActivity = Array.isArray(streakDetails?.recentActivity)
         ? streakDetails.recentActivity.slice(-7)
         : [false, false, false, false, false, false, false];
     const message = streakDetails?.streakMessage || 'Keep showing up daily to build your coding streak.';
-    const theme = getStreakTheme(currentStreak);
+    const theme = getStreakTheme(currentStreak, mode);
 
     return (
         <Box
@@ -149,7 +184,8 @@ const StreakPanel = ({ streakDetails, t }) => {
             bg={theme.bg}
             border='1px solid'
             borderColor={theme.border}
-            boxShadow={theme.pulse ? `0 0 22px ${theme.border}` : 'none'}
+            boxShadow={theme.pulse ? (mode === 'light' ? `0 4px 12px ${theme.border}` : `0 0 22px ${theme.border}`) : 'none'}
+            transition="all 0.3s ease"
         >
             <HStack justify='space-between' align='center' mb={1}>
                 <HStack spacing={2}>
@@ -163,14 +199,14 @@ const StreakPanel = ({ streakDetails, t }) => {
                         {currentStreak !== 1 ? t('challengePage.daysCount', { count: currentStreak }) : t('challengePage.dayCount', { count: currentStreak })}
                     </Text>
                 </HStack>
-                <Badge borderRadius='full' px={2.5} py={1} colorScheme='orange' variant='subtle'>
+                <Badge borderRadius='full' px={2.5} py={1} colorScheme={mode === 'light' ? 'orange' : 'orange'} variant='subtle'>
                     <HStack spacing={1}>
                         <Icon as={FiStar} boxSize={3} />
                         <Text>{t('challengePage.streak')}</Text>
                     </HStack>
                 </Badge>
             </HStack>
-            <Text fontSize='xs' color='var(--color-text-secondary)' mb={2} lineHeight='1.5'>
+            <Text fontSize='xs' color={useColorModeValue('gray.700', 'var(--color-text-secondary)')} mb={2} lineHeight='1.5'>
                 {message}
             </Text>
             <HStack spacing={1.5} mb={1.5}>
@@ -180,20 +216,20 @@ const StreakPanel = ({ streakDetails, t }) => {
                             w={5}
                             h={5}
                             borderRadius='full'
-                            bg={active ? theme.bg : 'rgba(148,163,184,0.15)'}
+                            bg={active ? (mode === 'light' ? theme.accent : theme.bg) : (mode === 'light' ? 'gray.100' : 'rgba(148,163,184,0.15)')}
                             border='1px solid'
-                            borderColor={active ? theme.border : 'rgba(148,163,184,0.35)'}
+                            borderColor={active ? theme.border : (mode === 'light' ? 'gray.200' : 'rgba(148,163,184,0.35)')}
                             align='center'
                             justify='center'
                         >
-                            <Icon as={active ? FiCheckCircle : FiCalendar} boxSize={3} color={active ? theme.accent : 'gray.400'} />
+                            <Icon as={active ? FiCheckCircle : FiCalendar} boxSize={3} color={active ? 'white' : (mode === 'light' ? 'gray.400' : 'gray.400')} />
                         </Flex>
                     </Tooltip>
                 ))}
             </HStack>
             <HStack spacing={1.5}>
-                <Icon as={FaTrophy} boxSize={3.5} color='yellow.300' />
-                <Text fontSize='xs' color='var(--color-text-muted)'>
+                <Icon as={FaTrophy} boxSize={3.5} color={useColorModeValue('orange.500', 'yellow.300')} />
+                <Text fontSize='xs' color={useColorModeValue('gray.600', 'var(--color-text-muted)')}>
                     {longestStreak !== 1 ? t('challengePage.longestStreakPlural', { count: longestStreak }) : t('challengePage.longestStreak', { count: longestStreak })}
                 </Text>
             </HStack>
@@ -318,7 +354,7 @@ const UserRankStatsBar = () => {
                     align="center"
                     justify="center"
                     color="#0f172a"
-                    boxShadow="0 8px 20px rgba(15, 23, 42, 0.18)"
+                    boxShadow="var(--shadow-card)"
                 >
                     <RankIcon w={6} h={6} />
                 </Flex>

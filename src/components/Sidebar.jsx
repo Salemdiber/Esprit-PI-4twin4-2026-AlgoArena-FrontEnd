@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
@@ -50,7 +50,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                 transition: 'background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease',
             }}
         >
-            {/* Close button – mobile only */}
+            {/* Close button â€“ mobile only */}
             <button
                 className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:text-cyan-400 transition-all z-50"
                 style={{ color: 'var(--color-text-muted)', background: 'transparent' }}

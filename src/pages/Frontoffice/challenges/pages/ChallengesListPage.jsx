@@ -21,7 +21,7 @@ import {
     Icon,
     useToast,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
@@ -32,8 +32,7 @@ import useChallenges from '../hooks/useChallenges';
 import ChallengesListSkeleton from '../../../../shared/skeletons/ChallengesListSkeleton';
 import { useChallengeContext } from '../context/ChallengeContext';
 
-const MotionBox = motion.create(Box);
-
+const MotionBox = m.create(Box);
 const ChallengesListPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -59,7 +58,6 @@ const ChallengesListPage = () => {
         difficultyCounts,
         tagCounts,
     } = useChallenges();
-
     React.useEffect(() => {
         const currentStreak = Number(streakDetails?.currentStreak || 0);
         const message = streakDetails?.streakMessage || '';
@@ -78,22 +76,29 @@ const ChallengesListPage = () => {
         sessionStorage.setItem(sessionKey, '1');
     }, [streakDetails, toast]);
 
-    // Show skeleton during loading
-    if (isLoadingChallenges) {
-        return <ChallengesListSkeleton />;
-    }
+    const challengesById = React.useMemo(() => {
+        const map = new Map();
+        (Array.isArray(challenges) ? challenges : []).forEach((challenge) => {
+            if (challenge?.id) map.set(challenge.id, challenge);
+        });
+        return map;
+    }, [challenges]);
 
-    const inProgressItems = (Array.isArray(userProgress) ? userProgress : [])
-        .filter((item) => item?.userStatus === 'in_progress')
-        .map((item) => ({
-            ...item,
-            challenge: (Array.isArray(challenges) ? challenges : []).find((challenge) => challenge.id === item.challengeId),
-        }))
-        .filter((item) => Boolean(item.challenge));
+    const inProgressItems = React.useMemo(() => (
+        (Array.isArray(userProgress) ? userProgress : [])
+            .filter((item) => item?.userStatus === 'in_progress')
+            .map((item) => ({
+                ...item,
+                challenge: challengesById.get(item.challengeId),
+            }))
+            .filter((item) => Boolean(item.challenge))
+    ), [userProgress, challengesById]);
 
-    const mostRecentInProgress = inProgressItems
-        .slice()
-        .sort((a, b) => new Date(b.lastActiveAt || b.lastAttemptAt || 0).getTime() - new Date(a.lastActiveAt || a.lastAttemptAt || 0).getTime())[0] || null;
+    const mostRecentInProgress = React.useMemo(() => (
+        inProgressItems
+            .slice()
+            .sort((a, b) => new Date(b.lastActiveAt || b.lastAttemptAt || 0).getTime() - new Date(a.lastActiveAt || a.lastAttemptAt || 0).getTime())[0] || null
+    ), [inProgressItems]);
 
     const getRelative = (iso) => {
         if (!iso) return t('challengePage.recently');
@@ -146,143 +151,149 @@ const ChallengesListPage = () => {
                     <UserRankStatsBar />
                 </Box>
 
-                {inProgressItems.length > 0 && (
-                    <Box
-                        mb={6}
-                        p={{ base: 4, md: 6 }}
-                        borderRadius="16px"
-                        borderLeft="4px solid #f59e0b"
-                        border="1px solid rgba(245,158,11,0.22)"
-                        bg="var(--color-bg-secondary)"
-                        boxShadow="0 12px 30px rgba(15,23,42,0.24)"
-                    >
-                        <Flex direction={{ base: 'column', md: 'row' }} align={{ base: 'stretch', md: 'center' }} justify="space-between" gap={4}>
-                            <HStack align="flex-start" spacing={4}>
-                                <Icon as={FiZap} boxSize={6} color="orange.300" mt={0.5} />
-                                <Box>
-                                    <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="bold" color="orange.300">
-                                        {inProgressItems.length === 1 ? t('challengePage.inProgressSingle') : t('challengePage.inProgressMultiple', { count: inProgressItems.length })}
-                                    </Text>
-                                    {inProgressItems.length === 1 && mostRecentInProgress && (
-                                        <>
-                                            <HStack mt={1.5} spacing={2} flexWrap="wrap">
-                                                <Text color="var(--color-text-primary)" fontSize="md" fontWeight="medium">
-                                                    {mostRecentInProgress.challenge?.title}
-                                                </Text>
-                                                <Badge colorScheme="orange" variant="subtle">
-                                                    {mostRecentInProgress.challenge?.difficulty}
-                                                </Badge>
-                                            </HStack>
-                                            <HStack mt={1.5} spacing={2} color="var(--color-text-muted)">
-                                                <Icon as={FiClock} boxSize={3.5} />
-                                                <Text fontSize="sm">
-                                                    {t('challengePage.startedTimeRemaining', { time: getRelative(mostRecentInProgress.lastActiveAt || mostRecentInProgress.lastAttemptAt), percent: fullXpRemainingPercent(mostRecentInProgress.totalElapsedTime) })}
-                                                </Text>
-                                            </HStack>
-                                        </>
-                                    )}
-                                    {inProgressItems.length > 1 && (
-                                        <VStack mt={2.5} align="stretch" spacing={1.5}>
-                                            {inProgressItems.slice(0, 3).map((item) => (
-                                                <HStack key={item.challengeId} spacing={2}>
-                                                    <Text fontSize="sm" color="var(--color-text-primary)">{item.challenge?.title}</Text>
-                                                    <Button variant="link" size="sm" colorScheme="orange" onClick={() => navigate(`/challenges/${item.challengeId}`)}>
-                                                        {t('challengePage.continueBtn')}
-                                                    </Button>
-                                                </HStack>
-                                            ))}
-                                        </VStack>
-                                    )}
-                                </Box>
-                            </HStack>
-                            <Button
-                                leftIcon={<Icon as={FiArrowRight} />}
-                                bg="orange.400"
-                                color="white"
-                                _hover={{ bg: 'orange.300' }}
-                                borderRadius="12px"
-                                onClick={() => navigate(`/challenges/${(mostRecentInProgress || inProgressItems[0]).challengeId}`)}
-                                w={{ base: 'full', md: 'auto' }}
-                            >
-                                {t('challengePage.continueSolving')}
-                            </Button>
-                        </Flex>
+                {isLoadingChallenges ? (
+                    <Box mt={10}>
+                        <ChallengesListSkeleton showHeader={false} />
                     </Box>
+                ) : (
+                    <>
+                        {inProgressItems.length > 0 && (
+                            <Box
+                                mb={6}
+                                p={{ base: 4, md: 6 }}
+                                borderRadius="16px"
+                                borderLeft="4px solid #f59e0b"
+                                border="1px solid rgba(245,158,11,0.22)"
+                                bg="var(--color-bg-secondary)"
+                                boxShadow="var(--shadow-custom)"
+                            >
+                                <Flex direction={{ base: 'column', md: 'row' }} align={{ base: 'stretch', md: 'center' }} justify="space-between" gap={4}>
+                                    <HStack align="flex-start" spacing={4}>
+                                        <Icon as={FiZap} boxSize={6} color="orange.300" mt={0.5} />
+                                        <Box>
+                                            <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="bold" color="orange.300">
+                                                {inProgressItems.length === 1 ? t('challengePage.inProgressSingle') : t('challengePage.inProgressMultiple', { count: inProgressItems.length })}
+                                            </Text>
+                                            {inProgressItems.length === 1 && mostRecentInProgress && (
+                                                <>
+                                                    <HStack mt={1.5} spacing={2} flexWrap="wrap">
+                                                        <Text color="var(--color-text-primary)" fontSize="md" fontWeight="medium">
+                                                            {mostRecentInProgress.challenge?.title}
+                                                        </Text>
+                                                        <Badge colorScheme="orange" variant="subtle">
+                                                            {mostRecentInProgress.challenge?.difficulty}
+                                                        </Badge>
+                                                    </HStack>
+                                                    <HStack mt={1.5} spacing={2} color="var(--color-text-muted)">
+                                                        <Icon as={FiClock} boxSize={3.5} />
+                                                        <Text fontSize="sm">
+                                                            {t('challengePage.startedTimeRemaining', { time: getRelative(mostRecentInProgress.lastActiveAt || mostRecentInProgress.lastAttemptAt), percent: fullXpRemainingPercent(mostRecentInProgress.totalElapsedTime) })}
+                                                        </Text>
+                                                    </HStack>
+                                                </>
+                                            )}
+                                            {inProgressItems.length > 1 && (
+                                                <VStack mt={2.5} align="stretch" spacing={1.5}>
+                                                    {inProgressItems.slice(0, 3).map((item) => (
+                                                        <HStack key={item.challengeId} spacing={2}>
+                                                            <Text fontSize="sm" color="var(--color-text-primary)">{item.challenge?.title}</Text>
+                                                            <Button variant="link" size="sm" colorScheme="orange" onClick={() => navigate(`/challenges/${item.challengeId}`)}>
+                                                                {t('challengePage.continueBtn')}
+                                                            </Button>
+                                                        </HStack>
+                                                    ))}
+                                                </VStack>
+                                            )}
+                                        </Box>
+                                    </HStack>
+                                    <Button
+                                        leftIcon={<Icon as={FiArrowRight} />}
+                                        bg="orange.400"
+                                        color="white"
+                                        _hover={{ bg: 'orange.300' }}
+                                        borderRadius="12px"
+                                        onClick={() => navigate(`/challenges/${(mostRecentInProgress || inProgressItems[0]).challengeId}`)}
+                                        w={{ base: 'full', md: 'auto' }}
+                                    >
+                                        {t('challengePage.continueSolving')}
+                                    </Button>
+                                </Flex>
+                            </Box>
+                        )}
+                        {/* Main layout */}
+                        <Flex direction={{ base: 'column', lg: 'row' }} gap={6}>
+                            {/* Sidebar */}
+                            <ChallengesFilters
+                                selectedDifficulties={selectedDifficulties}
+                                toggleDifficulty={toggleDifficulty}
+                                selectedTags={selectedTags}
+                                toggleTag={toggleTag}
+                                selectedStatuses={selectedStatuses}
+                                toggleStatus={toggleStatus}
+                                recommendedOnly={recommendedOnly}
+                                setRecommendedOnly={setRecommendedOnly}
+                                searchQuery={searchQuery}
+                                setSearchQuery={setSearchQuery}
+                                difficultyCounts={difficultyCounts}
+                                tagCounts={tagCounts}
+                            />
+
+                            {/* Main content */}
+                            <Box flex={1}>
+                                {/* Toolbar */}
+                                <Flex justify="space-between" align="center" mb={6}>
+                                    <Text color="var(--color-text-secondary)">
+                                        {t('challengePage.showing')}{' '}
+                                        <Text as="span" color="brand.500" fontWeight="semibold">
+                                            {filteredCount}
+                                        </Text>{' '}
+                                        {t('challengePage.challengesCount')}
+                                    </Text>
+                                    <Select
+                                        aria-label={t('challengePage.sortByPrefix')}
+                                        value={sortOption}
+                                        onChange={(e) => setSortOption(e.target.value)}
+                                        w="220px"
+                                        size="md"
+                                        borderRadius="lg"
+                                        borderColor="var(--color-border)"
+                                        bg="var(--color-bg-input)"
+                                        color="var(--color-text-primary)"
+                                        _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)' }}
+                                        _hover={{ borderColor: 'var(--color-border)' }}
+                                        iconColor="var(--color-text-muted)"
+                                        cursor="pointer"
+                                        fontWeight="medium"
+                                        fontSize="sm"
+                                    >
+                                        {SORT_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {t('challengePage.sortByPrefix')} {opt.label}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </Flex>
+
+                                {/* Challenge cards */}
+                                {filteredChallenges.length === 0 ? (
+                                    <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" borderRadius="12px" p={10} textAlign="center">
+                                        <Text fontSize="2xl" mb={2}>Search</Text>
+                                        <Text color="var(--color-text-secondary)" fontWeight="medium">{t('challengePage.noMatchTitle')}</Text>
+                                        <Text color="var(--color-text-muted)" fontSize="sm" mt={1}>
+                                            {t('challengePage.noMatchHint')}
+                                        </Text>
+                                    </Box>
+                                ) : (
+                                    <VStack align="stretch" spacing={4}>
+                                        {filteredChallenges.map((challenge) => (
+                                            <ChallengeCard key={challenge.id} challenge={challenge} />
+                                        ))}
+                                    </VStack>
+                                )}
+                            </Box>
+                        </Flex>
+                    </>
                 )}
-                {/* Main layout */}
-                <Flex direction={{ base: 'column', lg: 'row' }} gap={6}>
-                    {/* Sidebar */}
-                    <ChallengesFilters
-                        selectedDifficulties={selectedDifficulties}
-                        toggleDifficulty={toggleDifficulty}
-                        selectedTags={selectedTags}
-                        toggleTag={toggleTag}
-                        selectedStatuses={selectedStatuses}
-                        toggleStatus={toggleStatus}
-                        recommendedOnly={recommendedOnly}
-                        setRecommendedOnly={setRecommendedOnly}
-                        searchQuery={searchQuery}
-                        setSearchQuery={setSearchQuery}
-                        difficultyCounts={difficultyCounts}
-                        tagCounts={tagCounts}
-                    />
-
-                    {/* Main content */}
-                    <Box flex={1}>
-                        {/* Toolbar */}
-                        <Flex justify="space-between" align="center" mb={6}>
-                            <Text color="var(--color-text-secondary)">
-                                {t('challengePage.showing')}{' '}
-                                <Text as="span" color="brand.500" fontWeight="semibold">
-                                    {filteredCount}
-                                </Text>{' '}
-                                {t('challengePage.challengesCount')}
-                            </Text>
-                            <Select
-                                value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
-                                w="220px"
-                                size="md"
-                                borderRadius="lg"
-                                borderColor="var(--color-border)"
-                                bg="var(--color-bg-input)"
-                                color="var(--color-text-primary)"
-                                _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)' }}
-                                _hover={{ borderColor: 'var(--color-border)' }}
-                                iconColor="var(--color-text-muted)"
-                                cursor="pointer"
-                                fontWeight="medium"
-                                fontSize="sm"
-                            >
-                                {SORT_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                        {t('challengePage.sortByPrefix')} {opt.label}
-                                    </option>
-                                ))}
-                            </Select>
-                        </Flex>
-
-                        {/* Challenge cards */}
-                        <VStack spacing={4} align="stretch">
-                            {filteredChallenges.length === 0 ? (
-                                <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" borderRadius="12px" p={10} textAlign="center">
-                                    <Text fontSize="2xl" mb={2}>🔍</Text>
-                                    <Text color="var(--color-text-secondary)" fontWeight="medium">{t('challengePage.noMatchTitle')}</Text>
-                                    <Text color="var(--color-text-muted)" fontSize="sm" mt={1}>
-                                        {t('challengePage.noMatchHint')}
-                                    </Text>
-                                </Box>
-                            ) : (
-                                filteredChallenges.map(challenge => (
-                                    <ChallengeCard
-                                        key={challenge.id}
-                                        challenge={challenge}
-                                    />
-                                ))
-                            )}
-                        </VStack>
-                    </Box>
-                </Flex>
             </Box>
         </MotionBox>
     );

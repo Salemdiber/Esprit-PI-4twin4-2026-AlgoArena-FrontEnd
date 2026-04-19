@@ -12,7 +12,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import {
   ArcElement,
   BarElement,
@@ -28,7 +28,7 @@ import { useAuth } from '../../auth/context/AuthContext';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS = [
   'openrouter/auto',
@@ -476,12 +476,12 @@ const CommunityDashboardPage = () => {
         pt={{ base: 24, md: 28 }}
         pb={{ base: 10, md: 16 }}
         px={{ base: 4, sm: 6, lg: 8 }}
-        bg="#0f172a"
+        bg="var(--color-bg-primary)"
         bgImage="linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px)"
         bgSize="50px 50px"
       >
-        <Box maxW="4xl" mx="auto" bg="#1e293b" border="1px solid rgba(239, 68, 68, 0.4)" borderRadius="14px" p={6}>
-          <Text color="white" fontSize="2xl" fontWeight="bold">Community Dashboard</Text>
+        <Box maxW="4xl" mx="auto" bg="var(--color-bg-secondary)" border="1px solid rgba(239, 68, 68, 0.4)" borderRadius="14px" p={6}>
+          <Text color="var(--color-text-heading)" fontSize="2xl" fontWeight="bold">Community Dashboard</Text>
           <Text color="gray.300" mt={2}>This section is available for admins and organizers only.</Text>
           <Button as={RouterLink} to="/community" mt={5} variant="outline" colorScheme="cyan">
             Back to Discussion
@@ -500,17 +500,17 @@ const CommunityDashboardPage = () => {
       pt={{ base: 24, md: 28 }}
       pb={{ base: 10, md: 16 }}
       px={{ base: 4, sm: 6, lg: 8 }}
-      bg="#0f172a"
+      bg="var(--color-bg-primary)"
       bgImage="linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px)"
       bgSize="50px 50px"
     >
       <Box maxW="7xl" mx="auto">
         <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} gap={3}>
           <Box>
-            <Text color="white" fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold">
+            <Text color="var(--color-text-heading)" fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold">
               Community Dashboard
             </Text>
-            <Text color="gray.400" mt={2}>Analytics and AI insights for discussion moderation and growth.</Text>
+            <Text color="var(--color-text-muted)" mt={2}>Analytics and AI insights for discussion moderation and growth.</Text>
           </Box>
           <HStack spacing={3}>
             <Badge colorScheme={moodColor} px={3} py={1.5} borderRadius="full" fontSize="12px">
@@ -561,17 +561,17 @@ const CommunityDashboardPage = () => {
             <Grid templateColumns={{ base: 'repeat(1, 1fr)', md: 'repeat(2, 1fr)', xl: 'repeat(5, 1fr)' }} gap={4}>
               {statCards.map((card) => (
                 <GridItem key={card.label}>
-                  <Box bg="#1e293b" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
-                    <Text color="gray.400" fontSize="xs" textTransform="uppercase" letterSpacing="0.05em">{card.label}</Text>
-                    <Text color="white" fontSize="2xl" mt={1} fontWeight="bold">{card.value}</Text>
+                  <Box bg="var(--color-bg-secondary)" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
+                    <Text color="var(--color-text-muted)" fontSize="xs" textTransform="uppercase" letterSpacing="0.05em">{card.label}</Text>
+                    <Text color="var(--color-text-heading)" fontSize="2xl" mt={1} fontWeight="bold">{card.value}</Text>
                   </Box>
                 </GridItem>
               ))}
             </Grid>
 
             <Grid templateColumns={{ base: '1fr', xl: 'repeat(2, 1fr)' }} gap={4}>
-              <Box bg="#1e293b" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
-                <Text color="white" fontWeight="semibold" mb={3}>Sentiment Analysis</Text>
+              <Box bg="var(--color-bg-secondary)" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
+                <Text color="var(--color-text-heading)" fontWeight="semibold" mb={3}>Sentiment Analysis</Text>
                 <Box h="280px">
                   <Pie
                     data={sentimentData}
@@ -592,8 +592,8 @@ const CommunityDashboardPage = () => {
                 )}
               </Box>
 
-              <Box bg="#1e293b" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
-                <Text color="white" fontWeight="semibold" mb={3}>Trending Topics</Text>
+              <Box bg="var(--color-bg-secondary)" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
+                <Text color="var(--color-text-heading)" fontWeight="semibold" mb={3}>Trending Topics</Text>
                 <Box h="280px">
                   <Bar
                     data={trendingData}
@@ -613,8 +613,8 @@ const CommunityDashboardPage = () => {
             </Grid>
 
             <Grid templateColumns={{ base: '1fr', xl: '1fr 1.1fr' }} gap={4}>
-              <Box bg="#1e293b" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
-                <Text color="white" fontWeight="semibold" mb={3}>Solved vs Unsolved Posts</Text>
+              <Box bg="var(--color-bg-secondary)" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
+                <Text color="var(--color-text-heading)" fontWeight="semibold" mb={3}>Solved vs Unsolved Posts</Text>
                 <Box h="280px">
                   <Doughnut
                     data={solvedData}
@@ -630,11 +630,11 @@ const CommunityDashboardPage = () => {
                 </Box>
               </Box>
 
-              <Box bg="#1e293b" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
+              <Box bg="var(--color-bg-secondary)" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="14px" p={4}>
                 <HStack justify="space-between" align="start" mb={3}>
                   <Box>
-                    <Text color="white" fontWeight="semibold">AI Insights Panel</Text>
-                    <Text color="gray.400" fontSize="sm">OpenRouter-powered moderation and growth insights.</Text>
+                    <Text color="var(--color-text-heading)" fontWeight="semibold">AI Insights Panel</Text>
+                    <Text color="var(--color-text-muted)" fontSize="sm">OpenRouter-powered moderation and growth insights.</Text>
                   </Box>
                   <Button
                     size="sm"
@@ -662,7 +662,7 @@ const CommunityDashboardPage = () => {
                 )}
 
                 {insights && (
-                  <Box bg="#0f172a" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="10px" p={3} maxH="280px" overflowY="auto">
+                  <Box bg="var(--color-bg-primary)" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="10px" p={3} maxH="280px" overflowY="auto">
                     <Text color="gray.200" fontSize="sm" whiteSpace="pre-wrap">{insights}</Text>
                   </Box>
                 )}

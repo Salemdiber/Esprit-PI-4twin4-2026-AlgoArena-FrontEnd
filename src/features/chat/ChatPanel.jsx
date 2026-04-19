@@ -1,17 +1,20 @@
 import React from 'react';
-import { Alert, AlertIcon, Box, Button, VStack } from '@chakra-ui/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Alert, AlertIcon, Box, Button, VStack, useColorModeValue } from '@chakra-ui/react';
+import { AnimatePresence, m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useChat } from './ChatProvider';
 import ChatHeader from './ChatHeader';
 import ChatMessageList from './ChatMessageList';
 import ChatMessageInput from './ChatMessageInput';
 
-const MotionBox = motion(Box);
+const MotionBox = m(Box);
 
 const ChatPanel = () => {
   const { t } = useTranslation();
   const chat = useChat();
+  const panelBg = useColorModeValue('var(--color-bg-card)', 'rgba(2,6,23,0.95)');
+  const panelShadow = useColorModeValue('var(--shadow-custom)', '0 20px 55px rgba(0,0,0,0.45)');
+  const panelBorder = useColorModeValue('var(--color-border)', 'rgba(255,255,255,0.16)');
   if (!chat.isAuthenticated) return null;
 
   return (
@@ -30,8 +33,10 @@ const ChatPanel = () => {
           h={{ base: 'calc(100vh - 60px)', sm: chat.isPanelMinimized ? 'auto' : '520px' }}
           maxH={{ base: 'calc(100vh - 60px)', sm: '520px' }}
           borderRadius={{ base: 0, sm: '16px' }}
-          bg="rgba(2,6,23,0.95)"
-          boxShadow="0 20px 55px rgba(0,0,0,0.45)"
+          bg={panelBg}
+          border="1px solid"
+          borderColor={panelBorder}
+          boxShadow={panelShadow}
           overflow="hidden"
           zIndex={70}
           display="flex"

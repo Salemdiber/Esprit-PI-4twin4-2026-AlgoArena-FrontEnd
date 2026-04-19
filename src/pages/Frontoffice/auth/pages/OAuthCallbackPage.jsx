@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getToken } from '../../../../services/cookieUtils';
+import { getToken, setToken } from '../../../../services/cookieUtils';
 
 const OAuthCallbackPage = () => {
   const { t } = useTranslation();
@@ -11,7 +11,13 @@ const OAuthCallbackPage = () => {
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      const token = getToken();
+      let token = getToken();
+      const urlToken = new URLSearchParams(window.location.search).get('access_token');
+
+      if (!token && urlToken) {
+        setToken(urlToken);
+        token = urlToken;
+      }
 
       if (token) {
         await reload();

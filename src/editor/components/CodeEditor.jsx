@@ -18,16 +18,17 @@
  *   readOnly        – boolean (optional, default false)
  *   options          – extra Monaco options to merge
  */
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef } from 'react';
 import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'framer-motion';
-import Editor from '@monaco-editor/react';
 import {
     defaultEditorOptions,
     defineAlgoArenaTheme,
     LANGUAGE_MAP,
 } from '../config/editorOptions';
+
+const Editor = lazy(() => import('@monaco-editor/react'));
 
 /**
  * Loader skeleton shown while Monaco is downloading.
@@ -99,7 +100,7 @@ const CodeEditor = ({
         // Performance: disable smooth scrolling to fix scroll lag
         smoothScrolling: false,
         scrollBeyondLastLine: false,
-        // Respect reduced motion
+        // Respect reduced m
         ...(noMotion && {
             cursorBlinking: 'solid',
             cursorSmoothCaretAnimation: 'off',
@@ -144,17 +145,19 @@ const CodeEditor = ({
                 },
             }}
         >
-            <Editor
-                height="100%"
-                theme="algoarena-dark"
-                language={monacoLang}
-                value={code}
-                onChange={handleChange}
-                beforeMount={handleBeforeMount}
-                onMount={handleMount}
-                loading={<EditorLoader />}
-                options={mergedOptions}
-            />
+            <Suspense fallback={<EditorLoader />}>
+                <Editor
+                    height="100%"
+                    theme="algoarena-dark"
+                    language={monacoLang}
+                    value={code}
+                    onChange={handleChange}
+                    beforeMount={handleBeforeMount}
+                    onMount={handleMount}
+                    loading={<EditorLoader />}
+                    options={mergedOptions}
+                />
+            </Suspense>
         </Box>
     );
 };

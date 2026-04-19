@@ -8,8 +8,6 @@
  * The parser auto-detects which layout is present.
  */
 
-import * as ExcelJS from 'exceljs';
-
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'];
 const TOPICS = ['Arrays', 'Strings', 'Hash Table', 'Dynamic Programming', 'Graphs', 'Trees'];
 const XP_MAP = { Easy: 50, Medium: 120, Hard: 250, Expert: 400 };
@@ -168,6 +166,8 @@ function resolveKey(rawHeader) {
 export async function parseExcelChallenge(file) {
     const errors = [];
     try {
+        const ExcelJSModule = await import('exceljs');
+        const ExcelJS = ExcelJSModule.default || ExcelJSModule;
         const workbook = new ExcelJS.Workbook();
         const buffer = await file.arrayBuffer();
         await workbook.xlsx.load(buffer);

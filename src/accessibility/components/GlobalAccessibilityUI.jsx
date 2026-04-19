@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconButton, useDisclosure, Icon } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import AccessibilityDrawer from './AccessibilityDrawer';
 
@@ -23,7 +23,7 @@ const GlobalAccessibilityUI = () => {
         <>
             <AccessibilityDrawer isOpen={isOpen} onClose={onClose} />
 
-            <motion.div
+            <m.div
                 drag
                 dragMomentum={false}
                 whileHover={{ scale: 1.1 }}
@@ -55,7 +55,7 @@ const GlobalAccessibilityUI = () => {
                         bg: '#67e8f9'
                     }}
                 />
-            </motion.div>
+            </m.div>
         </>
     );
 };

@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { userService } from '../../services/userService';
-import ExcelJS from 'exceljs';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 // ── Edit Modal ──────────────────────────────────────────────────────────
 const EditUserModal = ({ user, onClose, onSave }) => {
@@ -372,6 +369,8 @@ const Users = () => {
 
     // ── Excel Export ────────────────────────────────────────────────────
     const handleExportExcel = async () => {
+        const ExcelJSModule = await import('exceljs');
+        const ExcelJS = ExcelJSModule.default || ExcelJSModule;
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet(t('admin.users.excelSheetName'));
 
@@ -425,8 +424,12 @@ const Users = () => {
     };
 
     // ── PDF Export (Professional branded report) ────────────────────────
-    const handleExportPDF = () => {
+    const handleExportPDF = async () => {
         try {
+            const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+                import('jspdf'),
+                import('jspdf-autotable'),
+            ]);
             const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
             const pageW = doc.internal.pageSize.getWidth();
             const pageH = doc.internal.pageSize.getHeight();

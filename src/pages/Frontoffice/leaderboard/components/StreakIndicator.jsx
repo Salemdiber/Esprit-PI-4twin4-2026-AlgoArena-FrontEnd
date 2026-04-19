@@ -7,10 +7,10 @@
  */
 import React from 'react';
 import { Flex, Icon, Text } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const MotionFlex = motion.create(Flex);
+const MotionFlex = m.create(Flex);
 
 const FlameIcon = (props) => (
     <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>
@@ -44,9 +44,9 @@ const StreakIndicator = ({ streak = 0, variant = 'full' }) => {
     if (variant === 'compact') {
         return (
             <Flex align="center" gap={1}>
-                <motion.div variants={flickerVariants} animate="animate">
+                <m.div variants={flickerVariants} animate="animate">
                     <FlameIcon w={4} h={4} color="#f97316" />
-                </motion.div>
+                </m.div>
                 <Text fontFamily="body" fontSize="sm" fontWeight="semibold" color="gray.300">
                     {streak}
                 </Text>
@@ -72,9 +72,9 @@ const StreakIndicator = ({ streak = 0, variant = 'full' }) => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.6 }}
         >
-            <motion.div variants={flickerVariants} animate="animate">
+            <m.div variants={flickerVariants} animate="animate">
                 <FlameIcon w={isHot ? 5 : 4} h={isHot ? 5 : 4} color={isHot ? 'white' : '#f97316'} />
-            </motion.div>
+            </m.div>
             <Text
                 fontFamily="body"
                 fontSize={isHot ? 'sm' : 'xs'}

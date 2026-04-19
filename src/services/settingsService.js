@@ -1,93 +1,113 @@
 import { apiClient } from './apiClient';
 
+const SETTINGS_CACHE_TTL_MS = 60 * 1000;
+let settingsCache = null;
+let settingsCacheExpiresAt = 0;
+let settingsRequestPromise = null;
+
+const invalidateSettingsCache = () => {
+    settingsCache = null;
+    settingsCacheExpiresAt = 0;
+    settingsRequestPromise = null;
+};
+
+const loadSettings = async () => {
+    const now = Date.now();
+    if (settingsCache && now < settingsCacheExpiresAt) {
+        return settingsCache;
+    }
+
+    if (settingsRequestPromise) {
+        return settingsRequestPromise;
+    }
+
+    settingsRequestPromise = apiClient('/settings', {
+        method: 'GET',
+    }).then((data) => {
+        settingsCache = data;
+        settingsCacheExpiresAt = Date.now() + SETTINGS_CACHE_TTL_MS;
+        return data;
+    }).finally(() => {
+        settingsRequestPromise = null;
+    });
+
+    return settingsRequestPromise;
+};
+
 export const settingsService = {
-    // ------------------------------------
-    // GET /settings → Returns current settings
-    // ------------------------------------
     getSettings: async () => {
-        return apiClient('/settings', {
-            method: 'GET',
-        });
+        return loadSettings();
     },
 
-    // ------------------------------------
-    // PUT /settings → Update all settings (admin only)
-    // ------------------------------------
     updateSettings: async (data) => {
-        return apiClient('/settings', {
+        const result = await apiClient('/settings', {
             method: 'PUT',
             body: JSON.stringify(data),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/user-registration → Toggle user registration (admin only)
-    // ------------------------------------
     toggleUserRegistration: async (value) => {
-        return apiClient('/settings/user-registration', {
+        const result = await apiClient('/settings/user-registration', {
             method: 'PATCH',
             body: JSON.stringify({ userRegistration: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/ai-battles → Toggle AI battles (admin only)
-    // ------------------------------------
     toggleAiBattles: async (value) => {
-        return apiClient('/settings/ai-battles', {
+        const result = await apiClient('/settings/ai-battles', {
             method: 'PATCH',
             body: JSON.stringify({ aiBattles: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/maintenance-mode → Toggle maintenance mode (admin only)
-    // ------------------------------------
     toggleMaintenanceMode: async (value) => {
-        return apiClient('/settings/maintenance-mode', {
+        const result = await apiClient('/settings/maintenance-mode', {
             method: 'PATCH',
             body: JSON.stringify({ maintenanceMode: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/api-rate-limit → Update API rate limit (admin only)
-    // ------------------------------------
     updateApiRateLimit: async (value) => {
-        return apiClient('/settings/api-rate-limit', {
+        const result = await apiClient('/settings/api-rate-limit', {
             method: 'PATCH',
             body: JSON.stringify({ apiRateLimit: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/ollama-enabled → Toggle AI classification (admin only)
-    // (keeps route name for backward compatibility)
-    // ------------------------------------
     toggleOllamaEnabled: async (value) => {
-        return apiClient('/settings/ollama-enabled', {
+        const result = await apiClient('/settings/ollama-enabled', {
             method: 'PATCH',
             body: JSON.stringify({ ollamaEnabled: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/code-execution-limit → Update code execution limit (admin only)
-    // ------------------------------------
     updateCodeExecutionLimit: async (value) => {
-        return apiClient('/settings/code-execution-limit', {
+        const result = await apiClient('/settings/code-execution-limit', {
             method: 'PATCH',
             body: JSON.stringify({ codeExecutionLimit: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 
-    // ------------------------------------
-    // PATCH /settings/disable-speed-challenges → Toggle speed challenges (admin only)
-    // ------------------------------------
     toggleSpeedChallenges: async (value) => {
-        return apiClient('/settings/disable-speed-challenges', {
+        const result = await apiClient('/settings/disable-speed-challenges', {
             method: 'PATCH',
             body: JSON.stringify({ disableSpeedChallenges: value }),
         });
+        invalidateSettingsCache();
+        return result;
     },
 };

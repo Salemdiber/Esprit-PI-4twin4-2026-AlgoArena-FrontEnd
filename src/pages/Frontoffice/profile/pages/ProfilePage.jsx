@@ -14,7 +14,7 @@
 import React, { useRef, useState } from 'react';
 import { Box, Text, Button, VStack, Flex, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, Input, useToast , useColorModeValue } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 import AvatarSection from '../components/AvatarSection';
@@ -25,7 +25,7 @@ import TwoFactorSection from '../components/TwoFactorSection';
 import { userService } from '../../../../services/userService';
 import { useAuth } from '../../auth/context/AuthContext';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const ProfilePage = () => {
     const { t } = useTranslation();

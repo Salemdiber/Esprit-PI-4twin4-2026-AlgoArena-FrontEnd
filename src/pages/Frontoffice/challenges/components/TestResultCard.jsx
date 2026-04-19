@@ -2,7 +2,7 @@
  * TestResultCard – single test case result row.
  *
  * Shows PASSED / FAILED status, input, expected vs actual output, and runtime.
- * Animated entrance via Framer Motion.
+ * Animated entrance via Framer m.
  */
 import React from 'react';
 import {
@@ -12,10 +12,10 @@ import {
     Icon,
     Code,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const CheckCircle = (props) => (
     <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>

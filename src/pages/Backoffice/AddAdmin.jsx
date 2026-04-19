@@ -202,12 +202,13 @@ const AddAdmin = () => {
 
 const PermissionItem = ({ label, isActive = true }) => (
     <div className="flex items-center gap-3">
-        <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${isActive ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-gray-800 border-(--color-border) text-gray-500'}`}>
+        <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${isActive ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : ''}`}
+            style={!isActive ? { background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' } : undefined}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
         </div>
-        <span className={`text-sm ${isActive ? 'text-gray-300' : 'text-gray-500 line-through'}`}>{label}</span>
+        <span className="text-sm" style={{ color: isActive ? 'var(--color-text-secondary)' : 'var(--color-text-muted)', textDecoration: isActive ? 'none' : 'line-through' }}>{label}</span>
     </div>
 );
 

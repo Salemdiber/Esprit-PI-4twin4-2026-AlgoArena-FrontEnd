@@ -11,12 +11,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Box, Text, Flex } from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import useAccessibility from '../../accessibility/hooks/useAccessibility';
 
-const MotionBox = motion.create(Box);
-const MotionFlex = motion.create(Flex);
+const MotionBox = m.create(Box);
+const MotionFlex = m.create(Flex);
 
 const AppLoader = ({ isLoading = true }) => {
     const { t } = useTranslation();
@@ -158,7 +158,7 @@ const AppLoader = ({ isLoading = true }) => {
                                 />
                             )}
 
-                            {/* Static ring for reduced motion */}
+                            {/* Static ring for reduced m */}
                             {reducedMotion && (
                                 <Box
                                     position="absolute"

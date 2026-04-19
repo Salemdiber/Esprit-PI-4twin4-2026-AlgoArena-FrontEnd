@@ -1,12 +1,12 @@
-/**
- * SpeedChallengePage – /speed-challenge
+﻿/**
+ * SpeedChallengePage â€“ /speed-challenge
  *
  * New-user placement test:
- *   • 3 problems (Easy → Medium → Hard)
- *   • 15-minute countdown
- *   • Automatic rank assignment on finish/timeout
+ *   â€¢ 3 problems (Easy â†’ Medium â†’ Hard)
+ *   â€¢ 15-minute countdown
+ *   â€¢ Automatic rank assignment on finish/timeout
  *
- * Layout: Intro → [Problem panel | Editor panel] → Result
+ * Layout: Intro â†’ [Problem panel | Editor panel] â†’ Result
  */
 import React, { useState, useEffect, useRef, useCallback, useParams } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -17,7 +17,7 @@ import {
     Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner,
 } from '@chakra-ui/react';
 import { MdOutlineEdit, MdTimer, MdSwapHoriz, MdEmojiEvents, MdKey, MdBolt } from 'react-icons/md';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 
 import {
     SPEED_CHALLENGE_PROBLEMS,
@@ -45,7 +45,7 @@ const clampSpeedChallengeRank = (rank) => {
     return SPEED_CHALLENGE_RANK_ORDER.includes(normalized) ? normalized : 'GOLD';
 };
 
-// ─── Debounce helper for session autosave ─────────────────────
+// â”€â”€â”€ Debounce helper for session autosave â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const debounce = (fn, delay) => {
     let timeoutId;
     return (...args) => {
@@ -54,17 +54,17 @@ const debounce = (fn, delay) => {
     };
 };
 
-const MotionBox = motion.create(Box);
-const MotionFlex = motion.create(Flex);
+const MotionBox = m.create(Box);
+const MotionFlex = m.create(Flex);
 
-// ─── Phase enum ──────────────────────────────────────────────────
+// â”€â”€â”€ Phase enum â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PHASE = {
     INTRO: 'INTRO',
     CHALLENGE: 'CHALLENGE',
     RESULT: 'RESULT',
 };
 
-// ─── Intro screen ────────────────────────────────────────────────
+// â”€â”€â”€ Intro screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const IntroScreen = ({ onStart, loading = false }) => {
     const { t } = useTranslation();
     return (
@@ -123,7 +123,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
                 opacity={0.2}
                 className="float-animation"
             >
-                O(n log n) → Gold
+                O(n log n) â†’ Gold
             </Text>
             <Text
                 position="absolute"
@@ -314,7 +314,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
     );
 };
 
-// ─── Main Challenge Arena ─────────────────────────────────────────
+// â”€â”€â”€ Main Challenge Arena â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ChallengeArena = ({
     problems,
     currentIndex,
@@ -458,7 +458,7 @@ const ChallengeArena = ({
 
     return (
         <Flex direction="column" minH="100vh" maxH="100vh" bg="#0f172a" overflow="hidden">
-            {/* ── Top Navigation Bar ── */}
+            {/* â”€â”€ Top Navigation Bar â”€â”€ */}
             <Flex
                 as="header"
                 align="center"
@@ -515,7 +515,7 @@ const ChallengeArena = ({
                 </HStack>
             </Flex>
 
-            {/* ── Problem tabs (mobile: top, desktop: inside panel) ── */}
+            {/* â”€â”€ Problem tabs (mobile: top, desktop: inside panel) â”€â”€ */}
             <Flex
                 px={3}
                 py={1.5}
@@ -562,7 +562,7 @@ const ChallengeArena = ({
                 })}
             </Flex>
 
-            {/* ── Split layout ── */}
+            {/* â”€â”€ Split layout â”€â”€ */}
             <Flex flex={1} overflow="hidden" minH={0}>
                 {/* LEFT: Problem panel */}
                 <Box
@@ -770,7 +770,7 @@ const ChallengeArena = ({
     );
 };
 
-// ─── SpeedChallengePage ───────────────────────────────────────────
+// â”€â”€â”€ SpeedChallengePage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SpeedChallengePage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -833,7 +833,7 @@ const SpeedChallengePage = () => {
         checkIfDisabled();
     }, []);
 
-    // ── Block navigation when test is in progress ────────────────────────────
+    // â”€â”€ Block navigation when test is in progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     useEffect(() => {
         if (phase !== PHASE.CHALLENGE) return;
 
@@ -850,7 +850,7 @@ const SpeedChallengePage = () => {
                 // Save current session before blocking
                 saveSessionToBackend();
                 const confirmed = window.confirm(
-                    '⚠️ You have an ongoing speed challenge! All progress will be saved and you can resume later. Are you sure you want to leave?'
+                    'âš ï¸ You have an ongoing speed challenge! All progress will be saved and you can resume later. Are you sure you want to leave?'
                 );
                 if (!confirmed) {
                     e.preventDefault();
@@ -871,7 +871,7 @@ const SpeedChallengePage = () => {
         };
     }, [phase]);
 
-    // ── Auto-save session every 10 seconds or on code/language change ────────
+    // â”€â”€ Auto-save session every 10 seconds or on code/language change â”€â”€â”€â”€â”€â”€â”€â”€
     const saveSessionToBackend = useCallback(async () => {
         if (phase !== PHASE.CHALLENGE || !currentUser?.userId) return;
         
@@ -907,7 +907,7 @@ const SpeedChallengePage = () => {
         }
     }, [codes, languages, solvedIds, phase, currentUser?.userId]);
 
-    // ── Start timer on challenge phase ──────────────────────────────────────
+    // â”€â”€ Start timer on challenge phase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     useEffect(() => {
         if (phase !== PHASE.CHALLENGE) return;
         timerRef.current = setInterval(() => {
@@ -934,7 +934,7 @@ const SpeedChallengePage = () => {
             if (session && session.phase === PHASE.CHALLENGE && session.phase !== 'No ongoing session') {
                 // Ask user if they want to resume
                 const shouldResume = window.confirm(
-                    '📝 You have an ongoing speed challenge session! Would you like to resume where you left off?'
+                    'ðŸ“ You have an ongoing speed challenge session! Would you like to resume where you left off?'
                 );
 
                 if (shouldResume) {
@@ -1080,7 +1080,7 @@ const SpeedChallengePage = () => {
             // Now safe to show results; backend has confirmed completion
             setPhase(PHASE.RESULT);
 
-            // ── AI classification (async, non-blocking) ──────────────────────
+            // â”€â”€ AI classification (async, non-blocking) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             const solutions = activeProblems.map((p) => ({
                 problemId: p.id,
                 title: p.title,
@@ -1115,7 +1115,7 @@ const SpeedChallengePage = () => {
                     } catch (_) { }
                 })
                 .catch(() => {
-                    // AI failed — keep fallback placement, mark analysis as unavailable
+                    // AI failed â€” keep fallback placement, mark analysis as unavailable
                     setAiAnalysis(null);
                     const cappedFallbackRank = clampSpeedChallengeRank(fallback.rank);
                     const cappedFallback = cappedFallbackRank === fallback.rank
@@ -1239,7 +1239,7 @@ const SpeedChallengePage = () => {
         navigate(target, { replace: true });
     }, [currentUser, location.state, navigate, updateCurrentUser]);
 
-    // ── If checking status, show loading ──
+    // â”€â”€ If checking status, show loading â”€â”€
     if (checkingStatus) {
         return (
             <Box minH="100vh" bg="#0f172a" display="flex" alignItems="center" justifyContent="center">
@@ -1248,7 +1248,7 @@ const SpeedChallengePage = () => {
         );
     }
 
-    // ── If speed challenges are disabled, show maintenance message ──
+    // â”€â”€ If speed challenges are disabled, show maintenance message â”€â”€
     if (isDisabled) {
         return (
             <Box
@@ -1288,7 +1288,7 @@ const SpeedChallengePage = () => {
         );
     }
 
-    // ── Render ──
+    // â”€â”€ Render â”€â”€
     if (phase === PHASE.INTRO) return <IntroScreen onStart={handleStart} loading={loadingProblems} />;
 
     if (phase === PHASE.RESULT) {

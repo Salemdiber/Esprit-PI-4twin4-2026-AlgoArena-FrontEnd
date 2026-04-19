@@ -2,12 +2,12 @@
  * TryChallenge – "Try a Challenge Instantly" landing page section.
  *
  * Self-contained: includes its own mock data, editor state, and layout.
- * Uses the shared /editor module — CodeEditor, EditorToolbar, OutputTerminal.
+ * Uses the shared editor toolbar/state and a lightweight textarea.
  *
  * Desktop: two-column (description left, editor right)
  * Mobile:  stacked (description → editor → output)
  */
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Box,
@@ -25,10 +25,12 @@ import {
     useDisclosure,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
-import { CodeEditor, EditorToolbar, OutputTerminal, useEditorState } from '../editor';
+import { m } from 'framer-motion';
+import EditorToolbar from '../editor/components/EditorToolbar';
+import OutputTerminal from '../editor/components/OutputTerminal';
+import useEditorState from '../editor/hooks/useEditorState';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 /* ── Icons ──────────────────────────────────────────────────── */
 const CodeIcon = (props) => (
@@ -52,6 +54,19 @@ const TryChallenge = () => {
     const { t } = useTranslation();
     const { code, setCode, language, setLanguage, output, isRunning, runCode, resetCode } = useEditorState();
     const { isOpen: showExamples, onToggle: toggleExamples } = useDisclosure({ defaultIsOpen: true });
+    const lineCount = useMemo(() => Math.max(1, code.split('\n').length), [code]);
+    const handleEditorKeyDown = useCallback((event) => {
+        if (event.key !== 'Tab') return;
+        event.preventDefault();
+        const textarea = event.currentTarget;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        setCode(`${code.slice(0, start)}  ${code.slice(end)}`);
+        requestAnimationFrame(() => {
+            textarea.selectionStart = start + 2;
+            textarea.selectionEnd = start + 2;
+        });
+    }, [code, setCode]);
 
     const demoChallenge = useMemo(
         () => ({
@@ -304,13 +319,53 @@ const TryChallenge = () => {
                                 onReset={resetCode}
                             />
 
-                            {/* Monaco editor */}
-                            <CodeEditor
-                                code={code}
-                                onChange={setCode}
-                                language={language}
-                                height="300px"
-                            />
+                            <Flex h="300px" minH="300px" bg="#0f172a" overflow="hidden">
+                                <Box
+                                    as="pre"
+                                    px={3}
+                                    py={4}
+                                    minW="44px"
+                                    bg="#0b1220"
+                                    color="rgba(255,255,255,0.24)"
+                                    borderRight="1px solid rgba(255,255,255,0.06)"
+                                    fontFamily="'JetBrains Mono', 'Fira Code', monospace"
+                                    fontSize="13px"
+                                    lineHeight="1.6"
+                                    textAlign="right"
+                                    userSelect="none"
+                                    aria-hidden="true"
+                                >
+                                    {Array.from({ length: lineCount }, (_, i) => (
+                                        <div key={i}>{i + 1}</div>
+                                    ))}
+                                </Box>
+                                <Box
+                                    as="textarea"
+                                    value={code}
+                                    onChange={(event) => setCode(event.target.value)}
+                                    onKeyDown={handleEditorKeyDown}
+                                    spellCheck={false}
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    autoCapitalize="off"
+                                    flex={1}
+                                    p={4}
+                                    bg="transparent"
+                                    color="#e2e8f0"
+                                    fontFamily="'JetBrains Mono', 'Fira Code', monospace"
+                                    fontSize="13px"
+                                    lineHeight="1.6"
+                                    border="0"
+                                    outline="0"
+                                    resize="none"
+                                    overflowY="auto"
+                                    sx={{
+                                        caretColor: '#22d3ee',
+                                        whiteSpace: 'pre',
+                                        '&::selection': { background: 'rgba(34,211,238,0.2)' },
+                                    }}
+                                />
+                            </Flex>
 
                             {/* Output terminal */}
                             <OutputTerminal output={output} isRunning={isRunning} />

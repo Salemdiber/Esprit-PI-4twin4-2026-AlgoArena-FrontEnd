@@ -5,7 +5,7 @@
 import React from 'react';
 import { Box, Text } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { CodeEditor } from '../../../../editor';
+import CodeEditor from '../../../../editor/components/CodeEditor';
 
 const CodeEditorContainer = ({
     code,

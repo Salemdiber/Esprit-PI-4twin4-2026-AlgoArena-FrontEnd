@@ -7,9 +7,9 @@
  */
 import React from 'react';
 import { Box, Icon } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const UpArrow = (props) => (
     <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>

@@ -1,14 +1,14 @@
 /**
  * EnergyBar – animated XP progress bar
  *
- * Uses Framer Motion for a smooth scaleX fill animation on mount.
+ * Uses Framer m for a smooth scaleX fill animation on mount.
  * Gradient colours adapt based on the tier prop.
  */
 import React from 'react';
 import { Box } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
-const MotionBox = motion.create(Box);
+const MotionBox = m.create(Box);
 
 const tierGradients = {
     PLATINUM: 'linear-gradient(90deg, #22d3ee 0%, #60a5fa 100%)',
