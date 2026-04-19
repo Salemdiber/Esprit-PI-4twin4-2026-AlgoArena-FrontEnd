@@ -44,7 +44,10 @@ const STORAGE_KEYS = {
   savedItems: 'discussion_saved_items_v1',
   bestAnswers: 'discussion_best_answers_v1',
   userNotifications: 'discussion_user_notifications_v1',
+  commentMeta: 'discussion_comment_meta_v1',
 };
+
+const CODE_LANGUAGES = ['javascript', 'python', 'cpp'];
 
 const safeRead = (key, fallback) => {
   try {
@@ -287,6 +290,15 @@ const CommunityPage = () => {
   const [commentsVisible, setCommentsVisible] = useState({});
   const [showAllComments, setShowAllComments] = useState({});
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [commentType, setCommentType] = useState('text');
+  const [commentLanguage, setCommentLanguage] = useState('javascript');
+  const [commentMeta, setCommentMeta] = useState(() => safeRead(STORAGE_KEYS.commentMeta, {}));
+  const [codeOutputModal, setCodeOutputModal] = useState({
+    isOpen: false,
+    language: 'javascript',
+    output: '',
+    isError: false,
+  });
 
   const [replyVisibility, setReplyVisibility] = useState({});
   const [replyDrafts, setReplyDrafts] = useState({});
@@ -326,6 +338,10 @@ const CommunityPage = () => {
   useEffect(() => {
     safeWrite(STORAGE_KEYS.bestAnswers, bestAnswerByPost);
   }, [bestAnswerByPost]);
+
+  useEffect(() => {
+    safeWrite(STORAGE_KEYS.commentMeta, commentMeta);
+  }, [commentMeta]);
 
   const currentUserId = useMemo(
     () => String(currentUser?._id || currentUser?.id || currentUser?.userId || ''),
@@ -845,6 +861,8 @@ const CommunityPage = () => {
 
     try {
       const targetPost = posts.find((post) => String(post._id) === String(postId));
+      const selectedType = targetPost?.type === 'problem' ? commentType : 'text';
+      const selectedLanguage = selectedType === 'code' ? commentLanguage : '';
       updateCommentDraft(postId, { isSubmitting: true });
       setError('');
 
@@ -858,6 +876,20 @@ const CommunityPage = () => {
         videoUrl,
       };
       const savedComment = await communityService.createComment(newComment);
+
+      const savedCommentId = String(savedComment?._id || keyOf(savedComment));
+      setCommentMeta((prev) => ({
+        ...prev,
+        [savedCommentId]: {
+          id: savedCommentId,
+          postId: String(postId),
+          user: String(currentUser?.username || currentUser?.email || currentUserId || 'unknown'),
+          type: selectedType,
+          content: text,
+          language: selectedLanguage,
+          likes: 0,
+        },
+      }));
 
       if (targetPost?.authorId && !isOwner(targetPost.authorId)) {
         pushNotificationForUser(String(targetPost.authorId), {
@@ -1228,6 +1260,232 @@ const CommunityPage = () => {
 
   };
 
+  const resolveCommentMeta = (comment, postId) => {
+    const commentId = String(comment?._id || keyOf(comment));
+    const stored = commentMeta[commentId] || {};
+    const type = stored?.type === 'code' ? 'code' : 'text';
+    const language = type === 'code'
+      ? String(stored?.language || 'javascript').toLowerCase()
+      : '';
+
+    return {
+      id: commentId,
+      postId: String(postId || stored?.postId || ''),
+      user: String(stored?.user || comment?.authorUsername || 'unknown'),
+      type,
+      content: String(comment?.text || stored?.content || ''),
+      language,
+      likes: Number(stored?.likes || 0),
+    };
+  };
+
+  const handleRunCode = (commentRecord) => {
+    if (!commentRecord || commentRecord.type !== 'code') return;
+
+    const serializeValue = (value) => {
+      if (typeof value === 'function') {
+        return `[Function${value.name ? `: ${value.name}` : ''}]`;
+      }
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' || typeof value === 'boolean' || value == null) {
+        return String(value);
+      }
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    };
+
+    const buildHint = (message, sourceCode) => {
+      const msg = String(message || '').toLowerCase();
+      if (msg.includes('illegal return')) {
+        return 'Hint: Put return inside a function body, or just write an expression like 2 + 2.';
+      }
+      if (msg.includes('is not defined')) {
+        return 'Hint: A variable/function name is missing. Check spelling and declaration scope.';
+      }
+      if (msg.includes('unexpected token')) {
+        return 'Hint: Check for syntax typos near punctuation, brackets, or commas.';
+      }
+      if (msg.includes('missing') && (msg.includes(')') || msg.includes(']') || msg.includes('}'))) {
+        return 'Hint: One closing bracket might be missing.';
+      }
+      if (!String(sourceCode || '').trim()) {
+        return 'Hint: Add code before running.';
+      }
+      return 'Hint: Check syntax and variable names near the reported line.';
+    };
+
+    const extractUserLine = (errorObj) => {
+      const stack = String(errorObj?.stack || '');
+      const match = stack.match(/<anonymous>:(\d+):(\d+)/);
+      if (!match) return null;
+
+      // Function wrapper adds one line for "use strict".
+      const rawLine = Number(match[1]);
+      const column = Number(match[2]);
+      const line = Number.isFinite(rawLine) ? Math.max(1, rawLine - 1) : null;
+      return line ? { line, column } : null;
+    };
+
+    const formatTerminalOutput = ({ logs = [], resultText = '', errorText = '', hintText = '', lineInfo = null, language = 'javascript', exitCode = 0 }) => {
+      const rows = [];
+      rows.push(`[terminal] language=${language}`);
+      rows.push('[terminal] executing...');
+
+      if (logs.length > 0) {
+        rows.push('[stdout]');
+        logs.forEach((line) => rows.push(serializeValue(line)));
+      }
+
+      if (lineInfo?.line) {
+        rows.push(`[error-line] line ${lineInfo.line}${lineInfo.column ? `, column ${lineInfo.column}` : ''}`);
+      }
+
+      if (errorText) {
+        rows.push(`[stderr] ${errorText}`);
+      }
+
+      if (resultText && !errorText) {
+        rows.push(`[result] ${resultText}`);
+      }
+
+      if (hintText) {
+        rows.push(hintText);
+      }
+
+      rows.push(`[terminal] exited with code ${exitCode}`);
+      return rows.join('\n');
+    };
+
+    const handleFunctionResult = (fn, sourceCode) => {
+      if (typeof fn !== 'function') {
+        return {
+          result: fn,
+          hint: '',
+        };
+      }
+
+      const code = String(sourceCode || '');
+      const fnName = String(fn.name || '').trim();
+      const looksLikeTwoSum = /two\s*sum|twoSum|nums|target/i.test(code) || fnName === 'twoSum';
+
+      if (looksLikeTwoSum) {
+        try {
+          const demoResult = fn([2, 7, 11, 15], 9);
+          return {
+            result: `Demo call ${fnName || 'solution'}([2,7,11,15], 9) => ${serializeValue(demoResult)}`,
+            hint: 'Hint: Your code returned a function, so demo inputs were used automatically.',
+          };
+        } catch (invokeError) {
+          return {
+            result: '[Function detected]',
+            hint: `Hint: Function detected but demo execution failed: ${String(invokeError?.message || 'Unknown error')}`,
+          };
+        }
+      }
+
+      return {
+        result: '[Function detected]',
+        hint: `Hint: Call the function with inputs to get a solution value, e.g. ${fnName || 'yourFunction'}(...)`,
+      };
+    };
+
+    if (commentRecord.language !== 'javascript') {
+      setCodeOutputModal({
+        isOpen: true,
+        language: commentRecord.language,
+        output: formatTerminalOutput({
+          language: commentRecord.language,
+          errorText: 'Execution not supported for this language (demo mode)',
+          hintText: 'Hint: Switch language to JavaScript to run in this demo terminal.',
+          exitCode: 1,
+        }),
+        isError: false,
+      });
+      return;
+    }
+
+    const capturedLogs = [];
+    const originalLog = console.log;
+
+    try {
+
+      console.log = (...args) => {
+        capturedLogs.push(args.map((arg) => serializeValue(arg)).join(' '));
+      };
+
+      // Execute as a function body so `return` statements are valid in demo runner.
+      const runAsBody = new Function(`"use strict";\n${commentRecord.content}`);
+      let result = runAsBody();
+
+      // If no explicit return was used, try treating input as a single expression.
+      if (result === undefined) {
+        try {
+          const runAsExpression = new Function(`"use strict";\nreturn (${commentRecord.content});`);
+          result = runAsExpression();
+        } catch {
+          // Keep undefined from body execution.
+        }
+      }
+
+      if (result === undefined) {
+        const lines = String(commentRecord.content || '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean);
+        const lastLine = lines[lines.length - 1] || '';
+        const prefix = lines.slice(0, -1).join('\n');
+
+        if (lastLine) {
+          try {
+            const runLastExpression = new Function(`"use strict";\n${prefix}\nreturn (${lastLine});`);
+            result = runLastExpression();
+          } catch {
+            // Keep previous result.
+          }
+        }
+      }
+
+      const functionResult = handleFunctionResult(result, commentRecord.content);
+      const finalResultText = serializeValue(functionResult.result ?? 'undefined');
+      const finalHintText = functionResult.hint || '';
+
+      setCodeOutputModal({
+        isOpen: true,
+        language: 'javascript',
+        output: formatTerminalOutput({
+          logs: capturedLogs,
+          resultText: finalResultText,
+          hintText: finalHintText,
+          language: 'javascript',
+          exitCode: 0,
+        }),
+        isError: false,
+      });
+    } catch (runError) {
+      const lineInfo = extractUserLine(runError);
+      const errorMessage = String(runError?.message || 'Execution failed');
+      const hintText = buildHint(errorMessage, commentRecord.content);
+
+      setCodeOutputModal({
+        isOpen: true,
+        language: 'javascript',
+        output: formatTerminalOutput({
+          errorText: errorMessage,
+          hintText,
+          lineInfo,
+          language: 'javascript',
+          exitCode: 1,
+        }),
+        isError: true,
+      });
+    } finally {
+      console.log = originalLog;
+    }
+  };
+
   const renderMedia = (mediaUrl, isVideo = false) => {
     if (!mediaUrl) return null;
     const mediaSrc = toMediaUrl(mediaUrl);
@@ -1275,6 +1533,8 @@ const CommunityPage = () => {
 
     return sorted.map((comment) => {
       const commentId = keyOf(comment);
+      const commentRecord = resolveCommentMeta(comment, postId);
+      const isCodeComment = commentRecord.type === 'code';
       const isEditing = editingComment.postId === postId && editingComment.commentId === (comment._id || '');
       const replyDraft = replyDrafts[commentId] || emptyDraft();
       const repliesOpen = Boolean(replyVisibility[commentId]);
@@ -1286,9 +1546,9 @@ const CommunityPage = () => {
       return (
         <Box
           key={commentId}
-          bg={isBestAnswer ? 'rgba(16, 185, 129, 0.12)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.08)' : 'var(--color-bg-primary)')}
+          bg={isBestAnswer ? 'rgba(16, 185, 129, 0.12)' : (isCodeComment ? 'rgba(59, 130, 246, 0.08)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.08)' : 'var(--color-bg-primary)'))}
           border="1px solid"
-          borderColor={isBestAnswer ? 'rgba(16, 185, 129, 0.65)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.65)' : 'rgba(148, 163, 184, 0.22)')}
+          borderColor={isBestAnswer ? 'rgba(16, 185, 129, 0.65)' : (isCodeComment ? 'rgba(59, 130, 246, 0.45)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.65)' : 'rgba(148, 163, 184, 0.22)'))}
           borderRadius="10px"
           p={2.5}
           ml={depth > 0 ? `${Math.min(depth, 5) * 20}px` : '0'}
@@ -1299,6 +1559,14 @@ const CommunityPage = () => {
             <HStack spacing={2}>
               <Avatar size="xs" src={comment.authorAvatar || undefined} name={comment.authorUsername || 'unknown'} />
               <Text color="brand.500" fontWeight="semibold" fontSize="sm">@{comment.authorUsername || 'unknown'}</Text>
+              <Badge colorScheme={isCodeComment ? 'blue' : 'gray'} variant="subtle" fontSize="10px" px={1.5} py={0.5}>
+                {isCodeComment ? '💻 Code Solution' : '💬 Comment'}
+              </Badge>
+              {isCodeComment && (
+                <Badge colorScheme="purple" variant="subtle" fontSize="10px" px={1.5} py={0.5} textTransform="uppercase">
+                  {commentRecord.language || 'javascript'}
+                </Badge>
+              )}
               {comment?.pinned && (
                 <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
                   Pinned
@@ -1363,7 +1631,35 @@ const CommunityPage = () => {
 
           {!isEditing ? (
             <>
-              <Text mt={2} color="var(--color-text-secondary)" fontSize="sm" whiteSpace="pre-wrap">{comment.text}</Text>
+              {!isCodeComment ? (
+                <Text mt={2} color="var(--color-text-secondary)" fontSize="sm" whiteSpace="pre-wrap">{comment.text}</Text>
+              ) : (
+                <VStack align="stretch" spacing={2} mt={2}>
+                  <Box
+                    as="pre"
+                    p={3}
+                    borderRadius="8px"
+                    bg="rgba(2, 6, 23, 0.9)"
+                    border="1px solid rgba(59, 130, 246, 0.35)"
+                    color="blue.100"
+                    fontFamily="mono"
+                    fontSize="xs"
+                    whiteSpace="pre-wrap"
+                    overflowX="auto"
+                  >
+                    <Box as="code">{comment.text}</Box>
+                  </Box>
+                  <Button
+                    size="xs"
+                    alignSelf="flex-start"
+                    variant="outline"
+                    colorScheme="blue"
+                    onClick={() => handleRunCode(commentRecord)}
+                  >
+                    ▶ Run Code
+                  </Button>
+                </VStack>
+              )}
               {renderMedia(comment.imageUrl, false)}
               {renderMedia(comment.videoUrl, true)}
             </>
@@ -1830,14 +2126,50 @@ const CommunityPage = () => {
                       {isLoggedIn && (
                         <Box as="form" mt={4} onSubmit={(e) => handleAddComment(e, postId)}>
                           <VStack align="stretch" spacing={2}>
+                            {post.type === 'problem' && (
+                              <HStack spacing={2}>
+                                <Select
+                                  size="sm"
+                                  value={commentType}
+                                  onChange={(e) => setCommentType(e.target.value)}
+                                  maxW="220px"
+                                  bg="var(--color-bg-primary)"
+                                  borderColor="var(--color-border)"
+                                  color="var(--color-text-primary)"
+                                >
+                                  <option value="text" style={{ backgroundColor: 'var(--color-bg-primary)' }}>💬 Comment</option>
+                                  <option value="code" style={{ backgroundColor: 'var(--color-bg-primary)' }}>💻 Code Solution</option>
+                                </Select>
+
+                                {commentType === 'code' && (
+                                  <Select
+                                    size="sm"
+                                    value={commentLanguage}
+                                    onChange={(e) => setCommentLanguage(e.target.value)}
+                                    maxW="180px"
+                                    bg="var(--color-bg-primary)"
+                                    borderColor="var(--color-border)"
+                                    color="var(--color-text-primary)"
+                                  >
+                                    {CODE_LANGUAGES.map((lang) => (
+                                      <option key={lang} value={lang} style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+                                        {lang === 'javascript' ? 'JavaScript' : lang === 'python' ? 'Python' : 'C++'}
+                                      </option>
+                                    ))}
+                                  </Select>
+                                )}
+                              </HStack>
+                            )}
+
                             <Textarea
                               value={draft.text}
                               onChange={(e) => updateCommentDraft(postId, { text: e.target.value })}
-                              placeholder="Write a comment..."
-                              minH="80px"
+                              placeholder={commentType === 'code' && post.type === 'problem' ? 'Write your code solution...' : 'Write a comment...'}
+                              minH={commentType === 'code' && post.type === 'problem' ? '130px' : '80px'}
                               bg="var(--color-bg-primary)"
                               borderColor="var(--color-border)"
                               color="var(--color-text-primary)"
+                              fontFamily={commentType === 'code' && post.type === 'problem' ? 'mono' : 'body'}
                               _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
                             />
                             <Button type="submit" size="xs" variant="primary" isLoading={draft.isSubmitting} alignSelf="flex-end">Post Comment</Button>
@@ -2026,6 +2358,32 @@ const CommunityPage = () => {
                 <Button colorScheme="red" onClick={confirmDelete}>Delete</Button>
               </HStack>
             </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={codeOutputModal.isOpen} onClose={() => setCodeOutputModal((prev) => ({ ...prev, isOpen: false }))} isCentered size="lg">
+        <ModalOverlay bg="rgba(0, 0, 0, 0.7)" backdropFilter="blur(4px)" />
+        <ModalContent bg="#020617" border="1px solid rgba(56, 189, 248, 0.45)" borderRadius="14px">
+          <ModalHeader color="cyan.300" fontFamily="mono" fontSize="sm">
+            Output ({codeOutputModal.language || 'javascript'})
+          </ModalHeader>
+          <ModalCloseButton color="gray.300" />
+          <ModalBody pb={5}>
+            <Box
+              as="pre"
+              p={3}
+              borderRadius="10px"
+              bg="#010409"
+              border="1px solid rgba(148, 163, 184, 0.25)"
+              color={codeOutputModal.isError ? 'red.300' : 'green.300'}
+              fontFamily="mono"
+              fontSize="sm"
+              whiteSpace="pre-wrap"
+              minH="90px"
+            >
+              {String(codeOutputModal.output || '')}
+            </Box>
           </ModalBody>
         </ModalContent>
       </Modal>
