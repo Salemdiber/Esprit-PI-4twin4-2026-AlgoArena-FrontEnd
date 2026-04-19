@@ -22,9 +22,9 @@ const MotionFlex = m.create(Flex);
 const glowAnimation = {
     animate: {
         boxShadow: [
-            '0 0 40px rgba(34, 211, 238, 0.4), 0 0 80px rgba(34, 211, 238, 0.2), 0px 12px 32px rgba(0, 0, 0, 0.5)',
-            '0 0 60px rgba(34, 211, 238, 0.6), 0 0 100px rgba(34, 211, 238, 0.3), 0px 12px 32px rgba(0, 0, 0, 0.5)',
-            '0 0 40px rgba(34, 211, 238, 0.4), 0 0 80px rgba(34, 211, 238, 0.2), 0px 12px 32px rgba(0, 0, 0, 0.5)',
+            '0 0 40px rgba(34, 211, 238, 0.4), 0 0 80px rgba(34, 211, 238, 0.2), var(--shadow-card)',
+            '0 0 60px rgba(34, 211, 238, 0.6), 0 0 100px rgba(34, 211, 238, 0.3), var(--shadow-card)',
+            '0 0 40px rgba(34, 211, 238, 0.4), 0 0 80px rgba(34, 211, 238, 0.2), var(--shadow-card)',
         ],
         transition: {
             duration: 3,
@@ -111,7 +111,7 @@ const ChampionCard = ({ player }) => {
                             fontSize="4xl"
                             bg="linear-gradient(135deg, #22d3ee 0%, #60a5fa 100%)"
                             color="#0f172a"
-                            boxShadow="0 0 40px rgba(34, 211, 238, 0.6), 0 6px 16px rgba(0, 0, 0, 0.5)"
+                            boxShadow="0 0 40px rgba(34, 211, 238, 0.6), var(--shadow-card)"
                         >
                             1
                         </Box>
@@ -171,7 +171,7 @@ const ChampionCard = ({ player }) => {
 
                     {/* Power Level */}
                     <Box textAlign="center" mb={5}>
-                        <Text fontFamily="body" fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
+                        <Text fontFamily="body" fontSize="xs" color="var(--color-text-muted)" textTransform="uppercase" letterSpacing="wider" mb={2}>
                             {t('leaderboardPage.powerLevel')}
                         </Text>
                         <MotionFlex

@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { Avatar, Badge, Box, HStack, IconButton, Text, VStack } from '@chakra-ui/react';
+import { Avatar, Badge, Box, HStack, IconButton, Text, VStack, useColorModeValue } from '@chakra-ui/react';
 import { Pencil, Reply, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { MAX_MESSAGE_PREVIEW } from './chatConstants';
@@ -10,6 +10,14 @@ const formatTime = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', 
 const ChatMessage = memo(
   ({ message, isMine, onReply, onEdit, onDelete, onToggleReaction, currentUserId, onJumpToMessage, grouped }) => {
     const { t } = useTranslation();
+    const deletedColor = useColorModeValue('gray.600', 'gray.500');
+    const timeColor = useColorModeValue('gray.500', 'gray.500');
+    const replyBg = useColorModeValue('cyan.50', 'whiteAlpha.100');
+    const replyPreviewColor = useColorModeValue('gray.600', 'gray.400');
+    const messageColor = useColorModeValue('gray.800', 'gray.100');
+    const editedColor = useColorModeValue('gray.500', 'gray.500');
+    const hoverIconColor = useColorModeValue('gray.700', 'gray.300');
+    const hoverIconBg = useColorModeValue('gray.100', 'whiteAlpha.200');
     const [expanded, setExpanded] = useState(false);
     const [hovered, setHovered] = useState(false);
 
@@ -22,7 +30,7 @@ const ChatMessage = memo(
     if (message.isDeleted) {
       return (
         <Box px={2} py={1}>
-          <Text fontStyle="italic" color="gray.500" fontSize="sm">
+          <Text fontStyle="italic" color={deletedColor} fontSize="sm">
             {t('chat.messageDeleted')}
           </Text>
         </Box>
@@ -38,7 +46,7 @@ const ChatMessage = memo(
               <Text fontSize="xs" color="brand.300" fontWeight="700">
                 {message.senderUsername}
               </Text>
-              <Text fontSize="xs" color="gray.500">
+              <Text fontSize="xs" color={timeColor}>
                 {formatTime(message.createdAt)}
               </Text>
             </HStack>
@@ -49,7 +57,7 @@ const ChatMessage = memo(
               w="full"
               borderLeft="2px solid"
               borderColor="brand.500"
-              bg="whiteAlpha.100"
+              bg={replyBg}
               borderRadius="6px"
               px={2}
               py={1}
@@ -59,16 +67,16 @@ const ChatMessage = memo(
               <Text fontSize="xs" color="brand.300">
                 {message.replyToSnapshot.senderUsername}
               </Text>
-              <Text fontSize="xs" color="gray.400" noOfLines={1}>
+              <Text fontSize="xs" color={replyPreviewColor} noOfLines={1}>
                 {message.replyToSnapshot.contentPreview}
               </Text>
             </Box>
           )}
 
-          <Text fontSize="sm" color="gray.100" whiteSpace="pre-wrap" wordBreak="break-word">
+          <Text fontSize="sm" color={messageColor} whiteSpace="pre-wrap" wordBreak="break-word">
             {previewContent}{' '}
             {message.editedAt && (
-              <Text as="span" color="gray.500" fontSize="xs">
+              <Text as="span" color={editedColor} fontSize="xs">
                 ({t('chat.edited')})
               </Text>
             )}
@@ -101,11 +109,11 @@ const ChatMessage = memo(
         {hovered && (
           <HStack spacing={1}>
             <ChatReactionPicker ariaLabel={t('chat.addReaction')} onPick={(emoji) => onToggleReaction(message._id, emoji, false)} />
-            <IconButton size="xs" variant="ghost" icon={<Reply size={14} />} aria-label={t('chat.reply')} onClick={() => onReply(message)} />
+            <IconButton size="xs" variant="ghost" color={hoverIconColor} _hover={{ bg: hoverIconBg }} icon={<Reply size={14} />} aria-label={t('chat.reply')} onClick={() => onReply(message)} />
             {isMine && (
               <>
-                <IconButton size="xs" variant="ghost" icon={<Pencil size={14} />} aria-label={t('chat.edit')} onClick={() => onEdit(message)} />
-                <IconButton size="xs" variant="ghost" icon={<Trash2 size={14} />} aria-label={t('chat.delete')} onClick={() => onDelete(message)} />
+                <IconButton size="xs" variant="ghost" color={hoverIconColor} _hover={{ bg: hoverIconBg }} icon={<Pencil size={14} />} aria-label={t('chat.edit')} onClick={() => onEdit(message)} />
+                <IconButton size="xs" variant="ghost" color={hoverIconColor} _hover={{ bg: hoverIconBg }} icon={<Trash2 size={14} />} aria-label={t('chat.delete')} onClick={() => onDelete(message)} />
               </>
             )}
           </HStack>

@@ -605,7 +605,13 @@ export function BattleProvider({ children }) {
         if (!force && state.challenges.length > 0) return;
         try {
             const resp = await challengeService.getPublished({ sort: 'newest' });
-            const list = Array.isArray(resp) ? resp : Array.isArray(resp?.data) ? resp.data : [];
+            const list = Array.isArray(resp)
+                ? resp
+                : Array.isArray(resp?.challenges)
+                    ? resp.challenges
+                    : Array.isArray(resp?.data)
+                        ? resp.data
+                        : [];
             dispatch({ type: ActionTypes.SET_CHALLENGES, payload: list });
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadChallenges') });

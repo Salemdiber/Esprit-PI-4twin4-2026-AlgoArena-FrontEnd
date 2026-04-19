@@ -95,6 +95,87 @@ const PALETTE = {
     },
 };
 
+const LIGHT_PALETTE = {
+    blue: {
+        text: '#1d4ed8',
+        label: '#1e3a8a',
+        iconBg: 'rgba(59,130,246,0.12)',
+        iconBorder: 'rgba(59,130,246,0.25)',
+        pillBg: 'rgba(59,130,246,0.06)',
+        pillBorder: 'rgba(59,130,246,0.22)',
+        hoverBg: 'rgba(59,130,246,0.10)',
+        hoverBorder: 'rgba(59,130,246,0.42)',
+        glow: 'rgba(59,130,246,0.14)',
+        divider: 'rgba(59,130,246,0.16)',
+        activeBg: 'rgba(59,130,246,0.15)',
+    },
+    green: {
+        text: '#047857',
+        label: '#065f46',
+        iconBg: 'rgba(16,185,129,0.12)',
+        iconBorder: 'rgba(16,185,129,0.24)',
+        pillBg: 'rgba(16,185,129,0.06)',
+        pillBorder: 'rgba(16,185,129,0.2)',
+        hoverBg: 'rgba(16,185,129,0.10)',
+        hoverBorder: 'rgba(16,185,129,0.4)',
+        glow: 'rgba(16,185,129,0.14)',
+        divider: 'rgba(16,185,129,0.16)',
+        activeBg: 'rgba(16,185,129,0.15)',
+    },
+    red: {
+        text: '#dc2626',
+        label: '#991b1b',
+        iconBg: 'rgba(239,68,68,0.12)',
+        iconBorder: 'rgba(239,68,68,0.24)',
+        pillBg: 'rgba(239,68,68,0.06)',
+        pillBorder: 'rgba(239,68,68,0.2)',
+        hoverBg: 'rgba(239,68,68,0.10)',
+        hoverBorder: 'rgba(239,68,68,0.4)',
+        glow: 'rgba(239,68,68,0.14)',
+        divider: 'rgba(239,68,68,0.16)',
+        activeBg: 'rgba(239,68,68,0.15)',
+    },
+    amber: {
+        text: '#b45309',
+        label: '#92400e',
+        iconBg: 'rgba(245,158,11,0.12)',
+        iconBorder: 'rgba(245,158,11,0.24)',
+        pillBg: 'rgba(245,158,11,0.06)',
+        pillBorder: 'rgba(245,158,11,0.2)',
+        hoverBg: 'rgba(245,158,11,0.10)',
+        hoverBorder: 'rgba(245,158,11,0.4)',
+        glow: 'rgba(245,158,11,0.14)',
+        divider: 'rgba(245,158,11,0.16)',
+        activeBg: 'rgba(245,158,11,0.15)',
+    },
+    purple: {
+        text: '#7e22ce',
+        label: '#581c87',
+        iconBg: 'rgba(139,92,246,0.12)',
+        iconBorder: 'rgba(139,92,246,0.24)',
+        pillBg: 'rgba(139,92,246,0.06)',
+        pillBorder: 'rgba(139,92,246,0.2)',
+        hoverBg: 'rgba(139,92,246,0.10)',
+        hoverBorder: 'rgba(139,92,246,0.4)',
+        glow: 'rgba(139,92,246,0.14)',
+        divider: 'rgba(139,92,246,0.16)',
+        activeBg: 'rgba(139,92,246,0.15)',
+    },
+    gray: {
+        text: '#475569',
+        label: '#334155',
+        iconBg: 'rgba(100,116,139,0.1)',
+        iconBorder: 'rgba(100,116,139,0.2)',
+        pillBg: 'rgba(100,116,139,0.05)',
+        pillBorder: 'rgba(100,116,139,0.16)',
+        hoverBg: 'rgba(100,116,139,0.08)',
+        hoverBorder: 'rgba(100,116,139,0.3)',
+        glow: 'rgba(100,116,139,0.12)',
+        divider: 'rgba(100,116,139,0.14)',
+        activeBg: 'rgba(100,116,139,0.12)',
+    },
+};
+
 const colorToTone = (color) => {
     if (!color) return 'gray';
     const c = String(color).toLowerCase();
@@ -119,7 +200,9 @@ const ActionButton = ({
 }) => {
     const btnRef = useRef(null);
     const resolvedTone = tone || colorToTone(color);
-    const p = PALETTE[resolvedTone] || PALETTE.gray;
+    const isLightTheme = typeof document !== 'undefined' && document.documentElement?.getAttribute('data-theme') === 'light';
+    const palette = isLightTheme ? LIGHT_PALETTE : PALETTE;
+    const p = palette[resolvedTone] || palette.gray;
     const Icon = icon;
 
     const base = {

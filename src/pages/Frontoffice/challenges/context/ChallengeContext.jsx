@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-refresh/only-export-components */
 /**
  * ChallengeContext - centralised state for the Challenges feature.
  *
@@ -441,6 +441,37 @@ function challengeReducer(state, action) {
             return { ...state, isTimerRunning: action.payload };
         case ActionTypes.SET_PAUSED:
             return { ...state, isPaused: action.payload };
+        case ActionTypes.SET_CHALLENGE_SOLVED: {
+            const submission = action.payload;
+            const challengeId = state.selectedChallengeId;
+            if (!challengeId) return state;
+
+            // Update userProgress array to reflect the solved status immediately
+            const updatedProgress = {
+                challengeId,
+                status: ChallengeUserStatus.SOLVED,
+                userStatus: 'completed',
+                bestRuntime: submission.executionTimeMs,
+                bestMemory: submission.memoryAllocated,
+                earnedXp: submission.xpGained,
+                solveTimeSeconds: submission.solveTimeSeconds,
+                latestSuccessfulSubmission: submission,
+                latestSubmission: submission,
+                lastActiveAt: new Date().toISOString(),
+                solvedAt: new Date().toISOString(),
+            };
+
+            const withUpserted = challengeReducer(state, { type: ActionTypes.UPSERT_PROGRESS, payload: updatedProgress });
+
+            return {
+                ...withUpserted,
+                isChallengeSolved: true,
+                isTimerRunning: false,
+                currentSubmission: submission,
+                testResults: submission.results || [],
+                judgeAnalysis: submission.aiAnalysis || null,
+            };
+        }
         case ActionTypes.RESET_WORKSPACE: {
             const ch = state.challenges.find(c => c.id === state.selectedChallengeId);
             const starterCode = ch?.starterCode?.[state.language] || '// Start coding here\n';
@@ -465,23 +496,6 @@ function challengeReducer(state, action) {
             return { ...state, editorSettings: { ...state.editorSettings, ...action.payload } };
         case ActionTypes.SET_EDITOR_FULLSCREEN:
             return { ...state, isEditorFullscreen: action.payload };
-        case ActionTypes.SET_CHALLENGE_SOLVED:
-            return {
-                ...state,
-                isChallengeSolved: true,
-                isTimerRunning: false,
-                isPaused: false,
-                currentSubmission: action.payload,
-                activeTab: 1,
-                executionState: 'success',
-            };
-        case ActionTypes.RESET_FEATURE_STATE:
-            return {
-                ...initialState,
-                isLoadingChallenges: false,
-                isLoadingStats: false,
-                editorSettings: state.editorSettings,
-            };
         default:
             return state;
     }
@@ -495,33 +509,52 @@ export const ChallengeProvider = ({ children }) => {
     const { isLoggedIn, isAuthLoading, updateCurrentUser } = useAuth();
     const isChallengesRoute = location.pathname === '/challenges' || location.pathname.startsWith('/challenges/');
     const isBattlesRoute = location.pathname === '/battles' || location.pathname.startsWith('/battles/');
+    const isListPage = location.pathname === '/challenges';
 
     useEffect(() => {
         const shouldLoadStats = (isChallengesRoute || isBattlesRoute) && isLoggedIn && !isAuthLoading;
-        const shouldLoadChallenges = isChallengesRoute;
+        const shouldLoadChallenges = isListPage || (isChallengesRoute && state.challenges.length === 0);
+
         if (!shouldLoadStats) {
-            dispatch({ type: ActionTypes.RESET_FEATURE_STATE });
+            // Only reset if we are truly out of the feature scope
+            if (!isChallengesRoute && !isBattlesRoute && !isAuthLoading) {
+                dispatch({ type: ActionTypes.RESET_FEATURE_STATE });
+            }
             return;
         }
 
         let cancelled = false;
         const loadData = async () => {
-            dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+            // Only show loading spinner on initial load or if we are explicitly entering the catalogue list
+            if ((state.challenges.length === 0 && isChallengesRoute) || isListPage) {
+                dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+            }
+
             try {
-                const [apiChallenges, stats, streakRes, progressRes] = await Promise.all([
-                    shouldLoadChallenges ? challengeService.getPublished() : Promise.resolve([]),
+                // Fetch catalogue and progress in parallel with individual error resilience
+                const [apiChallengesRes, stats, streakRes, progressRes] = await Promise.all([
+                    shouldLoadChallenges
+                        ? challengeService.getPublished().catch(err => {
+                            console.error('Catalogue fetch failed:', err);
+                            return null;
+                        })
+                        : Promise.resolve(null),
                     fetchRankStats(),
                     fetchUserStreak(),
-                    judgeService.getProgress(),
+                    judgeService.getProgress().catch(err => {
+                        console.error('Progress fetch failed:', err);
+                        return null;
+                    }),
                 ]);
 
                 if (cancelled) return;
 
-                if (shouldLoadChallenges) {
-                    const challengeList = Array.isArray(apiChallenges)
-                        ? apiChallenges
-                        : Array.isArray(apiChallenges?.challenges)
-                            ? apiChallenges.challenges
+                // Sync challenges catalogue
+                if (apiChallengesRes) {
+                    const challengeList = Array.isArray(apiChallengesRes)
+                        ? apiChallengesRes
+                        : Array.isArray(apiChallengesRes?.challenges)
+                            ? apiChallengesRes.challenges
                             : [];
 
                     dispatch({
@@ -530,51 +563,41 @@ export const ChallengeProvider = ({ children }) => {
                     });
                 }
 
-                dispatch({
-                    type: ActionTypes.SET_USER_STATS,
-                    payload: stats || { rank: null, rankDetails: null, nextRank: null, totalXP: 0, xpInCurrentRank: 0, xpNeededForNextRank: 0, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
-                });
-                dispatch({
-                    type: ActionTypes.SET_STREAK,
-                    payload: streakRes || {
-                        currentStreak: stats?.streak ?? 0,
-                        longestStreak: stats?.streak ?? 0,
-                        lastLoginDate: null,
-                        streakMessage: '',
-                        recentActivity: [false, false, false, false, false, false, false],
-                    },
-                });
+                // Sync user rank & stats
+                if (stats) {
+                    dispatch({ type: ActionTypes.SET_USER_STATS, payload: stats });
+                }
 
-                const normalizedProgress = Array.isArray(progressRes?.progress)
-                    ? progressRes.progress.map(normalizeProgressEntry)
-                    : [];
-                dispatch({ type: ActionTypes.SET_PROGRESS, payload: normalizedProgress });
+                // Sync user streak
+                if (streakRes) {
+                    dispatch({ type: ActionTypes.SET_STREAK, payload: streakRes });
+                }
+
+                // Sync user progress
+                if (progressRes?.progress) {
+                    const normalizedProgress = progressRes.progress.map(normalizeProgressEntry);
+                    dispatch({ type: ActionTypes.SET_PROGRESS, payload: normalizedProgress });
+                }
+
             } catch (error) {
-                console.error('Failed to load challenge feature data:', error);
+                console.error('Global ChallengeContext load error:', error);
                 if (!cancelled) {
-                    dispatch({ type: ActionTypes.SET_CHALLENGES, payload: [] });
                     dispatch({
-                        type: ActionTypes.SET_USER_STATS,
-                        payload: { rank: null, rankDetails: null, nextRank: null, totalXP: 0, xpInCurrentRank: 0, xpNeededForNextRank: 0, xp: 0, nextRankXp: 500, progressPercentage: 0, streak: 0, isMaxRank: false },
+                        type: ActionTypes.SET_ERROR,
+                        payload: { message: 'Failed to sync platform data. Check your connection.', type: 'SyncError' }
                     });
-                    dispatch({
-                        type: ActionTypes.SET_STREAK,
-                        payload: {
-                            currentStreak: 0,
-                            longestStreak: 0,
-                            lastLoginDate: null,
-                            streakMessage: '',
-                            recentActivity: [false, false, false, false, false, false, false],
-                        },
-                    });
-                    dispatch({ type: ActionTypes.SET_PROGRESS, payload: [] });
+                }
+            } finally {
+                if (!cancelled) {
+                    dispatch({ type: ActionTypes.SET_LOADING, payload: false });
                 }
             }
         };
 
         loadData();
+
         return () => { cancelled = true; };
-    }, [isChallengesRoute, isBattlesRoute, isLoggedIn, isAuthLoading]);
+    }, [isChallengesRoute, isBattlesRoute, isLoggedIn, isAuthLoading, isListPage]);
 
     const selectedChallenge = useMemo(
         () => state.challenges.find(c => c.id === state.selectedChallengeId) || null,

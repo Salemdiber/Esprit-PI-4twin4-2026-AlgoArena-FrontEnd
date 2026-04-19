@@ -44,16 +44,16 @@ export const Rank = Object.freeze({
 });
 
 export const RANK_META = {
-    [Rank.BRONZE]: { label: 'Bronze', title: 'Novice', gradient: ['#cd7f32', '#a0522d'], xpCeil: 1500, color: '#CD7F32' },
-    [Rank.SILVER]: { label: 'Silver', title: 'Apprentice', gradient: ['#c0c0c0', '#a8a8a8'], xpCeil: 3000, color: '#C0C0C0' },
-    [Rank.GOLD]: { label: 'Gold', title: 'Coder', gradient: ['#facc15', '#f59e0b'], xpCeil: 5000, color: '#FFD700' },
-    [Rank.PLATINUM]: { label: 'Platinum', title: 'Developer', gradient: ['#E5E4E2', '#22d3ee'], xpCeil: 10000, color: '#E5E4E2' },
-    [Rank.DIAMOND]: { label: 'Diamond', title: 'Engineer', gradient: ['#B9F2FF', '#0ea5e9'], xpCeil: 15000, color: '#B9F2FF' },
-    [Rank.RUBY]: { label: 'Ruby', title: 'Architect', gradient: ['#E0115F', '#be123c'], xpCeil: 25000, color: '#E0115F' },
-    [Rank.EMERALD]: { label: 'Emerald', title: 'Master', gradient: ['#50C878', '#16a34a'], xpCeil: 40000, color: '#50C878' },
-    [Rank.SAPPHIRE]: { label: 'Sapphire', title: 'Grandmaster', gradient: ['#0F52BA', '#1d4ed8'], xpCeil: 60000, color: '#0F52BA' },
-    [Rank.OBSIDIAN]: { label: 'Obsidian', title: 'Legend', gradient: ['#3D3635', '#111827'], xpCeil: 100000, color: '#3D3635' },
-    [Rank.CHAMPION]: { label: 'AlgoArena Champion', title: 'Champion', gradient: ['#facc15', '#7c3aed'], xpCeil: 100000, color: '#D4AF37' },
+    [Rank.BRONZE]: { label: 'Bronze', title: 'Novice', gradient: ['#A85E34', '#78350F'], xpCeil: 1500, color: '#B45F06' },
+    [Rank.SILVER]: { label: 'Silver', title: 'Apprentice', gradient: ['#94A3B8', '#475569'], xpCeil: 3000, color: '#64748B' },
+    [Rank.GOLD]: { label: 'Gold', title: 'Coder', gradient: ['#FACC15', '#B45309'], xpCeil: 5000, color: '#D97706' },
+    [Rank.PLATINUM]: { label: 'Platinum', title: 'Developer', gradient: ['#22D3EE', '#0891B2'], xpCeil: 10000, color: '#06B6D4' },
+    [Rank.DIAMOND]: { label: 'Diamond', title: 'Engineer', gradient: ['#38BDF8', '#1D4ED8'], xpCeil: 15000, color: '#0EA5E9' },
+    [Rank.RUBY]: { label: 'Ruby', title: 'Architect', gradient: ['#FB7185', '#9F1239'], xpCeil: 25000, color: '#E11D48' },
+    [Rank.EMERALD]: { label: 'Emerald', title: 'Master', gradient: ['#34D399', '#065F46'], xpCeil: 40000, color: '#10B981' },
+    [Rank.SAPPHIRE]: { label: 'Sapphire', title: 'Grandmaster', gradient: ['#60A5FA', '#1E40AF'], xpCeil: 60000, color: '#2563EB' },
+    [Rank.OBSIDIAN]: { label: 'Obsidian', title: 'Legend', gradient: ['#4B5563', '#111827'], xpCeil: 100000, color: '#1F2937' },
+    [Rank.CHAMPION]: { label: 'AlgoArena Champion', title: 'Champion', gradient: ['#FACC15', '#7C3AED'], xpCeil: 100000, color: '#8B5CF6' },
 };
 
 // ─── Tags ─────────────────────────────────────────────────────────

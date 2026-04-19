@@ -85,7 +85,12 @@ export default function useChallenges() {
 
     // ── Filtered + sorted list ───────────────────────────────
     const filteredChallenges = useMemo(() => {
-        let result = [...challenges];
+        const seenIds = new Set();
+        let result = challenges.filter(c => {
+            if (seenIds.has(c.id)) return false;
+            seenIds.add(c.id);
+            return true;
+        });
 
         // Difficulty filter
         if (selectedDifficulties.length > 0) {

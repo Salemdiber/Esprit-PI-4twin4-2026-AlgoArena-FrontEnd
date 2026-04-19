@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 const BACKEND_TARGET = 'http://localhost:3000';
 let lastBackendNoticeAt = 0;
@@ -124,12 +123,6 @@ const createProxyConfig = (pathOptions = {}) => ({
 export default defineConfig({
   plugins: [
     react(),
-    visualizer({
-      filename: 'perf-reports/stats.html',
-      gzipSize: true,
-      brotliSize: true,
-      open: true,
-    }),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',

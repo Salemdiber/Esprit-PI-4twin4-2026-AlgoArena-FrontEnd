@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ChallengeHeader - top navigation bar for the play page.
  */
 import React from 'react';
@@ -11,6 +11,7 @@ import {
     IconButton,
     Tooltip,
     HStack,
+    useColorMode,
     useColorModeValue,
     useDisclosure,
     Modal,
@@ -61,10 +62,26 @@ const fmtElapsed = (secs) => {
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 };
 
-const getChronoColor = (secs) => {
-    if (secs < 900) return { color: '#22d3ee', glow: 'rgba(34,211,238,0.25)', bg: 'rgba(34,211,238,0.07)', border: 'rgba(34,211,238,0.2)' };
-    if (secs < 1800) return { color: '#facc15', glow: 'rgba(250,204,21,0.22)', bg: 'rgba(250,204,21,0.07)', border: 'rgba(250,204,21,0.2)' };
-    return { color: '#f97316', glow: 'rgba(249,115,22,0.22)', bg: 'rgba(249,115,22,0.07)', border: 'rgba(249,115,22,0.2)' };
+const getChronoColor = (secs, colorMode) => {
+    const isLight = colorMode === 'light';
+    if (secs < 900) return { 
+        color: isLight ? '#0891b2' : '#22d3ee', 
+        glow: isLight ? 'rgba(8,145,178,0.15)' : 'rgba(34,211,238,0.25)', 
+        bg: isLight ? 'rgba(8,145,178,0.06)' : 'rgba(34,211,238,0.07)', 
+        border: isLight ? 'rgba(8,145,178,0.2)' : 'rgba(34,211,238,0.2)' 
+    };
+    if (secs < 1800) return { 
+        color: isLight ? '#ca8a04' : '#facc15', 
+        glow: isLight ? 'rgba(202,138,4,0.12)' : 'rgba(250,204,21,0.22)', 
+        bg: isLight ? 'rgba(202,138,4,0.06)' : 'rgba(250,204,21,0.07)', 
+        border: isLight ? 'rgba(202,138,4,0.2)' : 'rgba(250,204,21,0.2)' 
+    };
+    return { 
+        color: isLight ? '#ea580c' : '#f97316', 
+        glow: isLight ? 'rgba(234,88,12,0.12)' : 'rgba(249,115,22,0.22)', 
+        bg: isLight ? 'rgba(234,88,12,0.06)' : 'rgba(249,115,22,0.07)', 
+        border: isLight ? 'rgba(234,88,12,0.2)' : 'rgba(249,115,22,0.2)' 
+    };
 };
 
 const ChallengeHeader = ({ onAttemptLeave }) => {
@@ -85,6 +102,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
         resetWorkspace,
     } = useChallengeContext();
     const { submitCode } = useChallengeExecution();
+    const { colorMode } = useColorMode();
     const borderColor = useColorModeValue('gray.200', 'gray.700');
     const iconColor = useColorModeValue('gray.500', 'gray.400');
     const iconHoverColor = useColorModeValue('gray.800', 'gray.100');
@@ -94,7 +112,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
     if (!selectedChallenge) return null;
 
     const diffMeta = DIFFICULTY_META[selectedChallenge.difficulty];
-    const { color, glow, bg, border } = getChronoColor(elapsedSeconds);
+    const { color, glow, bg, border } = getChronoColor(elapsedSeconds, colorMode);
 
     const handleBack = () => {
         if (onAttemptLeave) {
@@ -175,7 +193,7 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                                     border="1px solid rgba(34, 197, 94, 0.4)"
                                     fontSize="10px"
                                     fontWeight="bold"
-                                    color="green.300"
+                                    color={useColorModeValue('green.600', 'green.300')}
                                     fontFamily="mono"
                                 >
                                     {t('challengePage.solved')}
@@ -233,11 +251,11 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                             display="flex"
                             alignItems="center"
                             justifyContent="center"
-                            color={isPaused ? 'green.400' : 'gray.400'}
-                            bg={isPaused ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.05)'}
+                            color={isPaused ? (useColorModeValue('green.600', 'green.400')) : iconColor}
+                            bg={isPaused ? (useColorModeValue('green.50', 'rgba(34,197,94,0.08)')) : iconHoverBg}
                             border="1px solid"
-                            borderColor={isPaused ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)'}
-                            _hover={{ bg: isPaused ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.1)' }}
+                            borderColor={isPaused ? (useColorModeValue('green.200', 'rgba(34,197,94,0.25)')) : borderColor}
+                            _hover={{ bg: isPaused ? (useColorModeValue('green.100', 'rgba(34,197,94,0.15)')) : iconHoverBg }}
                             transition="all 0.2s"
                             opacity={isChallengeSolved ? 0.5 : 1}
                             pointerEvents={isChallengeSolved ? 'none' : 'auto'}
@@ -256,10 +274,11 @@ const ChallengeHeader = ({ onAttemptLeave }) => {
                             display="flex"
                             alignItems="center"
                             justifyContent="center"
-                            color="gray.500"
-                            bg="rgba(255,255,255,0.03)"
-                            border="1px solid rgba(255,255,255,0.07)"
-                            _hover={{ color: 'gray.300', bg: 'rgba(255,255,255,0.08)' }}
+                            color={iconColor}
+                            bg={iconHoverBg}
+                            border="1px solid"
+                            borderColor={borderColor}
+                            _hover={{ color: iconHoverColor, bg: iconHoverBg }}
                             transition="all 0.2s"
                             opacity={isChallengeSolved ? 0.5 : 1}
                             pointerEvents={isChallengeSolved ? 'none' : 'auto'}

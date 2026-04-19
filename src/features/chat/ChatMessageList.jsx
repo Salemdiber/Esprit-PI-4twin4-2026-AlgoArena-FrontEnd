@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Center, Spinner, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, Center, Spinner, Text, VStack, useColorModeValue } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import ChatMessage from './ChatMessage';
 import ChatEmptyState from './ChatEmptyState';
@@ -39,6 +39,7 @@ const ChatMessageList = ({
   historyError,
 }) => {
   const { t } = useTranslation();
+  const dayLabelColor = useColorModeValue('gray.600', 'gray.500');
   const listRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
@@ -95,7 +96,7 @@ const ChatMessageList = ({
               <Box key={msg._id} id={`chat-msg-${msg._id}`}>
                 {showDate && (
                   <Center py={1}>
-                    <Text fontSize="xs" color="gray.500">
+                    <Text fontSize="xs" color={dayLabelColor}>
                       {dayLabel(msg.createdAt, t)}
                     </Text>
                   </Center>

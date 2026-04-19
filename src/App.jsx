@@ -325,29 +325,19 @@ const IdleRoutePrefetcher = () => {
 };
 
 const FeatureScopedProviders = ({ children }) => {
-  const location = useLocation();
   const { isLoggedIn } = useAuth();
-  const path = location.pathname;
 
-  const isBattlesPath = path === '/battles' || path.startsWith('/battles/');
-  const isChallengesPath = path === '/challenges' || path.startsWith('/challenges/');
-  const isProfilePath = path === '/profile' || path.startsWith('/profile/');
+  if (!isLoggedIn) return children;
 
-  let tree = children;
-
-  if (isLoggedIn && isProfilePath) {
-    tree = <ProfileProvider>{tree}</ProfileProvider>;
-  }
-
-  if (isLoggedIn && (isChallengesPath || isBattlesPath)) {
-    tree = <ChallengeProvider>{tree}</ChallengeProvider>;
-  }
-
-  if (isLoggedIn && isBattlesPath) {
-    tree = <BattleProvider>{tree}</BattleProvider>;
-  }
-
-  return tree;
+  return (
+    <ChallengeProvider>
+      <BattleProvider>
+        <ProfileProvider>
+          {children}
+        </ProfileProvider>
+      </BattleProvider>
+    </ChallengeProvider>
+  );
 };
 
 const ChatPanelMount = () => {
@@ -376,7 +366,6 @@ function App() {
       <LazyMotion features={loadMotionFeatures} strict>
         <AccessibilityProvider>
           <LoadingProvider>
-            <a href="#main-content" className="skip-to-content">{t('common.skipToContent')}</a>
             <Router>
             <NavigateRegistrar />
             <NavigationProgress />

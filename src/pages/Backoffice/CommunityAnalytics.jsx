@@ -244,11 +244,20 @@ const CommunityAnalytics = () => {
     ],
   };
 
+  const lightTheme = typeof document !== 'undefined' && document.documentElement?.getAttribute('data-theme') === 'light';
+  const headingColor = 'var(--color-text-heading)';
+  const mutedColor = 'var(--color-text-muted)';
+  const secondaryColor = 'var(--color-text-secondary)';
+  const chartLegendColor = lightTheme ? '#334155' : '#cbd5e1';
+  const chartTickColor = lightTheme ? '#475569' : '#94a3b8';
+  const chartGridColor = lightTheme ? 'rgba(100, 116, 139, 0.18)' : 'rgba(148, 163, 184, 0.1)';
+  const pieBorderColor = lightTheme ? '#e2e8f0' : '#0f172a';
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="mb-6">
-        <h1 className="font-heading text-3xl font-bold text-gray-100 mb-2">Community Analytics</h1>
-        <p className="text-gray-400">Global operational view across activity, contributors, and content health</p>
+        <h1 className="font-heading text-3xl font-bold mb-2" style={{ color: headingColor }}>Community Analytics</h1>
+        <p style={{ color: mutedColor }}>Global operational view across activity, contributors, and content health</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
@@ -263,16 +272,22 @@ const CommunityAnalytics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="glass-panel rounded-2xl p-6 shadow-custom">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-lg font-semibold text-gray-100">Solved vs Unsolved Posts</h3>
+            <h3 className="font-heading text-lg font-semibold" style={{ color: headingColor }}>Solved vs Unsolved Posts</h3>
           </div>
           <div className="h-[300px]">
             <Pie
-              data={solvedChartData}
+              data={{
+                ...solvedChartData,
+                datasets: solvedChartData.datasets.map((set) => ({
+                  ...set,
+                  borderColor: [pieBorderColor, pieBorderColor],
+                })),
+              }}
               options={{
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    labels: { color: '#cbd5e1' },
+                    labels: { color: chartLegendColor },
                   },
                 },
               }}
@@ -282,16 +297,22 @@ const CommunityAnalytics = () => {
 
         <div className="glass-panel rounded-2xl p-6 shadow-custom">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-lg font-semibold text-gray-100">Post Type Distribution</h3>
+            <h3 className="font-heading text-lg font-semibold" style={{ color: headingColor }}>Post Type Distribution</h3>
           </div>
           <div className="h-[300px]">
             <Pie
-              data={postTypeData}
+              data={{
+                ...postTypeData,
+                datasets: postTypeData.datasets.map((set) => ({
+                  ...set,
+                  borderColor: [pieBorderColor, pieBorderColor],
+                })),
+              }}
               options={{
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    labels: { color: '#cbd5e1' },
+                    labels: { color: chartLegendColor },
                   },
                 },
               }}
@@ -301,7 +322,7 @@ const CommunityAnalytics = () => {
 
         <div className="glass-panel rounded-2xl p-6 shadow-custom">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-lg font-semibold text-gray-100">Top Tags</h3>
+            <h3 className="font-heading text-lg font-semibold" style={{ color: headingColor }}>Top Tags</h3>
           </div>
           <div className="h-[300px]">
             <Bar
@@ -310,12 +331,12 @@ const CommunityAnalytics = () => {
                 maintainAspectRatio: false,
                 scales: {
                   x: {
-                    ticks: { color: '#94a3b8' },
-                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: chartTickColor },
+                    grid: { color: chartGridColor },
                   },
                   y: {
-                    ticks: { color: '#94a3b8', precision: 0 },
-                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: chartTickColor, precision: 0 },
+                    grid: { color: chartGridColor },
                   },
                 },
                 plugins: {
@@ -330,7 +351,7 @@ const CommunityAnalytics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-panel rounded-2xl p-6 shadow-custom">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-lg font-semibold text-gray-100">7-Day Activity Trend</h3>
+            <h3 className="font-heading text-lg font-semibold" style={{ color: headingColor }}>7-Day Activity Trend</h3>
           </div>
           <div className="h-[300px]">
             <Bar
@@ -339,17 +360,17 @@ const CommunityAnalytics = () => {
                 maintainAspectRatio: false,
                 scales: {
                   x: {
-                    ticks: { color: '#94a3b8' },
-                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: chartTickColor },
+                    grid: { color: chartGridColor },
                   },
                   y: {
-                    ticks: { color: '#94a3b8', precision: 0 },
-                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: chartTickColor, precision: 0 },
+                    grid: { color: chartGridColor },
                   },
                 },
                 plugins: {
                   legend: {
-                    labels: { color: '#cbd5e1' },
+                    labels: { color: chartLegendColor },
                   },
                 },
               }}
@@ -359,17 +380,17 @@ const CommunityAnalytics = () => {
 
         <div className="glass-panel rounded-2xl p-6 shadow-custom">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-lg font-semibold text-gray-100">Top Contributors</h3>
+            <h3 className="font-heading text-lg font-semibold" style={{ color: headingColor }}>Top Contributors</h3>
           </div>
           <div className="space-y-3">
             {metrics.topContributors.length === 0 ? (
-              <p className="text-sm text-gray-400">No contributor activity yet.</p>
+              <p className="text-sm" style={{ color: mutedColor }}>No contributor activity yet.</p>
             ) : (
               metrics.topContributors.map((contributor, idx) => (
-                <div key={`${contributor.id}-${idx}`} className="flex items-center justify-between p-3 bg-[#0f172a] rounded-lg border border-gray-800">
+                <div key={`${contributor.id}-${idx}`} className="flex items-center justify-between p-3 rounded-lg border" style={{ background: 'var(--color-bg-input)', borderColor: 'var(--color-border)' }}>
                   <div>
-                    <p className="text-sm text-gray-200 font-medium">@{contributor.username}</p>
-                    <p className="text-xs text-gray-400">Posts: {contributor.posts} · Comments: {contributor.comments}</p>
+                    <p className="text-sm font-medium" style={{ color: secondaryColor }}>@{contributor.username}</p>
+                    <p className="text-xs" style={{ color: mutedColor }}>Posts: {contributor.posts} · Comments: {contributor.comments}</p>
                   </div>
                   <span className="text-cyan-400 font-semibold text-sm">{contributor.posts + contributor.comments}</span>
                 </div>
@@ -384,7 +405,7 @@ const CommunityAnalytics = () => {
 
 const StatCard = ({ label, value, accent }) => (
   <div className="glass-panel rounded-2xl p-6 shadow-custom">
-    <p className="text-gray-400 text-sm mb-2">{label}</p>
+    <p className="text-sm mb-2" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
     <p className={`font-heading text-3xl font-bold ${accent}`}>{value}</p>
   </div>
 );

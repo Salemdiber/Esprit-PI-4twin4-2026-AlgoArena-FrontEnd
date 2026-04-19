@@ -1494,24 +1494,22 @@ const CommunityPage = () => {
 
   const renderMedia = (mediaUrl, isVideo = false) => {
     if (!mediaUrl) return null;
-    const src = toMediaUrl(mediaUrl);
+    const mediaSrc = toMediaUrl(mediaUrl);
 
     if (isVideo) {
       return (
         <Box mt={2} borderRadius="8px" overflow="hidden" border="1px solid rgba(34, 211, 238, 0.2)">
           <video
-            src={src}
+            src={mediaSrc}
             controls
             preload="metadata"
-            style={{ width: '100%', maxHeight: '220px', background: '#020617' }}
+            style={{ width: '100%', maxHeight: '220px', background: 'var(--color-terminal-bg)' }}
           />
         </Box>
       );
     }
-
     return (
       <Box
-        mt={2}
         w="full"
         h="180px"
         borderRadius="8px"
@@ -1521,7 +1519,7 @@ const CommunityPage = () => {
       >
         <Box
           as="img"
-          src={src}
+          src={mediaSrc}
           alt=""
           loading="lazy"
           decoding="async"
@@ -1552,7 +1550,7 @@ const CommunityPage = () => {
       return (
         <Box
           key={commentId}
-          bg={isBestAnswer ? 'rgba(16, 185, 129, 0.12)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.08)' : '#0f172a')}
+          bg={isBestAnswer ? 'rgba(16, 185, 129, 0.12)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.08)' : 'var(--color-bg-primary)')}
           border="1px solid"
           borderColor={isBestAnswer ? 'rgba(16, 185, 129, 0.65)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.65)' : 'rgba(148, 163, 184, 0.22)')}
           borderRadius="10px"
@@ -1629,7 +1627,7 @@ const CommunityPage = () => {
 
           {!isEditing ? (
             <>
-              <Text mt={2} color="gray.200" fontSize="sm" whiteSpace="pre-wrap">{comment.text}</Text>
+              <Text mt={2} color="var(--color-text-secondary)" fontSize="sm" whiteSpace="pre-wrap">{comment.text}</Text>
               {renderMedia(comment.imageUrl, false)}
               {renderMedia(comment.videoUrl, true)}
             </>
@@ -1640,8 +1638,8 @@ const CommunityPage = () => {
                 onChange={(e) => setEditingComment((prev) => ({ ...prev, text: e.target.value }))}
                 minH="80px"
                 bg="#0b1220"
-                borderColor="gray.700"
-                color="gray.100"
+                borderColor="var(--color-border)"
+                color="var(--color-text-primary)"
               />
               <HStack justify="flex-end">
                 <Button size="xs" variant="ghost" onClick={handleCancelCommentEdit}>Cancel</Button>
@@ -1706,8 +1704,8 @@ const CommunityPage = () => {
                       minH="70px"
                       resize="vertical"
                       bg="#0b1220"
-                      borderColor="gray.700"
-                      color="gray.100"
+                      borderColor="var(--color-border)"
+                      color="var(--color-text-primary)"
                       isDisabled={!isLoggedIn}
                     />
 
@@ -1776,17 +1774,17 @@ const CommunityPage = () => {
       pt={{ base: 24, md: 28 }}
       pb={{ base: 10, md: 16 }}
       px={{ base: 4, sm: 6, lg: 8 }}
-      bg="#0f172a"
+      bg="var(--color-bg-primary)"
       bgImage="linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px)"
       bgSize="50px 50px"
     >
       <Box maxW="7xl" mx="auto">
         <Flex direction={{ base: 'column', md: 'row' }} align={{ base: 'start', md: 'center' }} justify="space-between" gap={4} mb={6}>
           <Box>
-            <Text fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold" color="white">
+            <Text fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold" color="var(--color-text-heading)">
               Community
             </Text>
-            <Text mt={2} color="gray.400" fontFamily="body">
+            <Text mt={2} color="var(--color-text-muted)" fontFamily="body">
               Ask questions, share ideas, and collaborate with other AlgoArena members.
             </Text>
           </Box>
@@ -1847,9 +1845,9 @@ const CommunityPage = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by title or content"
-              bg="#1e293b"
-              borderColor="gray.700"
-              color="gray.100"
+              bg="var(--color-bg-secondary)"
+              borderColor="var(--color-border)"
+              color="var(--color-text-primary)"
               _hover={{ borderColor: 'brand.500' }}
               _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
             />
@@ -1858,28 +1856,28 @@ const CommunityPage = () => {
               aria-label="Sort community posts"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
-              bg="#1e293b"
-              borderColor="gray.700"
-              color="gray.100"
+              bg="var(--color-bg-secondary)"
+              borderColor="var(--color-border)"
+              color="var(--color-text-primary)"
               w={{ base: 'full', md: '220px' }}
             >
-              <option value="recent" style={{ backgroundColor: '#1e293b' }}>Most Recent</option>
-              <option value="liked" style={{ backgroundColor: '#1e293b' }}>Most Liked</option>
-              <option value="commented" style={{ backgroundColor: '#1e293b' }}>Most Commented</option>
+              <option value="recent" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>Most Recent</option>
+              <option value="liked" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>Most Liked</option>
+              <option value="commented" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>Most Commented</option>
             </Select>
 
             <Select
               aria-label="Filter community posts by tag"
               value={selectedTag}
               onChange={(e) => setSelectedTag(e.target.value)}
-              bg="#1e293b"
-              borderColor="gray.700"
-              color="gray.100"
+              bg="var(--color-bg-secondary)"
+              borderColor="var(--color-border)"
+              color="var(--color-text-primary)"
               w={{ base: 'full', md: '220px' }}
             >
-              <option value="all" style={{ backgroundColor: '#1e293b' }}>All Tags</option>
+              <option value="all" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>All Tags</option>
               {allTags.map((tag) => (
-                <option key={tag} value={tag} style={{ backgroundColor: '#1e293b' }}>#{tag}</option>
+                <option key={tag} value={tag} style={{ backgroundColor: 'var(--color-bg-secondary)' }}>#{tag}</option>
               ))}
             </Select>
           </Flex>
@@ -1892,23 +1890,21 @@ const CommunityPage = () => {
         )}
 
         <MotionBox key={activeSection} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-          {loading ? (
+{loading ? (
             <Flex justify="center" py={14}>
               <Spinner size="lg" color="brand.500" thickness="3px" />
             </Flex>
           ) : (
             <VStack spacing={4} align="stretch">
               {filteredAndSortedPosts.length === 0 ? (
-                <Box bg="#1e293b" border="1px solid" borderColor="gray.700" borderRadius="14px" p={7} textAlign="center">
-                  <Text color="gray.300" fontSize="lg" fontFamily="heading">
+                <Box bg="var(--color-bg-secondary)" border="1px solid" borderColor="var(--color-border)" borderRadius="14px" p={7} textAlign="center">
+                  <Text color="var(--color-text-muted)" fontSize="lg" fontFamily="heading">
                     {activeSection === 'problems' ? 'No problems yet.' : 'No community posts yet.'}
                   </Text>
                 </Box>
               ) : (
                 filteredAndSortedPosts.map((post) => {
                   const postId = post._id;
-                  const discussionSummary = String(discussionSummaries[postId] || '').trim();
-                  const summaryError = String(summaryErrors[postId] || '').trim();
                   const commentsOpen = Boolean(commentsVisible[postId]);
                   const baseComments = Array.isArray(post.comments) ? post.comments : [];
                   const allComments = commentsOpen
@@ -1938,7 +1934,7 @@ const CommunityPage = () => {
                       maxW={{ base: '100%', md: '86%', lg: '56%' }}
                       mx="auto"
                       w="full"
-                      bg={post?.pinned ? 'rgba(30, 41, 59, 0.96)' : '#1e293b'}
+                      bg={post?.pinned ? 'rgba(30, 41, 59, 0.96)' : 'var(--color-bg-secondary)'}
                       border="1px solid"
                       borderColor={post?.pinned ? 'rgba(34, 211, 238, 0.75)' : 'rgba(34, 211, 238, 0.12)'}
                       borderRadius="14px"
@@ -1956,45 +1952,25 @@ const CommunityPage = () => {
                           {!isEditingPost ? (
                             <>
                               <HStack spacing={2} align="center" flexWrap="wrap">
-                                <Text color="white" fontFamily="heading" fontSize={{ base: 'md', md: 'lg' }} fontWeight="semibold">{post.title}</Text>
-                                {post?.pinned && (
-                                  <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                                    Pinned
-                                  </Badge>
-                                )}
-                                {post?.solved && (
-                                  <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                                    Solved
-                                  </Badge>
-                                )}
-                                {post?.type === 'problem' && post?.problemType && (
-                                  <Badge colorScheme="orange" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                                    {post.problemType}
-                                  </Badge>
-                                )}
-                                {isTrendingPost && (
-                                  <Badge colorScheme="red" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                                    🔥 Trending
-                                  </Badge>
-                                )}
-                                {isHelpfulPost && (
-                                  <Badge colorScheme="yellow" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                                    ⭐ Helpful
-                                  </Badge>
-                                )}
-                                {hasSolutionFound && (
-                                  <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                                    🧠 Solution Found
-                                  </Badge>
-                                )}
+                                <Text color="var(--color-text-heading)" fontFamily="heading" fontSize={{ base: 'md', md: 'lg' }} fontWeight="semibold">{post.title}</Text>
+                                {post?.pinned && <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Pinned</Badge>}
+                                {post?.solved && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Solved</Badge>}
+                                {post?.type === 'problem' && post?.problemType && <Badge colorScheme="orange" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{post.problemType}</Badge>}
+                                {isTrendingPost && <Badge colorScheme="red" variant="subtle" fontSize="10px" px={1.5} py={0.5}>🔥 Trending</Badge>}
+                                {isHelpfulPost && <Badge colorScheme="yellow" variant="subtle" fontSize="10px" px={1.5} py={0.5}>⭐ Helpful</Badge>}
+                                {hasSolutionFound && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>🧠 Solution Found</Badge>}
                               </HStack>
 
                               <HStack spacing={2} mt={2} flexWrap="wrap">
                                 <Avatar size="xs" src={post.authorAvatar || undefined} name={post.authorUsername || 'unknown'} />
                                 <Text color="brand.500" fontWeight="semibold" fontSize="sm">@{post.authorUsername || 'unknown'}</Text>
-                                <Text color="gray.400" fontSize="xs">{relativeTime(post.createdAt)}</Text>
-                                <Text color="gray.400" fontSize="xs">{totalComments} comments</Text>
+                                <Text color="var(--color-text-muted)" fontSize="xs">{relativeTime(post.createdAt)}</Text>
+                                <Text color="var(--color-text-muted)" fontSize="xs">{totalComments} comments</Text>
                               </HStack>
+
+                              <Text mt={3} color="var(--color-text-primary)" fontSize="sm" noOfLines={3}>
+                                {post.content}
+                              </Text>
 
                               {(post.tags || []).length > 0 && (
                                 <HStack spacing={2} mt={2} flexWrap="wrap">
@@ -2020,17 +1996,17 @@ const CommunityPage = () => {
                               <Input
                                 value={editingPost.title}
                                 onChange={(e) => setEditingPost((prev) => ({ ...prev, title: e.target.value }))}
-                                bg="#0f172a"
-                                borderColor="gray.700"
-                                color="gray.100"
+                                bg="var(--color-bg-primary)"
+                                borderColor="var(--color-border)"
+                                color="var(--color-text-primary)"
                               />
                               <Textarea
                                 value={editingPost.content}
                                 onChange={(e) => setEditingPost((prev) => ({ ...prev, content: e.target.value }))}
                                 minH="110px"
-                                bg="#0f172a"
-                                borderColor="gray.700"
-                                color="gray.100"
+                                bg="var(--color-bg-primary)"
+                                borderColor="var(--color-border)"
+                                color="var(--color-text-primary)"
                               />
                             </VStack>
                           )}
@@ -2048,235 +2024,94 @@ const CommunityPage = () => {
                               >
                                 {commentsOpen ? 'Hide Comments' : 'View Comments'} ({allComments.length})
                               </Button>
-
                               <Menu>
                                 <MenuButton
                                   as={IconButton}
                                   size="xs"
-                                  aria-label="Post actions"
                                   icon={<ThreeDotsIcon width={14} height={14} />}
                                   variant="ghost"
-                                  border="1px solid"
-                                  borderColor="rgba(34, 211, 238, 0.35)"
+                                  aria-label="Options"
+                                  _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
                                 />
-                                <MenuList bg="#1e293b" borderColor="rgba(34, 211, 238, 0.35)">
+                                <MenuList bg="var(--color-bg-secondary)" borderColor="var(--color-border)" py={1} border="1px solid" zIndex={10}>
                                   {isOwner(post.authorId) && (
-                                    <MenuItem bg="#1e293b" color="gray.100" _hover={{ bg: '#0f172a' }} onClick={() => handleStartPostEdit(post)}>
-                                      Modify
-                                    </MenuItem>
-                                  )}
-                                  <MenuItem
-                                    bg="#1e293b"
-                                    color="gray.100"
-                                    _hover={{ bg: '#0f172a' }}
-                                    onClick={() => toggleSavePost(postId)}
-                                  >
-                                    {isPostSaved(postId) ? 'Unsave' : 'Save'}
-                                  </MenuItem>
-                                  {post?.type === 'problem' && (isOwner(post.authorId) || isAdmin) && (
-                                    <MenuItem
-                                      bg="#1e293b"
-                                      color="gray.100"
-                                      _hover={{ bg: '#0f172a' }}
-                                      onClick={() => handleToggleSolved(post)}
-                                    >
-                                      {post?.solved ? 'Mark Unsolved' : 'Mark as Solved'}
-                                    </MenuItem>
-                                  )}
-                                  {isAdmin && (
-                                    <MenuItem
-                                      bg="#1e293b"
-                                      color="gray.100"
-                                      _hover={{ bg: '#0f172a' }}
-                                      onClick={() => handleTogglePostPin(post)}
-                                    >
-                                      {post?.pinned ? 'Unpin Post' : 'Pin Post'}
-                                    </MenuItem>
+                                    <MenuItem onClick={() => handleStartPostEdit(post)} icon={<Box as="span" fontSize="xs">✏️</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="var(--color-text-primary)">Edit Post</MenuItem>
                                   )}
                                   {canDeletePost && (
-                                    <MenuItem
-                                      bg="#1e293b"
-                                      color="red.300"
-                                      _hover={{ bg: '#0f172a' }}
-                                      onClick={() => openDeleteConfirm('post', postId)}
-                                    >
-                                      Delete
+                                    <MenuItem onClick={() => openDeleteConfirm('post', postId)} icon={<Box as="span" fontSize="xs">🗑️</Box>} bg="transparent" _hover={{ bg: 'rgba(239, 68, 68, 0.1)' }} color="red.400">Delete Post</MenuItem>
+                                  )}
+                                  <MenuItem onClick={() => handleSummarizeDiscussion(post)} icon={<Box as="span" fontSize="xs">✨</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="cyan.300" isDisabled={summarizingPostId === postId}>
+                                    {summarizingPostId === postId ? 'Summarizing...' : 'Summarize with AI'}
+                                  </MenuItem>
+                                  <MenuItem onClick={() => toggleSavePost(postId)} icon={<BookmarkIcon width={12} height={12} />} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color={isPostSaved(postId) ? 'brand.500' : 'var(--color-text-primary)'}>
+                                    {isPostSaved(postId) ? 'Unsave' : 'Save'}
+                                  </MenuItem>
+                                  {isAdmin && (
+                                    <MenuItem onClick={() => handleTogglePostPin(post)} icon={<PinIcon width={12} height={12} />} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="cyan.300">
+                                      {post?.pinned ? 'Unpin' : 'Pin'}
+                                    </MenuItem>
+                                  )}
+                                  {post.type === 'problem' && isOwner(post.authorId) && (
+                                    <MenuItem onClick={() => handleToggleSolved(post)} icon={<Box as="span" fontSize="xs">✅</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="green.400">
+                                      Mark as {post?.solved ? 'Unsolved' : 'Solved'}
                                     </MenuItem>
                                   )}
                                 </MenuList>
                               </Menu>
                             </>
                           ) : (
-                            <>
+                            <HStack spacing={2}>
+                              <Button size="xs" variant="primary" isLoading={savingPostEditId === postId} onClick={() => handleSavePostEdit(postId)}>Save</Button>
                               <Button size="xs" variant="ghost" onClick={handleCancelPostEdit}>Cancel</Button>
-                              <Button size="xs" variant="primary" isLoading={savingPostEditId === postId} onClick={() => handleSavePostEdit(postId)}>
-                                Save
-                              </Button>
-                            </>
+                            </HStack>
                           )}
                         </HStack>
                       </Flex>
 
-                      {!isEditingPost && (
-                        <>
-                          {renderMedia(post.imageUrl, false)}
-                          {renderMedia(post.videoUrl, true)}
-                          <Text mt={3} color="gray.200" whiteSpace="pre-wrap" fontSize="sm">{post.content}</Text>
-                          <HStack spacing={2} mt={3}>
-                            <Button
-                              size="xs"
-                              variant={postReaction.userReaction === 'like' ? 'solid' : 'ghost'}
-                              colorScheme="cyan"
-                              border="1px solid"
-                              borderColor="rgba(34, 211, 238, 0.35)"
-                              leftIcon={<ThumbUpIcon width={12} height={12} />}
-                              onClick={() => togglePostReaction(postId, 'like')}
-                            >
-                              {postReaction.likes}
-                            </Button>
-                            <Button
-                              size="xs"
-                              variant={postReaction.userReaction === 'dislike' ? 'solid' : 'ghost'}
-                              colorScheme="red"
-                              border="1px solid"
-                              borderColor="rgba(239, 68, 68, 0.45)"
-                              leftIcon={<ThumbDownIcon width={12} height={12} />}
-                              onClick={() => togglePostReaction(postId, 'dislike')}
-                            >
-                              {postReaction.dislikes}
-                            </Button>
+                      {discussionSummaries[postId] && (
+                        <Box mt={3} p={3} bg="rgba(34, 211, 238, 0.04)" borderRadius="10px" borderLeft="3px solid" borderLeftColor="brand.500">
+                          <HStack spacing={2} mb={1}>
+                            <Box as="span" fontSize="xs">✨</Box>
+                            <Text fontSize="xs" fontWeight="bold" color="cyan.300" textTransform="uppercase" letterSpacing="wider">AI Summary</Text>
                           </HStack>
-                        </>
+                          <Text color="var(--color-text-primary)" fontSize="sm" fontStyle="italic">"{discussionSummaries[postId]}"</Text>
+                        </Box>
                       )}
 
-                      <Divider my={3} borderColor="rgba(148, 163, 184, 0.25)" />
-
-                      <VStack align="stretch" spacing={3}>
-                        <HStack justify="space-between" align="center">
-                          <Text color="gray.300" fontSize="sm" fontWeight="semibold">Comments ({allComments.length})</Text>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            border="1px solid"
-                            borderColor="rgba(34, 211, 238, 0.35)"
-                            isLoading={summarizingPostId === postId}
-                            loadingText="Summarizing"
-                            onClick={() => handleSummarizeDiscussion(post)}
-                          >
-                            Summarize Discussion
-                          </Button>
-                          {commentsOpen && allComments.length > COMMENT_PREVIEW_LIMIT && (
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              border="1px solid"
-                              borderColor="rgba(34, 211, 238, 0.35)"
-                              onClick={() => setShowAllComments((prev) => ({ ...prev, [postId]: !prev[postId] }))}
-                            >
-                              {expanded ? 'Show less comments' : `View all comments (${hiddenCount} more)`}
-                            </Button>
-                          )}
-                        </HStack>
-
-                        {summaryError && (
-                          <Box
-                            bg="rgba(239, 68, 68, 0.12)"
-                            border="1px solid rgba(239, 68, 68, 0.4)"
-                            borderRadius="10px"
-                            px={3}
-                            py={2}
-                          >
-                            <Text color="red.300" fontSize="xs">{summaryError}</Text>
-                          </Box>
-                        )}
-
-                        {discussionSummary && (
-                          <Box
-                            bg="rgba(34, 211, 238, 0.08)"
-                            border="1px solid rgba(34, 211, 238, 0.35)"
-                            borderRadius="10px"
-                            px={3}
-                            py={2}
-                          >
-                            <Text color="cyan.200" fontSize="xs" fontWeight="semibold" mb={1}>AI Discussion Summary</Text>
-                            <Text color="gray.200" fontSize="sm" whiteSpace="pre-wrap">{discussionSummary}</Text>
-                          </Box>
-                        )}
-
-                        {commentsOpen && (
-                          <>
-                            {visibleComments.length === 0 ? (
-                              <Text color="gray.500" fontSize="sm">No comments yet.</Text>
-                            ) : (
-                              <VStack align="stretch" spacing={2}>{renderCommentTree(visibleComments, postId, post.authorId, 0)}</VStack>
-                            )}
-                          </>
-                        )}
-                      </VStack>
-
-                      <Box as="form" mt={3} onSubmit={(event) => handleAddComment(event, postId)}>
-                        <FormControl isInvalid={Boolean(draft.error)}>
-                          <VStack align="stretch" spacing={3}>
-                            <HStack align="start" spacing={3}>
-                              <Textarea
-                                value={draft.text || ''}
-                                onChange={(e) => updateCommentDraft(postId, { text: e.target.value })}
-                                placeholder={isLoggedIn ? 'Write a comment...' : 'Sign in to write a comment...'}
-                                minH="60px"
-                                resize="vertical"
-                                bg="#0f172a"
-                                borderColor="gray.700"
-                                color="gray.100"
-                                _hover={{ borderColor: 'brand.500' }}
-                                _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
-                                isDisabled={!isLoggedIn}
-                              />
-                              <Button
-                                type="submit"
-                                variant="primary"
-                                isLoading={draft.isSubmitting}
-                                loadingText="Sending"
-                                isDisabled={!isLoggedIn}
-                                alignSelf="stretch"
-                              >
-                                Comment
-                              </Button>
-                            </HStack>
-
-                            <HStack spacing={2}>
-                              <Button as="label" size="xs" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
-                                <ImageIcon width={12} height={12} />
-                                <Text ml={1}>Image</Text>
-                                <Input type="file" accept="image/*" onChange={(e) => handleCommentMediaSelect(postId, 'image', e)} hidden />
-                              </Button>
-                              <Button as="label" size="xs" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
-                                <VideoIcon width={12} height={12} />
-                                <Text ml={1}>Video</Text>
-                                <Input type="file" accept="video/*" onChange={(e) => handleCommentMediaSelect(postId, 'video', e)} hidden />
-                              </Button>
-                            </HStack>
-
-                            {draft.imagePreviewUrl && (
-                              <Box
-                                w="full"
-                                h="120px"
-                                borderRadius="8px"
-                                border="1px solid rgba(34, 211, 238, 0.2)"
-                                backgroundImage={`url(${draft.imagePreviewUrl})`}
-                                backgroundSize="cover"
-                                backgroundPosition="center"
-                              />
-                            )}
-                            {draft.videoPreviewUrl && (
-                              <Box borderRadius="8px" overflow="hidden" border="1px solid rgba(34, 211, 238, 0.2)">
-                                <video src={draft.videoPreviewUrl} controls style={{ width: '100%', maxHeight: '160px', background: '#020617' }} />
-                              </Box>
-                            )}
-
-                            <FormErrorMessage>{draft.error}</FormErrorMessage>
+                      {isLoggedIn && (
+                        <Box as="form" mt={4} onSubmit={(e) => handleAddComment(e, postId)}>
+                          <VStack align="stretch" spacing={2}>
+                            <Textarea
+                              value={draft.text}
+                              onChange={(e) => updateCommentDraft(postId, { text: e.target.value })}
+                              placeholder="Write a comment..."
+                              minH="80px"
+                              bg="var(--color-bg-primary)"
+                              borderColor="var(--color-border)"
+                              color="var(--color-text-primary)"
+                              _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
+                            />
+                            <Button type="submit" size="xs" variant="primary" isLoading={draft.isSubmitting} alignSelf="flex-end">Post Comment</Button>
                           </VStack>
-                        </FormControl>
-                      </Box>
+                        </Box>
+                      )}
+
+                      {commentsOpen && (
+                        <VStack align="stretch" spacing={4} mt={6} pt={4} borderTop="1px solid" borderColor="var(--color-border)">
+                          {allComments.length === 0 ? (
+                            <Text color="var(--color-text-muted)" fontSize="sm" textAlign="center" py={4}>No comments yet. Be the first to share your thoughts!</Text>
+                          ) : (
+                            <>
+                              {renderCommentTree(visibleComments, postId, post.authorId)}
+                              {hiddenCount > 0 && (
+                                <Button size="sm" variant="ghost" onClick={() => setShowAllComments(prev => ({ ...prev, [postId]: true }))} color="brand.400">
+                                  Show {hiddenCount} more comments
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </VStack>
+                      )}
                     </Box>
                   );
                 })
@@ -2286,25 +2121,27 @@ const CommunityPage = () => {
         </MotionBox>
       </Box>
 
-      <Modal isOpen={isCreateModalOpen} onClose={handleCreateModalClose} size="lg" isCentered>
-        <ModalOverlay bg="rgba(0, 0, 0, 0.7)" backdropFilter="blur(4px)" />
-        <ModalContent bg="#1e293b" border="1px solid rgba(34, 211, 238, 0.2)" borderRadius="16px">
-          <ModalHeader color="white" fontFamily="heading" fontSize="xl" fontWeight="semibold">
-            {activeSection === 'problems' ? 'Create Problem' : 'Create New Post'}
+      <Modal isOpen={isCreateModalOpen} onClose={handleCreateModalClose} size="xl">
+        <ModalOverlay bg="rgba(0, 0, 0, 0.85)" backdropFilter="blur(8px)" />
+        <ModalContent bg="var(--color-bg-secondary)" border="1px solid" borderColor="rgba(34, 211, 238, 0.3)" borderRadius="16px" overflow="hidden">
+          <ModalHeader borderBottom="1px solid" borderColor="var(--color-border)" px={6} py={4}>
+            <Text color="var(--color-text-heading)" fontFamily="heading" fontSize="xl" fontWeight="bold">
+              {activeSection === 'problems' ? 'Create Problem' : 'Create Community Post'}
+            </Text>
           </ModalHeader>
-          <ModalCloseButton color="gray.400" _hover={{ color: 'brand.500' }} />
-          <ModalBody pb={6}>
+          <ModalCloseButton color="var(--color-text-muted)" _hover={{ color: 'brand.500' }} mt={2} />
+          <ModalBody p={6}>
             <form onSubmit={handleCreatePost}>
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={5} align="stretch">
                 <FormControl isInvalid={Boolean(postErrors.title)} isRequired>
-                  <FormLabel color="gray.300" fontSize="sm">Title</FormLabel>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Title</FormLabel>
                   <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={activeSection === 'problems' ? 'Write a clear problem title' : 'Write a clear title'}
-                    bg="#0f172a"
-                    borderColor="gray.700"
-                    color="gray.100"
+                    bg="var(--color-bg-primary)"
+                    borderColor="var(--color-border)"
+                    color="var(--color-text-primary)"
                     _hover={{ borderColor: 'brand.500' }}
                     _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
                   />
@@ -2312,18 +2149,16 @@ const CommunityPage = () => {
                 </FormControl>
 
                 <FormControl isInvalid={Boolean(postErrors.content)} isRequired>
-                  <FormLabel color="gray.300" fontSize="sm">
-                    {activeSection === 'problems' ? 'Description' : 'Content'}
-                  </FormLabel>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">{activeSection === 'problems' ? 'Description' : 'Content'}</FormLabel>
                   <Textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder={activeSection === 'problems' ? 'Describe your issue or question' : 'Describe your idea, question, or issue'}
                     minH="150px"
                     resize="vertical"
-                    bg="#0f172a"
-                    borderColor="gray.700"
-                    color="gray.100"
+                    bg="var(--color-bg-primary)"
+                    borderColor="var(--color-border)"
+                    color="var(--color-text-primary)"
                     _hover={{ borderColor: 'brand.500' }}
                     _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
                   />
@@ -2332,176 +2167,28 @@ const CommunityPage = () => {
 
                 {activeSection === 'problems' && (
                   <FormControl>
-                    <FormLabel color="gray.300" fontSize="sm">Problem Type</FormLabel>
-                    <Select
-                      value={problemType}
-                      onChange={(e) => setProblemType(e.target.value)}
-                      bg="#0f172a"
-                      borderColor="gray.700"
-                      color="gray.100"
-                    >
-                      <option value="bug" style={{ backgroundColor: '#0f172a' }}>Bug</option>
-                      <option value="algorithm" style={{ backgroundColor: '#0f172a' }}>Algorithm</option>
-                      <option value="help" style={{ backgroundColor: '#0f172a' }}>Help</option>
-                      <option value="optimization" style={{ backgroundColor: '#0f172a' }}>Optimization</option>
+                    <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Problem Type</FormLabel>
+                    <Select value={problemType} onChange={(e) => setProblemType(e.target.value)} bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)">
+                      <option value="bug" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Bug</option>
+                      <option value="algorithm" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Algorithm</option>
+                      <option value="help" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Help</option>
+                      <option value="optimization" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Optimization</option>
                     </Select>
                   </FormControl>
                 )}
 
                 <FormControl>
-                  <FormLabel color="gray.300" fontSize="sm">Tags (comma separated)</FormLabel>
-                  <Input
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    placeholder="javascript, help, bug"
-                    bg="#0f172a"
-                    borderColor="gray.700"
-                    color="gray.100"
-                  />
-                  <Text mt={1} color="gray.500" fontSize="xs">
-                    Debug: OpenRouter key detected: {isOpenRouterKeyDetected ? 'Yes' : 'No'}
-                  </Text>
-
-                  <Flex mt={2} justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={2}>
-                    <Text color="gray.500" fontSize="xs">AI can suggest 3 to 5 tags from your title and description.</Text>
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      borderColor="brand.500"
-                      color="brand.300"
-                      _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
-                      onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())}
-                      isLoading={isFetchingAiTags}
-                      loadingText="Thinking"
-                    >
-                      Suggest Tags with AI
-                    </Button>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Tags (comma separated)</FormLabel>
+                  <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="javascript, help, bug" bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)" />
+                  <Flex mt={3} justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={2}>
+                    <Text color="var(--color-text-muted)" fontSize="xs">AI can suggest 3 to 5 tags from your title and description.</Text>
+                    <Button size="xs" variant="outline" borderColor="brand.500" color="brand.300" onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())} isLoading={isFetchingAiTags}>Suggest Tags</Button>
                   </Flex>
-
-                  {aiTagError && (
-                    <Text mt={2} color="red.300" fontSize="xs">{aiTagError}</Text>
-                  )}
-
-                  {aiSuggestedTags.length > 0 && (
-                    <VStack mt={3} align="stretch" spacing={2}>
-                      <Text color="gray.400" fontSize="xs">Suggested Tags</Text>
-                      <HStack spacing={2} flexWrap="wrap">
-                        {aiSuggestedTags.map((tag) => {
-                          const isSelected = parsedTagsInput.includes(tag);
-                          return (
-                            <Badge
-                              key={`ai-tag-${tag}`}
-                              px={2}
-                              py={1}
-                              borderRadius="full"
-                              cursor="pointer"
-                              border="1px solid"
-                              borderColor={isSelected ? 'rgba(34, 211, 238, 0.7)' : 'rgba(148, 163, 184, 0.35)'}
-                              bg={isSelected ? 'rgba(34, 211, 238, 0.22)' : 'rgba(15, 23, 42, 0.85)'}
-                              color={isSelected ? 'cyan.200' : 'gray.300'}
-                              onClick={() => toggleSuggestedTag(tag)}
-                            >
-                              #{tag}
-                            </Badge>
-                          );
-                        })}
-                      </HStack>
-                    </VStack>
-                  )}
-
-                  {parsedTagsInput.length > 0 && (
-                    <VStack mt={3} align="stretch" spacing={2}>
-                      <Text color="gray.400" fontSize="xs">Selected Tags</Text>
-                      <HStack spacing={2} flexWrap="wrap">
-                        {parsedTagsInput.map((tag) => (
-                          <Badge
-                            key={`selected-tag-${tag}`}
-                            px={2}
-                            py={1}
-                            borderRadius="full"
-                            border="1px solid"
-                            borderColor="rgba(34, 211, 238, 0.6)"
-                            bg="rgba(34, 211, 238, 0.18)"
-                            color="cyan.200"
-                            cursor="pointer"
-                            onClick={() => removeTagFromInput(tag)}
-                          >
-                            #{tag}
-                          </Badge>
-                        ))}
-                      </HStack>
-                    </VStack>
-                  )}
                 </FormControl>
 
-                <FormControl>
-                  <FormLabel color="gray.300" fontSize="sm">Image (optional)</FormLabel>
-                  <Button
-                    as="label"
-                    leftIcon={<ImageIcon width={16} height={16} />}
-                    variant="outline"
-                    borderColor="brand.500"
-                    color="brand.300"
-                    _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
-                    cursor="pointer"
-                    w="full"
-                  >
-                    {imageFile ? 'Change Image' : 'Add Image'}
-                    <Input type="file" accept="image/*" onChange={handleImageSelect} hidden />
-                  </Button>
-                  {imageFile && (
-                    <Box mt={2}>
-                      <Text color="gray.400" fontSize="xs">{imageFile.name}</Text>
-                      {imagePreviewUrl && (
-                        <Box
-                          mt={2}
-                          w="full"
-                          h="140px"
-                          borderRadius="8px"
-                          border="1px solid rgba(34, 211, 238, 0.2)"
-                          backgroundImage={`url(${imagePreviewUrl})`}
-                          backgroundSize="cover"
-                          backgroundPosition="center"
-                        />
-                      )}
-                    </Box>
-                  )}
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel color="gray.300" fontSize="sm">Video (optional)</FormLabel>
-                  <Button
-                    as="label"
-                    leftIcon={<VideoIcon width={16} height={16} />}
-                    variant="outline"
-                    borderColor="brand.500"
-                    color="brand.300"
-                    _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
-                    cursor="pointer"
-                    w="full"
-                  >
-                    {videoFile ? 'Change Video' : 'Add Video'}
-                    <Input type="file" accept="video/*" onChange={handleVideoSelect} hidden />
-                  </Button>
-                  {videoFile && (
-                    <Box mt={2}>
-                      <Text color="gray.400" fontSize="xs">{videoFile.name}</Text>
-                      {videoPreviewUrl && (
-                        <Box mt={2} borderRadius="8px" overflow="hidden" border="1px solid rgba(34, 211, 238, 0.2)">
-                          <video src={videoPreviewUrl} controls style={{ width: '100%', maxHeight: '160px', background: '#020617' }} />
-                        </Box>
-                      )}
-                    </Box>
-                  )}
-                </FormControl>
-
-                <Flex justify="flex-end" gap={3} pt={2}>
-                  <Button variant="ghost" onClick={handleCreateModalClose} color="gray.300" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="primary" isLoading={creatingPost} loadingText="Posting">
-                    Publish
-                  </Button>
+                <Flex justify="flex-end" gap={3} pt={4} borderTop="1px solid" borderColor="var(--color-border)">
+                  <Button variant="ghost" onClick={handleCreateModalClose} color="var(--color-text-muted)">Cancel</Button>
+                  <Button type="submit" variant="primary" isLoading={creatingPost} loadingText="Posting" px={8}>Publish Post</Button>
                 </Flex>
               </VStack>
             </form>
@@ -2511,17 +2198,13 @@ const CommunityPage = () => {
 
       <Modal isOpen={deleteConfirm.isOpen} onClose={closeDeleteConfirm} isCentered>
         <ModalOverlay bg="rgba(0, 0, 0, 0.7)" backdropFilter="blur(4px)" />
-        <ModalContent bg="#1e293b" border="1px solid rgba(239, 68, 68, 0.35)" borderRadius="16px">
-          <ModalHeader color="white" fontFamily="heading" fontSize="lg" fontWeight="semibold">
-            Confirm Deletion
-          </ModalHeader>
-          <ModalCloseButton color="gray.400" _hover={{ color: 'red.300' }} />
+        <ModalContent bg="var(--color-bg-secondary)" border="1px solid rgba(239, 68, 68, 0.35)" borderRadius="16px">
+          <ModalHeader color="var(--color-text-heading)" fontFamily="heading" fontSize="lg" fontWeight="semibold">Confirm Deletion</ModalHeader>
+          <ModalCloseButton color="var(--color-text-muted)" _hover={{ color: 'red.300' }} />
           <ModalBody pb={6}>
             <VStack align="stretch" spacing={4}>
-              <Text color="gray.200" fontSize="sm">
-                {deleteConfirm.type === 'post'
-                  ? 'Are you sure you want to delete this post and all its comments/replies? This action cannot be undone.'
-                  : 'Are you sure you want to delete this comment/reply? This action cannot be undone.'}
+              <Text color="var(--color-text-secondary)" fontSize="sm">
+                {deleteConfirm.type === 'post' ? 'Are you sure you want to delete this post?' : 'Are you sure you want to delete this comment?'}
               </Text>
               <HStack justify="flex-end">
                 <Button variant="ghost" onClick={closeDeleteConfirm}>Cancel</Button>
@@ -2531,7 +2214,7 @@ const CommunityPage = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </MotionBox>
+      </MotionBox>
   );
 };
 
