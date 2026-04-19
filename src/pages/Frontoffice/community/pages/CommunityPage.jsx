@@ -158,23 +158,60 @@ const relativeTime = (value) => {
   return `${Math.max(1, days)} day${days === 1 ? '' : 's'} ago`;
 };
 
+const getApiOrigin = () => {
+  const raw = String(import.meta.env.VITE_API_URL || '').trim();
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      return new URL(raw).origin;
+    } catch {
+      // ignore malformed URLs and use fallback below
+    }
+  }
+
+  if (raw.startsWith('/')) {
+    return window.location.origin;
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:3000`;
+};
+
 const toMediaUrl = (url) => {
   if (!url) return '';
   if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url;
-  const apiOrigin = `${window.location.protocol}//${window.location.hostname}:3000`;
+  const apiOrigin = getApiOrigin();
   return `${apiOrigin}${url.startsWith('/') ? url : `/${url}`}`;
 };
 
-const fileToDataUrl = (file) => new Promise((resolve, reject) => {
-  if (!file) {
-    resolve('');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result || ''));
-  reader.onerror = () => reject(new Error('Unable to read selected file.'));
-  reader.readAsDataURL(file);
-});
+const uploadMediaAndGetUrl = async (file) => {
+  if (!file) return '';
+  const result = await communityService.uploadMedia(file);
+  return String(result?.url || result?.absoluteUrl || '');
+};
+
+const mimeToExtension = (mimeType, fallback = 'bin') => {
+  const normalized = String(mimeType || '').toLowerCase();
+  if (normalized.includes('jpeg')) return 'jpg';
+  if (normalized.includes('png')) return 'png';
+  if (normalized.includes('gif')) return 'gif';
+  if (normalized.includes('webp')) return 'webp';
+  if (normalized.includes('mp4')) return 'mp4';
+  if (normalized.includes('webm')) return 'webm';
+  if (normalized.includes('ogg')) return 'ogg';
+  return fallback;
+};
+
+const isProbablyImageMedia = (value) => {
+  const normalized = String(value || '').toLowerCase();
+  return (
+    normalized.includes('image/')
+    || normalized.includes('.png')
+    || normalized.includes('.jpg')
+    || normalized.includes('.jpeg')
+    || normalized.includes('.webp')
+    || normalized.includes('.gif')
+  );
+};
 
 const keyOf = (comment) => String(comment?._id || `${comment?.createdAt || ''}:${comment?.text || ''}`);
 
@@ -338,6 +375,7 @@ const CommunityPage = () => {
   const [savingPostEditId, setSavingPostEditId] = useState('');
   const [editingComment, setEditingComment] = useState({ postId: '', commentId: '', text: '' });
   const [savingCommentEditKey, setSavingCommentEditKey] = useState('');
+  const [legacyMediaMigrationDone, setLegacyMediaMigrationDone] = useState(false);
 
   const [postReactions, setPostReactions] = useState(() => safeRead(STORAGE_KEYS.postReactions, {}));
   const [commentReactions, setCommentReactions] = useState(() => safeRead(STORAGE_KEYS.commentReactions, {}));
@@ -453,6 +491,117 @@ const CommunityPage = () => {
   useEffect(() => {
     loadPosts();
   }, []);
+
+  useEffect(() => {
+    if (loading || legacyMediaMigrationDone || !Array.isArray(posts) || posts.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const migrateLegacyMedia = async () => {
+      const apiOrigin = getApiOrigin();
+      let changed = false;
+
+      const normalizeAbsoluteUploadUrl = (value) => {
+        try {
+          const parsed = new URL(String(value || ''));
+          if (!parsed.pathname.startsWith('/uploads/')) return String(value || '');
+          const rebuilt = `${apiOrigin}${parsed.pathname}${parsed.search || ''}`;
+          if (rebuilt !== String(value || '')) changed = true;
+          return rebuilt;
+        } catch {
+          return String(value || '');
+        }
+      };
+
+      const toFileFromDataUrl = async (dataUrl, fileLabel) => {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const isImage = isProbablyImageMedia(dataUrl) || String(blob.type || '').startsWith('image/');
+        const ext = mimeToExtension(blob.type, isImage ? 'png' : 'mp4');
+        const fileName = `${fileLabel}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        return new File([blob], fileName, {
+          type: blob.type || (isImage ? 'image/png' : 'video/mp4'),
+        });
+      };
+
+      const migrateUrl = async (value, fileLabel) => {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+
+        if (/^data:/i.test(raw)) {
+          try {
+            const file = await toFileFromDataUrl(raw, fileLabel);
+            const uploaded = await uploadMediaAndGetUrl(file);
+            if (uploaded && uploaded !== raw) changed = true;
+            return uploaded || raw;
+          } catch {
+            return raw;
+          }
+        }
+
+        if (/^blob:/i.test(raw)) {
+          // Blob URLs are session-scoped and unusable after reload.
+          changed = true;
+          return '';
+        }
+
+        if (/^https?:\/\//i.test(raw)) {
+          return normalizeAbsoluteUploadUrl(raw);
+        }
+
+        return raw;
+      };
+
+      const migrateCommentTree = async (comments, postId) => {
+        if (!Array.isArray(comments)) return [];
+
+        const migrated = [];
+        for (const comment of comments) {
+          const commentId = String(comment?._id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+          const nextComment = {
+            ...comment,
+            imageUrl: await migrateUrl(comment?.imageUrl, `comment-image-${postId}-${commentId}`),
+            videoUrl: await migrateUrl(comment?.videoUrl, `comment-video-${postId}-${commentId}`),
+            replies: await migrateCommentTree(comment?.replies || [], postId),
+          };
+          migrated.push(nextComment);
+        }
+
+        return migrated;
+      };
+
+      const migratedPosts = [];
+      for (const post of posts) {
+        const postId = String(post?._id || `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        const migratedPost = {
+          ...post,
+          imageUrl: await migrateUrl(post?.imageUrl, `post-image-${postId}`),
+          videoUrl: await migrateUrl(post?.videoUrl, `post-video-${postId}`),
+          comments: await migrateCommentTree(post?.comments || [], postId),
+        };
+        migratedPosts.push(migratedPost);
+      }
+
+      if (cancelled) return;
+
+      if (changed) {
+        setPosts(() => {
+          persistPostsAndComments(migratedPosts);
+          return migratedPosts;
+        });
+      }
+
+      setLegacyMediaMigrationDone(true);
+    };
+
+    migrateLegacyMedia();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, legacyMediaMigrationDone, posts]);
 
   const allTags = useMemo(() => {
     const bag = new Set();
@@ -838,16 +987,8 @@ const CommunityPage = () => {
       setCreatingPost(true);
       setError('');
 
-      let imageUrl;
-      let videoUrl;
-
-      if (imageFile) {
-        imageUrl = await fileToDataUrl(imageFile);
-      }
-
-      if (videoFile) {
-        videoUrl = await fileToDataUrl(videoFile);
-      }
+      const imageUrl = await uploadMediaAndGetUrl(imageFile);
+      const videoUrl = await uploadMediaAndGetUrl(videoFile);
 
       const created = {
         _id: `post_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -970,16 +1111,8 @@ const CommunityPage = () => {
       updateCommentDraft(postId, { isSubmitting: true });
       setError('');
 
-      let imageUrl;
-      let videoUrl;
-
-      if (draft.imageFile) {
-        imageUrl = await fileToDataUrl(draft.imageFile);
-      }
-
-      if (draft.videoFile) {
-        videoUrl = await fileToDataUrl(draft.videoFile);
-      }
+      const imageUrl = await uploadMediaAndGetUrl(draft.imageFile);
+      const videoUrl = await uploadMediaAndGetUrl(draft.videoFile);
 
       const newComment = {
         _id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -1069,16 +1202,8 @@ const CommunityPage = () => {
       updateReplyDraft(commentId, { isSubmitting: true });
       setError('');
 
-      let imageUrl;
-      let videoUrl;
-
-      if (draft.imageFile) {
-        imageUrl = await fileToDataUrl(draft.imageFile);
-      }
-
-      if (draft.videoFile) {
-        videoUrl = await fileToDataUrl(draft.videoFile);
-      }
+      const imageUrl = await uploadMediaAndGetUrl(draft.imageFile);
+      const videoUrl = await uploadMediaAndGetUrl(draft.videoFile);
 
       const newReply = {
         _id: `reply_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
