@@ -38,6 +38,7 @@ import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useChat } from '../features/chat/ChatProvider';
 import { useSupport } from '../features/support/SupportProvider';
+import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { prefetchRoute } from '../routes/prefetchRoutes';
 import { startNavigationProgress } from '../shared/navigation/progress';
 
