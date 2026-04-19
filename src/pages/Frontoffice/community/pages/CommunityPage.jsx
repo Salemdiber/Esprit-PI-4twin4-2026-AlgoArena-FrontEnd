@@ -22,6 +22,7 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Portal,
   Select,
   Spinner,
   Text,
@@ -30,27 +31,12 @@ import {
 } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { Link as RouterLink } from 'react-router-dom';
-import {
-  getComments,
-  getPosts,
-  getUsers,
-  mergeCommunitySnapshot,
-  saveComments,
-  savePosts,
-  saveUsers,
-} from '../../../Backoffice/communityData';
 import { communityService } from '../../../../services/communityService';
 import { useAuth } from '../../auth/context/AuthContext';
 
 const MotionBox = m.create(Box);
 const COMMENT_PREVIEW_LIMIT = 3;
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODELS = [
-  'openrouter/auto',
-  'mistralai/mistral-7b-instruct',
-  'mistralai/mistral-7b-instruct:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-];
 
 const STORAGE_KEYS = {
   postReactions: 'discussion_post_reactions_v1',
@@ -189,30 +175,6 @@ const uploadMediaAndGetUrl = async (file) => {
   return String(result?.url || result?.absoluteUrl || '');
 };
 
-const mimeToExtension = (mimeType, fallback = 'bin') => {
-  const normalized = String(mimeType || '').toLowerCase();
-  if (normalized.includes('jpeg')) return 'jpg';
-  if (normalized.includes('png')) return 'png';
-  if (normalized.includes('gif')) return 'gif';
-  if (normalized.includes('webp')) return 'webp';
-  if (normalized.includes('mp4')) return 'mp4';
-  if (normalized.includes('webm')) return 'webm';
-  if (normalized.includes('ogg')) return 'ogg';
-  return fallback;
-};
-
-const isProbablyImageMedia = (value) => {
-  const normalized = String(value || '').toLowerCase();
-  return (
-    normalized.includes('image/')
-    || normalized.includes('.png')
-    || normalized.includes('.jpg')
-    || normalized.includes('.jpeg')
-    || normalized.includes('.webp')
-    || normalized.includes('.gif')
-  );
-};
-
 const keyOf = (comment) => String(comment?._id || `${comment?.createdAt || ''}:${comment?.text || ''}`);
 
 const emptyDraft = () => ({
@@ -271,50 +233,6 @@ const moveCommentToTopById = (comments, targetId) => {
   return [picked, ...rest];
 };
 
-const flattenCommentsForStorage = (postId, comments, parentCommentId = null) => {
-  if (!Array.isArray(comments)) return [];
-  return comments.flatMap((comment) => {
-    const current = {
-      _id: String(comment?._id || ''),
-      postId: String(postId || ''),
-      parentCommentId,
-      text: String(comment?.text || ''),
-      authorId: String(comment?.authorId || ''),
-      authorUsername: String(comment?.authorUsername || 'unknown'),
-      authorAvatar: String(comment?.authorAvatar || ''),
-      imageUrl: String(comment?.imageUrl || ''),
-      videoUrl: String(comment?.videoUrl || ''),
-      createdAt: String(comment?.createdAt || ''),
-      updatedAt: String(comment?.updatedAt || ''),
-      pinned: Boolean(comment?.pinned),
-    };
-    return [current, ...flattenCommentsForStorage(postId, comment?.replies || [], current._id)];
-  });
-};
-
-const upsertCommentInTree = (comments, targetCommentId, updater) => {
-  if (!Array.isArray(comments)) return [];
-  return comments.map((comment) => {
-    if (String(comment?._id || '') === String(targetCommentId)) {
-      return updater(comment);
-    }
-    return {
-      ...comment,
-      replies: upsertCommentInTree(comment?.replies || [], targetCommentId, updater),
-    };
-  });
-};
-
-const deleteCommentInTree = (comments, targetCommentId) => {
-  if (!Array.isArray(comments)) return [];
-  return comments
-    .filter((comment) => String(comment?._id || '') !== String(targetCommentId))
-    .map((comment) => ({
-      ...comment,
-      replies: deleteCommentInTree(comment?.replies || [], targetCommentId),
-    }));
-};
-
 const addReplyInTree = (comments, parentCommentId, reply) => {
   if (!Array.isArray(comments)) return [];
   return comments.map((comment) => {
@@ -336,6 +254,7 @@ const CommunityPage = () => {
   const { isLoggedIn, currentUser } = useAuth();
 
   const [posts, setPosts] = useState([]);
+  const [, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -376,8 +295,6 @@ const CommunityPage = () => {
   const [savingPostEditId, setSavingPostEditId] = useState('');
   const [editingComment, setEditingComment] = useState({ postId: '', commentId: '', text: '' });
   const [savingCommentEditKey, setSavingCommentEditKey] = useState('');
-  const [legacyMediaMigrationDone, setLegacyMediaMigrationDone] = useState(false);
-
   const [postReactions, setPostReactions] = useState(() => safeRead(STORAGE_KEYS.postReactions, {}));
   const [commentReactions, setCommentReactions] = useState(() => safeRead(STORAGE_KEYS.commentReactions, {}));
   const [savedItems, setSavedItems] = useState(() => safeRead(STORAGE_KEYS.savedItems, {}));
@@ -390,8 +307,9 @@ const CommunityPage = () => {
     || safeRead('VITE_OPENROUTER_API_KEY', '')
     || ''
   ).trim();
-  const openRouterModelOverride = String(import.meta.env.VITE_OPENROUTER_MODEL || '').trim();
   const isOpenRouterKeyDetected = Boolean(openRouterApiKey);
+  const openRouterSiteUrl = String(import.meta.env.VITE_OPENROUTER_SITE_URL || window.location.origin).trim();
+  const openRouterAppName = String(import.meta.env.VITE_OPENROUTER_APP_NAME || 'AlgoArena Frontend').trim();
 
   useEffect(() => {
     safeWrite(STORAGE_KEYS.postReactions, postReactions);
@@ -419,28 +337,6 @@ const CommunityPage = () => {
 
   const isOwner = (authorId) => currentUserId && String(authorId || '') === currentUserId;
 
-  const persistPostsAndComments = (nextPosts) => {
-    savePosts(nextPosts);
-    const flatComments = nextPosts.flatMap((post) => flattenCommentsForStorage(post._id, post.comments || []));
-    saveComments(flatComments);
-  };
-
-  const persistCurrentUser = () => {
-    if (!currentUserId) return;
-    const users = getUsers();
-    const exists = users.some((user) => String(user?.id || user?._id || '') === currentUserId);
-    if (exists) return;
-    saveUsers([
-      {
-        id: currentUserId,
-        username: String(currentUser?.username || 'unknown'),
-        role: String(currentUser?.role || 'USER'),
-        avatar: String(currentUser?.avatar || ''),
-      },
-      ...users,
-    ]);
-  };
-
   const pushNotificationForUser = (userId, payload) => {
     if (!userId || !payload) return;
     const all = safeRead(STORAGE_KEYS.userNotifications, {});
@@ -464,157 +360,32 @@ const CommunityPage = () => {
     });
   };
 
-  const loadPosts = async () => {
+  const fetchPosts = async () => {
     try {
       setLoading(true);
       setError('');
-      const localData = getPosts();
-      setPosts(Array.isArray(localData) ? localData : []);
+      const remotePosts = await communityService.getPosts();
+      setPosts(Array.isArray(remotePosts) ? remotePosts : []);
     } catch (err) {
       setError(err.message || 'Failed to load community posts.');
     } finally {
       setLoading(false);
     }
+  };
 
-    // Keep first paint fast, then hydrate the local snapshot in idle time.
-    const hydrateRemoteSnapshot = async () => {
-      try {
-        const remotePosts = await communityService.getPosts();
-        if (!Array.isArray(remotePosts) || remotePosts.length === 0) return;
-        mergeCommunitySnapshot(remotePosts);
-        const mergedData = getPosts();
-        setPosts(Array.isArray(mergedData) ? mergedData : []);
-      } catch {
-        // keep local store when remote source is unavailable
-      }
-    };
-
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        void hydrateRemoteSnapshot();
-      }, { timeout: 2000 });
-      return;
+  const fetchComments = async () => {
+    try {
+      const remoteComments = await communityService.getComments();
+      setComments(Array.isArray(remoteComments) ? remoteComments : []);
+    } catch {
+      setComments([]);
     }
-
-    window.setTimeout(() => {
-      void hydrateRemoteSnapshot();
-    }, 250);
   };
 
   useEffect(() => {
-    loadPosts();
+    void fetchPosts();
+    void fetchComments();
   }, []);
-
-  useEffect(() => {
-    if (loading || legacyMediaMigrationDone || !Array.isArray(posts) || posts.length === 0) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const migrateLegacyMedia = async () => {
-      const apiOrigin = getApiOrigin();
-      let changed = false;
-
-      const normalizeAbsoluteUploadUrl = (value) => {
-        try {
-          const parsed = new URL(String(value || ''));
-          if (!parsed.pathname.startsWith('/uploads/')) return String(value || '');
-          const rebuilt = `${apiOrigin}${parsed.pathname}${parsed.search || ''}`;
-          if (rebuilt !== String(value || '')) changed = true;
-          return rebuilt;
-        } catch {
-          return String(value || '');
-        }
-      };
-
-      const toFileFromDataUrl = async (dataUrl, fileLabel) => {
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-        const isImage = isProbablyImageMedia(dataUrl) || String(blob.type || '').startsWith('image/');
-        const ext = mimeToExtension(blob.type, isImage ? 'png' : 'mp4');
-        const fileName = `${fileLabel}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        return new File([blob], fileName, {
-          type: blob.type || (isImage ? 'image/png' : 'video/mp4'),
-        });
-      };
-
-      const migrateUrl = async (value, fileLabel) => {
-        const raw = String(value || '').trim();
-        if (!raw) return '';
-
-        if (/^data:/i.test(raw)) {
-          try {
-            const file = await toFileFromDataUrl(raw, fileLabel);
-            const uploaded = await uploadMediaAndGetUrl(file);
-            if (uploaded && uploaded !== raw) changed = true;
-            return uploaded || raw;
-          } catch {
-            return raw;
-          }
-        }
-
-        if (/^blob:/i.test(raw)) {
-          // Blob URLs are session-scoped and unusable after reload.
-          changed = true;
-          return '';
-        }
-
-        if (/^https?:\/\//i.test(raw)) {
-          return normalizeAbsoluteUploadUrl(raw);
-        }
-
-        return raw;
-      };
-
-      const migrateCommentTree = async (comments, postId) => {
-        if (!Array.isArray(comments)) return [];
-
-        const migrated = [];
-        for (const comment of comments) {
-          const commentId = String(comment?._id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-          const nextComment = {
-            ...comment,
-            imageUrl: await migrateUrl(comment?.imageUrl, `comment-image-${postId}-${commentId}`),
-            videoUrl: await migrateUrl(comment?.videoUrl, `comment-video-${postId}-${commentId}`),
-            replies: await migrateCommentTree(comment?.replies || [], postId),
-          };
-          migrated.push(nextComment);
-        }
-
-        return migrated;
-      };
-
-      const migratedPosts = [];
-      for (const post of posts) {
-        const postId = String(post?._id || `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-        const migratedPost = {
-          ...post,
-          imageUrl: await migrateUrl(post?.imageUrl, `post-image-${postId}`),
-          videoUrl: await migrateUrl(post?.videoUrl, `post-video-${postId}`),
-          comments: await migrateCommentTree(post?.comments || [], postId),
-        };
-        migratedPosts.push(migratedPost);
-      }
-
-      if (cancelled) return;
-
-      if (changed) {
-        setPosts(() => {
-          persistPostsAndComments(migratedPosts);
-          return migratedPosts;
-        });
-      }
-
-      setLegacyMediaMigrationDone(true);
-    };
-
-    migrateLegacyMedia();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, legacyMediaMigrationDone, posts]);
 
   const allTags = useMemo(() => {
     const bag = new Set();
@@ -809,52 +580,31 @@ const CommunityPage = () => {
       // Mark this source as attempted so auto mode doesn't repeatedly retry unchanged text.
       setLastAiSource(sourceText);
 
-      const modelCandidates = openRouterModelOverride
-        ? [openRouterModelOverride, ...OPENROUTER_MODELS]
-        : OPENROUTER_MODELS;
-      const modelsToTry = [...new Set(modelCandidates.map((model) => String(model || '').trim()).filter(Boolean))];
-      const effectiveModels = silent
-        ? ['openrouter/auto', ...modelsToTry.filter((model) => model !== 'openrouter/auto')].slice(0, 1)
-        : modelsToTry;
+      const response = await fetch(OPENROUTER_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openRouterApiKey}`,
+          'HTTP-Referer': openRouterSiteUrl,
+          'X-Title': openRouterAppName,
+        },
+        body: JSON.stringify({
+          model: 'openrouter/auto',
+          messages: [
+            {
+              role: 'user',
+              content: `Extract 3 to 5 relevant tags from this text. Return ONLY a JSON array like ['tag1','tag2'].\n\n${sourceText}`,
+            },
+          ],
+          max_tokens: 150,
+          temperature: 0.2,
+        }),
+      });
 
-      let payload = null;
-      let lastErrorText = '';
-
-      for (const model of effectiveModels) {
-        const response = await fetch(OPENROUTER_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openRouterApiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: `Extract 3 to 5 relevant tags from this text. Return ONLY a JSON array like ['tag1','tag2'].\n\n${sourceText}`,
-              },
-            ],
-            temperature: 0.2,
-          }),
-        });
-
-        const result = await response.json().catch(() => null);
-        if (response.ok) {
-          payload = result;
-          break;
-        }
-
-        const details = result?.error?.message || `HTTP ${response.status}`;
-        lastErrorText = `${model}: ${details}`;
-
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(`OpenRouter: ${lastErrorText}`);
-        }
-      }
-
-      if (!payload) {
-        throw new Error(`OpenRouter: ${lastErrorText || 'No available endpoint for configured models.'}`);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const details = payload?.error?.message || `HTTP ${response.status}`;
+        throw new Error(`OpenRouter: ${details}`);
       }
 
       const modelText = String(payload?.choices?.[0]?.message?.content || '');
@@ -898,52 +648,38 @@ const CommunityPage = () => {
       setSummarizingPostId(postId);
       setSummaryErrors((prev) => ({ ...prev, [postId]: '' }));
 
-      const modelCandidates = openRouterModelOverride
-        ? [openRouterModelOverride, ...OPENROUTER_MODELS]
-        : OPENROUTER_MODELS;
-      const modelsToTry = [...new Set(modelCandidates.map((model) => String(model || '').trim()).filter(Boolean))];
-
       let summary = '';
-      let lastErrorText = '';
 
       const discussionText = commentTexts.join('\n- ');
+      const response = await fetch(OPENROUTER_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openRouterApiKey}`,
+          'HTTP-Referer': openRouterSiteUrl,
+          'X-Title': openRouterAppName,
+        },
+        body: JSON.stringify({
+          model: 'openrouter/auto',
+          messages: [
+            {
+              role: 'user',
+              content: `Summarize this discussion in 1-2 short, very clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
+            },
+          ],
+          max_tokens: 150,
+          temperature: 0.2,
+        }),
+      });
 
-      for (const model of modelsToTry) {
-        const response = await fetch(OPENROUTER_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openRouterApiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: `Summarize this discussion in 1-2 short, very clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
-              },
-            ],
-            temperature: 0.2,
-          }),
-        });
-
-        const payload = await response.json().catch(() => null);
-        if (response.ok) {
-          summary = String(payload?.choices?.[0]?.message?.content || '').trim();
-          if (summary) break;
-          lastErrorText = `${model}: Empty summary response`;
-          continue;
-        }
-
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
         const details = payload?.error?.message || `HTTP ${response.status}`;
-        lastErrorText = `${model}: ${details}`;
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(lastErrorText);
-        }
+        throw new Error(`OpenRouter: ${details}`);
       }
-
+      summary = String(payload?.choices?.[0]?.message?.content || '').trim();
       if (!summary) {
-        throw new Error(lastErrorText || 'Unable to summarize discussion right now.');
+        throw new Error('Unable to summarize discussion right now.');
       }
 
       const cleanSummary = summary
@@ -1004,8 +740,7 @@ const CommunityPage = () => {
       const imageUrl = await uploadMediaAndGetUrl(imageFile);
       const videoUrl = await uploadMediaAndGetUrl(videoFile);
 
-      const created = {
-        _id: `post_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      const newPost = {
         title: title.trim(),
         content: content.trim(),
         type: activeSection === 'problems' ? 'problem' : 'normal',
@@ -1013,23 +748,11 @@ const CommunityPage = () => {
         tags: parsedTagsInput,
         imageUrl,
         videoUrl,
-        authorId: currentUserId,
-        authorUsername: currentUser?.username || 'unknown',
-        authorAvatar: currentUser?.avatar || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pinned: false,
-        solved: false,
-        comments: [],
       };
+      console.log('Creating post:', newPost);
+      const savedPost = await communityService.createPost(newPost);
 
-      persistCurrentUser();
-
-      setPosts((prev) => {
-        const next = [created, ...prev];
-        persistPostsAndComments(next);
-        return next;
-      });
+      setPosts((prev) => [savedPost, ...prev]);
       handleCreateModalClose();
     } catch (err) {
       setError(err.message || 'Unable to create post.');
@@ -1129,18 +852,12 @@ const CommunityPage = () => {
       const videoUrl = await uploadMediaAndGetUrl(draft.videoFile);
 
       const newComment = {
-        _id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        postId,
         text,
         imageUrl,
         videoUrl,
-        authorId: currentUserId,
-        authorUsername: currentUser?.username || 'unknown',
-        authorAvatar: currentUser?.avatar || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pinned: false,
-        replies: [],
       };
+      const savedComment = await communityService.createComment(newComment);
 
       if (targetPost?.authorId && !isOwner(targetPost.authorId)) {
         pushNotificationForUser(String(targetPost.authorId), {
@@ -1152,38 +869,17 @@ const CommunityPage = () => {
           preview: text,
         });
       }
-
-      persistCurrentUser();
-      const comments = getComments();
-      saveComments([
-        {
-          _id: newComment._id,
-          postId,
-          parentCommentId: null,
-          text,
-          authorId: currentUserId,
-          authorUsername: currentUser?.username || 'unknown',
-          authorAvatar: currentUser?.avatar || '',
-          imageUrl: imageUrl || '',
-          videoUrl: videoUrl || '',
-          createdAt: newComment.createdAt,
-          updatedAt: newComment.updatedAt,
-          pinned: false,
-        },
-        ...comments,
-      ]);
+      setComments((prev) => [savedComment, ...prev]);
 
       setPosts((prev) => {
-        const next = prev.map((post) => {
+        return prev.map((post) => {
           if (String(post._id) !== String(postId)) return post;
           return {
             ...post,
-            comments: [newComment, ...(Array.isArray(post.comments) ? post.comments : [])],
+            comments: [savedComment, ...(Array.isArray(post.comments) ? post.comments : [])],
             updatedAt: new Date().toISOString(),
           };
         });
-        persistPostsAndComments(next);
-        return next;
       });
       setCommentsVisible((prev) => ({ ...prev, [postId]: true }));
       setCommentDrafts((prev) => ({ ...prev, [postId]: emptyDraft() }));
@@ -1220,50 +916,25 @@ const CommunityPage = () => {
       const videoUrl = await uploadMediaAndGetUrl(draft.videoFile);
 
       const newReply = {
-        _id: `reply_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        postId,
+        parentCommentId: commentId,
         text,
         imageUrl,
         videoUrl,
-        authorId: currentUserId,
-        authorUsername: currentUser?.username || 'unknown',
-        authorAvatar: currentUser?.avatar || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pinned: false,
-        replies: [],
       };
+      const savedReply = await communityService.createComment(newReply);
 
-      persistCurrentUser();
-      const comments = getComments();
-      saveComments([
-        {
-          _id: newReply._id,
-          postId,
-          parentCommentId: commentId,
-          text,
-          authorId: currentUserId,
-          authorUsername: currentUser?.username || 'unknown',
-          authorAvatar: currentUser?.avatar || '',
-          imageUrl: imageUrl || '',
-          videoUrl: videoUrl || '',
-          createdAt: newReply.createdAt,
-          updatedAt: newReply.updatedAt,
-          pinned: false,
-        },
-        ...comments,
-      ]);
+      setComments((prev) => [savedReply, ...prev]);
 
       setPosts((prev) => {
-        const next = prev.map((post) => {
+        return prev.map((post) => {
           if (String(post._id) !== String(postId)) return post;
           return {
             ...post,
-            comments: addReplyInTree(post.comments || [], commentId, newReply),
+            comments: addReplyInTree(post.comments || [], commentId, savedReply),
             updatedAt: new Date().toISOString(),
           };
         });
-        persistPostsAndComments(next);
-        return next;
       });
       setReplyDrafts((prev) => ({ ...prev, [commentId]: emptyDraft() }));
       setReplyVisibility((prev) => ({ ...prev, [commentId]: false }));
@@ -1279,11 +950,9 @@ const CommunityPage = () => {
 
   const handleDeletePost = async (postId) => {
     try {
-      setPosts((prev) => {
-        const next = prev.filter((post) => String(post._id) !== String(postId));
-        persistPostsAndComments(next);
-        return next;
-      });
+      await communityService.deletePost(postId);
+      setPosts((prev) => prev.filter((post) => String(post._id) !== String(postId)));
+      await fetchComments();
     } catch (err) {
       setError(err.message || 'Unable to delete post.');
     }
@@ -1291,18 +960,9 @@ const CommunityPage = () => {
 
   const handleDeleteComment = async (postId, commentId) => {
     try {
-      setPosts((prev) => {
-        const next = prev.map((post) => {
-          if (String(post._id) !== String(postId)) return post;
-          return {
-            ...post,
-            comments: deleteCommentInTree(post.comments || [], commentId),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.deleteComment(postId, commentId);
+      setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
+      await fetchComments();
     } catch (err) {
       setError(err.message || 'Unable to delete comment/reply.');
     }
@@ -1333,15 +993,8 @@ const CommunityPage = () => {
 
   const handleToggleSolved = async (post) => {
     try {
-      setPosts((prev) => {
-        const next = prev.map((x) => (
-          String(x._id) === String(post._id)
-            ? { ...x, solved: !x?.solved, updatedAt: new Date().toISOString() }
-            : x
-        ));
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.setPostSolved(post._id, !post?.solved);
+      setPosts((prev) => prev.map((x) => (String(x._id) === String(post._id) ? updatedPost : x)));
     } catch (err) {
       setError(err.message || 'Unable to update solved state.');
     }
@@ -1349,15 +1002,8 @@ const CommunityPage = () => {
 
   const handleTogglePostPin = async (post) => {
     try {
-      setPosts((prev) => {
-        const next = prev.map((x) => (
-          String(x._id) === String(post._id)
-            ? { ...x, pinned: !x?.pinned, updatedAt: new Date().toISOString() }
-            : x
-        ));
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.setPostPinned(post._id, !post?.pinned);
+      setPosts((prev) => prev.map((x) => (String(x._id) === String(post._id) ? updatedPost : x)));
     } catch (err) {
       setError(err.message || 'Unable to pin post.');
     }
@@ -1366,22 +1012,9 @@ const CommunityPage = () => {
   const handleToggleCommentPin = async (postId, comment) => {
     if (!comment?._id) return;
     try {
-      setPosts((prev) => {
-        const next = prev.map((x) => {
-          if (String(x._id) !== String(postId)) return x;
-          return {
-            ...x,
-            comments: upsertCommentInTree(x.comments || [], comment._id, (target) => ({
-              ...target,
-              pinned: !target?.pinned,
-              updatedAt: new Date().toISOString(),
-            })),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.setCommentPinned(postId, comment._id, !comment?.pinned);
+      setPosts((prev) => prev.map((x) => (String(x._id) === String(postId) ? updatedPost : x)));
+      await fetchComments();
     } catch (err) {
       setError(err.message || 'Unable to pin comment.');
     }
@@ -1407,20 +1040,11 @@ const CommunityPage = () => {
     try {
       setSavingPostEditId(postId);
       setError('');
-      setPosts((prev) => {
-        const next = prev.map((post) => (
-          String(post._id) === String(postId)
-            ? {
-              ...post,
-              title: trimmedTitle,
-              content: trimmedContent,
-              updatedAt: new Date().toISOString(),
-            }
-            : post
-        ));
-        persistPostsAndComments(next);
-        return next;
+      const updatedPost = await communityService.updatePost(postId, {
+        title: trimmedTitle,
+        content: trimmedContent,
       });
+      setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
       handleCancelPostEdit();
     } catch (err) {
       setError(err.message || 'Unable to modify post.');
@@ -1452,22 +1076,9 @@ const CommunityPage = () => {
     try {
       setSavingCommentEditKey(`${postId}:${commentId}`);
       setError('');
-      setPosts((prev) => {
-        const next = prev.map((post) => {
-          if (String(post._id) !== String(postId)) return post;
-          return {
-            ...post,
-            comments: upsertCommentInTree(post.comments || [], commentId, (target) => ({
-              ...target,
-              text: trimmedText,
-              updatedAt: new Date().toISOString(),
-            })),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.updateComment(postId, commentId, { text: trimmedText });
+      setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
+      await fetchComments();
       handleCancelCommentEdit();
     } catch (err) {
       setError(err.message || 'Unable to modify comment.');
@@ -2064,7 +1675,6 @@ const CommunityPage = () => {
                       borderColor={post?.pinned ? 'rgba(34, 211, 238, 0.75)' : 'rgba(34, 211, 238, 0.12)'}
                       borderRadius="14px"
                       p={{ base: 3, md: 4 }}
-                      sx={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
                       transition="all 0.25s ease"
                       _hover={{
                         borderColor: 'rgba(34, 211, 238, 0.45)',
@@ -2072,8 +1682,8 @@ const CommunityPage = () => {
                         transform: 'translateY(-2px)',
                       }}
                     >
-                      <Flex justify="space-between" align={{ base: 'start', md: 'center' }} gap={3} direction={{ base: 'column', md: 'row' }}>
-                        <Box flex="1">
+                      <Flex justify="space-between" align="start" gap={3} direction="row">
+                        <Box flex="1" minW="0">
                           {!isEditingPost ? (
                             <>
                               <HStack spacing={2} align="center" flexWrap="wrap">
@@ -2096,6 +1706,9 @@ const CommunityPage = () => {
                               <Text mt={3} color="var(--color-text-primary)" fontSize="sm" noOfLines={3}>
                                 {post.content}
                               </Text>
+
+                              {renderMedia(post.imageUrl, false)}
+                              {renderMedia(post.videoUrl, true)}
 
                               {(post.tags || []).length > 0 && (
                                 <HStack spacing={2} mt={2} flexWrap="wrap">
@@ -2137,7 +1750,15 @@ const CommunityPage = () => {
                           )}
                         </Box>
 
-                        <HStack spacing={2} alignSelf={{ base: 'stretch', md: 'center' }} flexWrap="wrap">
+                        <HStack
+                          spacing={2}
+                          w="auto"
+                          justify="flex-end"
+                          alignSelf="flex-start"
+                          flexWrap="nowrap"
+                          whiteSpace="nowrap"
+                          flexShrink={0}
+                        >
                           {!isEditingPost ? (
                             <>
                               <Button
@@ -2146,6 +1767,7 @@ const CommunityPage = () => {
                                 onClick={() => toggleComments(postId)}
                                 borderColor="rgba(34, 211, 238, 0.35)"
                                 border="1px solid"
+                                whiteSpace="nowrap"
                               >
                                 {commentsOpen ? 'Hide Comments' : 'View Comments'} ({allComments.length})
                               </Button>
@@ -2158,7 +1780,8 @@ const CommunityPage = () => {
                                   aria-label="Options"
                                   _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
                                 />
-                                <MenuList bg="var(--color-bg-secondary)" borderColor="var(--color-border)" py={1} border="1px solid" zIndex={10}>
+                                <Portal>
+                                  <MenuList bg="var(--color-bg-secondary)" borderColor="var(--color-border)" py={1} border="1px solid" zIndex="popover">
                                   {isOwner(post.authorId) && (
                                     <MenuItem onClick={() => handleStartPostEdit(post)} icon={<Box as="span" fontSize="xs">✏️</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="var(--color-text-primary)">Edit Post</MenuItem>
                                   )}
@@ -2181,7 +1804,8 @@ const CommunityPage = () => {
                                       Mark as {post?.solved ? 'Unsolved' : 'Solved'}
                                     </MenuItem>
                                   )}
-                                </MenuList>
+                                  </MenuList>
+                                </Portal>
                               </Menu>
                             </>
                           ) : (
@@ -2309,6 +1933,72 @@ const CommunityPage = () => {
                     <Text color="var(--color-text-muted)" fontSize="xs">AI can suggest 3 to 5 tags from your title and description.</Text>
                     <Button size="xs" variant="outline" borderColor="brand.500" color="brand.300" onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())} isLoading={isFetchingAiTags}>Suggest Tags</Button>
                   </Flex>
+
+                  {aiTagError && (
+                    <Text mt={2} color="red.300" fontSize="xs">
+                      {aiTagError}
+                    </Text>
+                  )}
+
+                  {aiSuggestedTags.length > 0 && (
+                    <VStack align="stretch" spacing={2} mt={3}>
+                      <Text color="var(--color-text-muted)" fontSize="xs">Suggested tags (click to add/remove):</Text>
+                      <HStack spacing={2} flexWrap="wrap">
+                        {aiSuggestedTags.map((tag) => {
+                          const selected = parsedTagsInput.includes(tag);
+                          return (
+                            <Badge
+                              key={`suggested-${tag}`}
+                              px={2}
+                              py={1}
+                              borderRadius="md"
+                              cursor="pointer"
+                              colorScheme={selected ? 'cyan' : 'gray'}
+                              variant={selected ? 'solid' : 'subtle'}
+                              onClick={() => toggleSuggestedTag(tag)}
+                            >
+                              #{tag}
+                            </Badge>
+                          );
+                        })}
+                      </HStack>
+                    </VStack>
+                  )}
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Media (optional)</FormLabel>
+                  <HStack spacing={2}>
+                    <Button as="label" size="sm" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
+                      <ImageIcon width={14} height={14} />
+                      <Text ml={1}>Insert Image</Text>
+                      <Input type="file" accept="image/*" onChange={handleImageSelect} hidden />
+                    </Button>
+                    <Button as="label" size="sm" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
+                      <VideoIcon width={14} height={14} />
+                      <Text ml={1}>Insert Video</Text>
+                      <Input type="file" accept="video/*" onChange={handleVideoSelect} hidden />
+                    </Button>
+                  </HStack>
+
+                  {imagePreviewUrl && (
+                    <Box
+                      mt={3}
+                      w="full"
+                      h="160px"
+                      borderRadius="10px"
+                      border="1px solid rgba(34, 211, 238, 0.2)"
+                      backgroundImage={`url(${imagePreviewUrl})`}
+                      backgroundSize="cover"
+                      backgroundPosition="center"
+                    />
+                  )}
+
+                  {videoPreviewUrl && (
+                    <Box mt={3} borderRadius="10px" overflow="hidden" border="1px solid rgba(34, 211, 238, 0.2)">
+                      <video src={videoPreviewUrl} controls style={{ width: '100%', maxHeight: '220px', background: '#020617' }} />
+                    </Box>
+                  )}
                 </FormControl>
 
                 <Flex justify="flex-end" gap={3} pt={4} borderTop="1px solid" borderColor="var(--color-border)">

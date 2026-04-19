@@ -9,7 +9,7 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
-import { getComments, getPosts, getUsers } from './communityData';
+import { communityService } from '../../services/communityService';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -45,28 +45,50 @@ const buildLast7Days = () => {
   return days;
 };
 
+const collectUsers = (posts, comments) => {
+  const userMap = new Map();
+
+  const upsert = (authorId, authorUsername, authorAvatar) => {
+    const id = String(authorId || '');
+    if (!id) return;
+    userMap.set(id, {
+      id,
+      username: String(authorUsername || 'unknown'),
+      avatar: String(authorAvatar || ''),
+      role: 'USER',
+    });
+  };
+
+  posts.forEach((post) => upsert(post?.authorId, post?.authorUsername, post?.authorAvatar));
+  comments.forEach((comment) => upsert(comment?.authorId, comment?.authorUsername, comment?.authorAvatar));
+
+  return [...userMap.values()];
+};
+
 const CommunityAnalytics = () => {
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
   const [users, setUsers] = useState([]);
   const [bestAnswers, setBestAnswers] = useState({});
 
-  const refreshData = () => {
-    setPosts(getPosts());
-    setComments(getComments());
-    setUsers(getUsers());
+  const refreshData = async () => {
+    const remotePosts = await communityService.getPosts();
+    const remoteComments = await communityService.getComments();
+    const normalizedPosts = Array.isArray(remotePosts) ? remotePosts : [];
+    const normalizedComments = Array.isArray(remoteComments) ? remoteComments : [];
+    setPosts(normalizedPosts);
+    setComments(normalizedComments);
+    setUsers(collectUsers(normalizedPosts, normalizedComments));
     setBestAnswers(safeReadObject(BEST_ANSWER_KEY));
   };
 
   useEffect(() => {
-    refreshData();
+    void refreshData();
 
-    const onStorage = () => refreshData();
-    window.addEventListener('storage', onStorage);
-
-    const timer = window.setInterval(refreshData, 2000);
+    const timer = window.setInterval(() => {
+      void refreshData();
+    }, 5000);
     return () => {
-      window.removeEventListener('storage', onStorage);
       window.clearInterval(timer);
     };
   }, []);

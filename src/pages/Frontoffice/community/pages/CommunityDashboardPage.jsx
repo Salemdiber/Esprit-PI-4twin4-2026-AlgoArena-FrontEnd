@@ -23,19 +23,13 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Bar, Doughnut, Pie } from 'react-chartjs-2';
-import { getComments, getPosts, getUsers } from '../../../Backoffice/communityData';
+import { communityService } from '../../../../services/communityService';
 import { useAuth } from '../../auth/context/AuthContext';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const MotionBox = m.create(Box);
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODELS = [
-  'openrouter/auto',
-  'mistralai/mistral-7b-instruct',
-  'mistralai/mistral-7b-instruct:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-];
 const STORAGE_KEYS = {
   bestAnswers: 'discussion_best_answers_v1',
   sentimentCache: 'discussion_ai_sentiment_cache_v1',
@@ -85,6 +79,30 @@ const buildCommentId = (postId, comment) => {
   const authorId = String(comment?.authorId || '');
   const textPreview = String(comment?.text || '').slice(0, 60);
   return `${postId}:${createdAt}:${authorId}:${textPreview}`;
+};
+
+const collectUsers = (posts, comments) => {
+  const userMap = new Map();
+
+  const upsert = (authorId, authorUsername, authorAvatar) => {
+    const id = String(authorId || '');
+    if (!id) return;
+    userMap.set(id, {
+      id,
+      username: String(authorUsername || 'unknown'),
+      avatar: String(authorAvatar || ''),
+      role: 'USER',
+    });
+  };
+
+  posts.forEach((post) => {
+    upsert(post?.authorId, post?.authorUsername, post?.authorAvatar);
+  });
+  comments.forEach((comment) => {
+    upsert(comment?.authorId, comment?.authorUsername, comment?.authorAvatar);
+  });
+
+  return [...userMap.values()];
 };
 
 const collectSentimentTargets = (posts) => {
@@ -145,23 +163,21 @@ const CommunityDashboardPage = () => {
     || localStorage.getItem('VITE_OPENROUTER_API_KEY')
     || ''
   ).trim();
-  const openRouterModelOverride = String(import.meta.env.VITE_OPENROUTER_MODEL || '').trim();
-
-  const modelCandidates = useMemo(() => {
-    const source = openRouterModelOverride
-      ? [openRouterModelOverride, ...OPENROUTER_MODELS]
-      : OPENROUTER_MODELS;
-    return [...new Set(source.map((model) => String(model || '').trim()).filter(Boolean))];
-  }, [openRouterModelOverride]);
+  const openRouterSiteUrl = String(import.meta.env.VITE_OPENROUTER_SITE_URL || window.location.origin).trim();
+  const openRouterAppName = String(import.meta.env.VITE_OPENROUTER_APP_NAME || 'AlgoArena Frontend').trim();
 
   useEffect(() => {
-    const loadPosts = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         setError('');
-        setPosts(getPosts());
-        setComments(getComments());
-        setUsers(getUsers());
+        const remotePosts = await communityService.getPosts();
+        const remoteComments = await communityService.getComments();
+        const normalizedPosts = Array.isArray(remotePosts) ? remotePosts : [];
+        const normalizedComments = Array.isArray(remoteComments) ? remoteComments : [];
+        setPosts(normalizedPosts);
+        setComments(normalizedComments);
+        setUsers(collectUsers(normalizedPosts, normalizedComments));
       } catch (err) {
         setError(err.message || 'Unable to load dashboard analytics.');
       } finally {
@@ -169,20 +185,29 @@ const CommunityDashboardPage = () => {
       }
     };
 
-    loadPosts();
+    void loadData();
   }, []);
 
   useEffect(() => {
-    const syncFromStorage = () => {
-      setPosts(getPosts());
-      setComments(getComments());
-      setUsers(getUsers());
+    const syncFromBackend = async () => {
+      try {
+        const remotePosts = await communityService.getPosts();
+        const remoteComments = await communityService.getComments();
+        const normalizedPosts = Array.isArray(remotePosts) ? remotePosts : [];
+        const normalizedComments = Array.isArray(remoteComments) ? remoteComments : [];
+        setPosts(normalizedPosts);
+        setComments(normalizedComments);
+        setUsers(collectUsers(normalizedPosts, normalizedComments));
+      } catch {
+        // Ignore periodic refresh failures and keep last good state.
+      }
     };
-    const onStorage = () => syncFromStorage();
-    window.addEventListener('storage', onStorage);
-    const timer = window.setInterval(syncFromStorage, 3000);
+
+    const timer = window.setInterval(() => {
+      void syncFromBackend();
+    }, 5000);
+
     return () => {
-      window.removeEventListener('storage', onStorage);
       window.clearInterval(timer);
     };
   }, []);
@@ -198,39 +223,35 @@ const CommunityDashboardPage = () => {
   }, []);
 
   const classifySentimentWithOpenRouter = async (text) => {
-    let lastErrorText = '';
-    for (const model of modelCandidates) {
-      const response = await fetch(OPENROUTER_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openRouterApiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: `Classify this text as Positive, Neutral, or Negative. Return ONLY one word.\n\n${text}`,
-            },
-          ],
-          temperature: 0,
-        }),
-      });
+    const response = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openRouterApiKey}`,
+        'HTTP-Referer': openRouterSiteUrl,
+        'X-Title': openRouterAppName,
+      },
+      body: JSON.stringify({
+        model: 'openrouter/auto',
+        messages: [
+          {
+            role: 'user',
+            content: `Classify this text as Positive, Neutral, or Negative. Return ONLY one word.\n\n${text}`,
+          },
+        ],
+        max_tokens: 150,
+        temperature: 0,
+      }),
+    });
 
-      const payload = await response.json().catch(() => null);
-      if (response.ok) {
-        const oneWord = String(payload?.choices?.[0]?.message?.content || '').trim();
-        return normalizeSentiment(oneWord);
-      }
-
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
       const details = payload?.error?.message || `HTTP ${response.status}`;
-      lastErrorText = `${model}: ${details}`;
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(lastErrorText);
-      }
+      throw new Error(`OpenRouter: ${details}`);
     }
-    throw new Error(lastErrorText || 'Unable to classify sentiment.');
+
+    const oneWord = String(payload?.choices?.[0]?.message?.content || '').trim();
+    return normalizeSentiment(oneWord);
   };
 
   const runSentimentAnalysis = async ({ force = false } = {}) => {
@@ -413,45 +434,36 @@ const CommunityDashboardPage = () => {
         trendingTopics: analytics.trendingTopics,
       };
 
-      let aiText = '';
-      let lastErrorText = '';
+      const response = await fetch(OPENROUTER_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openRouterApiKey}`,
+          'HTTP-Referer': openRouterSiteUrl,
+          'X-Title': openRouterAppName,
+        },
+        body: JSON.stringify({
+          model: 'openrouter/auto',
+          messages: [
+            {
+              role: 'user',
+              content: `You are a community analytics assistant. Based on this dashboard data, provide: 1) short health summary, 2) 3 concise insights, 3) 3 practical admin actions. Keep output under 180 words and use simple bullet points.\n\nData: ${JSON.stringify(compactAnalytics)}`,
+            },
+          ],
+          max_tokens: 150,
+          temperature: 0.2,
+        }),
+      });
 
-      for (const model of modelCandidates) {
-        const response = await fetch(OPENROUTER_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openRouterApiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: `You are a community analytics assistant. Based on this dashboard data, provide: 1) short health summary, 2) 3 concise insights, 3) 3 practical admin actions. Keep output under 180 words and use simple bullet points.\n\nData: ${JSON.stringify(compactAnalytics)}`,
-              },
-            ],
-            temperature: 0.2,
-          }),
-        });
-
-        const payload = await response.json().catch(() => null);
-        if (response.ok) {
-          aiText = String(payload?.choices?.[0]?.message?.content || '').trim();
-          if (aiText) break;
-          lastErrorText = `${model}: Empty response`;
-          continue;
-        }
-
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
         const details = payload?.error?.message || `HTTP ${response.status}`;
-        lastErrorText = `${model}: ${details}`;
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(lastErrorText);
-        }
+        throw new Error(`OpenRouter: ${details}`);
       }
 
+      const aiText = String(payload?.choices?.[0]?.message?.content || '').trim();
       if (!aiText) {
-        throw new Error(lastErrorText || 'Unable to generate insights.');
+        throw new Error('Unable to generate insights.');
       }
 
       setInsights(aiText);

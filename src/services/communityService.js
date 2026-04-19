@@ -2,7 +2,14 @@ import { apiClient } from "./apiClient";
 
 export const communityService = {
   getPosts: async () => {
-    return apiClient("/community/posts", {
+    return apiClient("/posts", {
+      method: "GET",
+    });
+  },
+
+  getComments: async (postId) => {
+    const endpoint = postId ? `/comments/${postId}` : "/comments";
+    return apiClient(endpoint, {
       method: "GET",
     });
   },
@@ -18,7 +25,14 @@ export const communityService = {
   },
 
   createPost: async (data) => {
-    return apiClient("/community/posts", {
+    return apiClient("/posts", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  createComment: async (data) => {
+    return apiClient("/comments", {
       method: "POST",
       body: JSON.stringify(data),
     });
