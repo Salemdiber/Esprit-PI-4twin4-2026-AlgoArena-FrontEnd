@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }) => {
         const stored = readStorage();
         return stored ? stored.user : null;
     });
+    const [coinBalance, setCoinBalance] = useState(() => Number(readStorage()?.user?.hintCredits ?? 1));
     const [isAuthLoading, setIsAuthLoading] = useState(true);
     const toast = useToast();
     const navigate = useNavigate();
@@ -116,6 +117,10 @@ export const AuthProvider = ({ children }) => {
         };
     }, [toast, navigate]);
 
+    useEffect(() => {
+        setCoinBalance(Number(currentUser?.hintCredits ?? 1));
+    }, [currentUser?.hintCredits]);
+
     /* Rehydrate on mount */
     useEffect(() => {
         const initAuth = async () => {
@@ -131,12 +136,14 @@ export const AuthProvider = ({ children }) => {
                 // Fetch fresh profile from backend
                 const profile = await userService.getProfile('me');
                 setCurrentUser(profile);
+                setCoinBalance(Number(profile?.hintCredits ?? 1));
                 writeStorage({ user: profile });
             } catch (err) {
                 // If it fails (e.g. 401), apiClient clears token already
                 const stored = readStorage();
                 if (stored?.user) {
                     setCurrentUser(stored.user);
+                    setCoinBalance(Number(stored.user?.hintCredits ?? 1));
                 }
             } finally {
                 setIsAuthLoading(false);
@@ -207,6 +214,7 @@ export const AuthProvider = ({ children }) => {
         const user = { ...profile };
 
         setCurrentUser(user);
+        setCoinBalance(Number(user?.hintCredits ?? 1));
         writeStorage({ user });
 
         if (authChannel.current) {
@@ -266,6 +274,9 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser((prev) => {
             if (!prev) return prev;
             const next = { ...prev, ...patch };
+            if (patch?.hintCredits !== undefined) {
+                setCoinBalance(Number(patch.hintCredits ?? 1));
+            }
             writeStorage({ user: next });
             return next;
         });
@@ -286,11 +297,13 @@ export const AuthProvider = ({ children }) => {
         try {
             const profile = await userService.getProfile('me');
             setCurrentUser(profile);
+            setCoinBalance(Number(profile?.hintCredits ?? 1));
             writeStorage({ user: profile });
         } catch (err) {
             const stored = readStorage();
             if (stored?.user) {
                 setCurrentUser(stored.user);
+                setCoinBalance(Number(stored.user?.hintCredits ?? 1));
             }
         }
     }, []);
@@ -306,6 +319,7 @@ export const AuthProvider = ({ children }) => {
                 logout,
                 updateCurrentUser,
                 reload,
+                coinBalance,
             }}
         >
             {children}
