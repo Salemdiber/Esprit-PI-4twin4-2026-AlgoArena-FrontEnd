@@ -10,19 +10,29 @@ import { BattleMode } from '../types/battle.types';
 const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winner = null }) => {
     const { t } = useTranslation();
     const isAI = battle.mode === BattleMode.ONE_VS_AI;
+    const playerAvatar = typeof battle.player?.avatar === 'string' && battle.player.avatar.trim() !== ''
+        ? battle.player.avatar
+        : null;
+    const opponentAvatar = typeof battle.opponent?.avatar === 'string' && battle.opponent.avatar.trim() !== ''
+        ? battle.opponent.avatar
+        : null;
 
     return (
         <div className="battle-scoreboard">
             {/* Player */}
             <div className="battle-scoreboard__player">
-                <img
-                    src={battle.player.avatar}
-                    alt={battle.player.name}
-                    className={`battle-scoreboard__avatar ${isResult && winner === 'player'
-                            ? 'battle-scoreboard__avatar--winner'
-                            : 'battle-scoreboard__avatar--player'
-                        }`}
-                />
+                {playerAvatar ? (
+                    <img
+                        src={playerAvatar}
+                        alt={battle.player?.name || t('battles.you')}
+                        className={`battle-scoreboard__avatar ${isResult && winner === 'player'
+                                ? 'battle-scoreboard__avatar--winner'
+                                : 'battle-scoreboard__avatar--player'
+                            }`}
+                    />
+                ) : (
+                    <div className="battle-waiting-avatar" style={{ margin: '0 auto 1rem' }}>👤</div>
+                )}
                 <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.25rem' }}>
                     {battle.player.name}
                 </h3>
@@ -81,15 +91,17 @@ const ScoreBoard = ({ battle, playerScore, opponentScore, isResult = false, winn
                     }}>
                         AI
                     </div>
-                ) : (
+                ) : opponentAvatar ? (
                     <img
-                        src={battle.opponent?.avatar || ''}
+                        src={opponentAvatar}
                         alt={battle.opponent?.name || t('battles.opponent')}
                         className={`battle-scoreboard__avatar ${isResult && winner === 'opponent'
                                 ? 'battle-scoreboard__avatar--winner'
                                 : 'battle-scoreboard__avatar--opponent'
                             }`}
                     />
+                ) : (
+                    <div className="battle-waiting-avatar" style={{ margin: '0 auto 1rem' }}>👤</div>
                 )}
                 <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.25rem' }}>
                     {battle.opponent?.name || t('battles.unknown')}
