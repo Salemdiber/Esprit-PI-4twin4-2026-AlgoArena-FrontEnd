@@ -1,0 +1,92 @@
+/**
+ * StreakIndicator – fire streak badge
+ *
+ * Shows a flame icon + streak count.
+ * Hot streaks (>= 10) get a gradient background.
+ * Regular streaks get a subtle orange-tinted container.
+ */
+import React from 'react';
+import { Flex, Icon, Text } from '@chakra-ui/react';
+import { m } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+
+const MotionFlex = m.create(Flex);
+
+const FlameIcon = (props) => (
+    <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>
+        <path
+            fillRule="evenodd"
+            d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"
+            clipRule="evenodd"
+        />
+    </Icon>
+);
+
+const flickerVariants = {
+    animate: {
+        scale: [1, 1.1, 1],
+        y: [0, -2, 0],
+        transition: {
+            duration: 1.5,
+            repeat: Infinity,
+            ease: 'easeInOut',
+        },
+    },
+};
+
+const StreakIndicator = ({ streak = 0, variant = 'full' }) => {
+    const { t } = useTranslation();
+    if (streak <= 0) return null;
+
+    const isHot = streak >= 10;
+
+    // Compact variant – inline for rank rows
+    if (variant === 'compact') {
+        return (
+            <Flex align="center" gap={1}>
+                <m.div variants={flickerVariants} animate="animate">
+                    <FlameIcon w={4} h={4} color="#f97316" />
+                </m.div>
+                <Text fontFamily="body" fontSize="sm" fontWeight="semibold" color="gray.300">
+                    {streak}
+                </Text>
+            </Flex>
+        );
+    }
+
+    // Full variant – badge-style for top 3 cards
+    return (
+        <MotionFlex
+            align="center"
+            gap={2}
+            px={isHot ? 4 : 3}
+            py={2}
+            borderRadius="6px"
+            bg={
+                isHot
+                    ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)'
+                    : 'rgba(239, 68, 68, 0.1)'
+            }
+            border={isHot ? 'none' : '1px solid rgba(239, 68, 68, 0.3)'}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+        >
+            <m.div variants={flickerVariants} animate="animate">
+                <FlameIcon w={isHot ? 5 : 4} h={isHot ? 5 : 4} color={isHot ? 'white' : '#f97316'} />
+            </m.div>
+            <Text
+                fontFamily="body"
+                fontSize={isHot ? 'sm' : 'xs'}
+                fontWeight="extrabold"
+                color={isHot ? 'white' : '#f97316'}
+                textTransform="uppercase"
+                letterSpacing="wider"
+            >
+                {streak} {t('leaderboardPage.winStreak')}
+            </Text>
+        </MotionFlex>
+    );
+};
+
+export default StreakIndicator;
