@@ -12,6 +12,8 @@ import CodeEditor from '../../../../editor/components/CodeEditor';
 import OutputTerminal from '../../../../editor/components/OutputTerminal';
 import { battlesService } from '../../../../services/battlesService';
 import { judgeService } from '../../../../services/judgeService';
+import { useAuth } from '../../auth/context/AuthContext';
+import { useBattleSocket } from '../hooks/useBattleSocket';
 import '../battles.css';
 
 const formatTimer = (seconds) => {
@@ -192,7 +194,9 @@ const ActiveBattlePage = () => {
         stopTimer,
         completeRound,
         setRoundResult,
+        refreshBattles,
     } = useBattleState();
+    const { isLoggedIn } = useAuth();
 
     const [code, setCode] = useState('');
     const [language, setLanguage] = useState('javascript');
@@ -200,10 +204,77 @@ const ActiveBattlePage = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [openHints, setOpenHints] = useState({});
+    const currentBattle = battles.find(b => b.id === id);
+        useEffect(() => {
+            if (!currentBattle || currentBattle.mode !== BattleMode.ONE_VS_ONE) return;
+
+            let cancelled = false;
+            const syncRoundResults = async () => {
+                try {
+                    const resp = await battlesService.getRoundResults(currentBattle.id);
+                    const rows = Array.isArray(resp?.results) ? resp.results : Array.isArray(resp) ? resp : [];
+                    rows.forEach((row) => {
+                        const side = String(row?.userId || '') === String(currentBattle.player?.id || '') ? 'player' : 'opponent';
+                        setRoundResult({
+                            battleId: currentBattle.id,
+                            roundIndex: Number(row?.roundIndex || 0),
+                            side,
+                            result: row?.result || null,
+                        });
+                    });
+                } catch {
+                    // keep websocket as primary channel; polling is best-effort fallback
+                }
+            };
+
+            syncRoundResults();
+            const intervalId = setInterval(() => {
+                if (!cancelled) syncRoundResults();
+            }, 2000);
+
+            return () => {
+                cancelled = true;
+                clearInterval(intervalId);
+            };
+        }, [currentBattle?.id, currentBattle?.mode, currentBattle?.player?.id, setRoundResult]);
+
+        useEffect(() => {
+            if (!currentBattle || currentBattle.mode !== BattleMode.ONE_VS_ONE) return;
+            if (currentBattle.opponentUserId || currentBattle.opponent?.id) return;
+
+            const intervalId = setInterval(() => {
+                refreshBattles();
+            }, 2000);
+
+            return () => clearInterval(intervalId);
+        }, [currentBattle?.id, currentBattle?.mode, currentBattle?.opponentUserId, currentBattle?.opponent?.id, refreshBattles]);
     const [aiStatus, setAiStatus] = useState('idle');
     const [aiError, setAiError] = useState('');
 
     const battle = battles.find(b => b.id === id);
+    const isPvp = battle?.mode === BattleMode.ONE_VS_ONE;
+    const isWaitingOpponent = isPvp && !battle?.opponentUserId;
+
+    const battleSocket = useBattleSocket({
+        isAuthenticated: isLoggedIn,
+        battleId: id,
+        onBattleJoined: (packet) => {
+            if (!packet?.battleId || String(packet.battleId) !== String(id)) return;
+            refreshBattles();
+        },
+        onRoundResult: (packet) => {
+            if (!battle || !packet?.result) return;
+            if (String(packet?.battleId) !== String(battle.id)) return;
+            if (String(packet?.userId || '') === String(battle.player?.id || '')) return;
+            const roundIndex = Number(packet?.roundIndex || 0);
+            setRoundResult({
+                battleId: battle.id,
+                roundIndex,
+                side: 'opponent',
+                result: packet.result,
+            });
+        },
+    });
 
     useEffect(() => {
         if (id) selectBattle(id);
@@ -242,9 +313,6 @@ const ActiveBattlePage = () => {
     const diffBadge = currentRound ? difficultyBadgeMap[currentRound.difficulty] : null;
     const timerStr = formatTimer(timer.remaining);
     const difficultyLabel = currentRound ? ({ EASY: t('battles.easy'), MEDIUM: t('battles.medium'), HARD: t('battles.hard') }[currentRound.difficulty] || diffBadge?.label) : null;
-
-    const opponentName = battle.opponent?.name || 'AI Master';
-    const opponentLeague = battle.opponent?.league || 'AI League';
 
     const testCases = useMemo(() => {
         if (!challenge) return [];
@@ -294,7 +362,7 @@ const ActiveBattlePage = () => {
     };
 
     const handleSubmit = async () => {
-        if (!challenge?.id || !code.trim() || isSubmitting || !currentRound) return;
+        if (!challenge?.id || !code.trim() || isSubmitting || !currentRound || isWaitingOpponent) return;
         setIsSubmitting(true);
         setOutput([]);
         try {
@@ -319,6 +387,14 @@ const ActiveBattlePage = () => {
                 side: 'player',
                 result,
             });
+
+            if (battle.mode === BattleMode.ONE_VS_ONE) {
+                await battlesService.submitRoundResult(battle.id, {
+                    roundIndex: currentRound.index,
+                    result,
+                });
+                await refreshBattles();
+            }
         } catch (error) {
             setOutput([{ type: 'error', text: error?.message || t('battles.failedSubmitSolution') }]);
         } finally {
@@ -391,6 +467,9 @@ const ActiveBattlePage = () => {
     const aiTyping = aiStatus === 'thinking';
     const playerResult = currentRound?.playerResult;
     const opponentResult = currentRound?.opponentResult;
+    const opponentName = battle.opponent?.name || t('battles.opponent');
+    const opponentLeague = battle.opponent?.league || 'Silver League';
+    const hasOpponent = Boolean(battle.opponentUserId || battle.opponent?.id || battle.mode === BattleMode.ONE_VS_AI);
 
     return (
         <div className="battle-page">
@@ -408,7 +487,7 @@ const ActiveBattlePage = () => {
                         {t('battles.inProgress')}
                     </h1>
                     <p className="battle-text-muted" style={{ fontSize: '1.125rem' }}>
-                        {t('battles.roundOfTotal', { current: battle.currentRoundIndex + 1, total: battle.totalRounds, time: timerStr })}
+                        {t('battles.roundOfTotal', { current: Math.max(1, battle.currentRoundIndex + 1), total: battle.totalRounds, time: timerStr })}
                     </p>
                 </div>
 
@@ -514,7 +593,7 @@ const ActiveBattlePage = () => {
                             <button className="battle-btn battle-btn--primary battle-btn--lg" onClick={handleRun} disabled={isRunning || !code.trim()}>
                                 {isRunning ? t('battles.running') : t('battles.runCode')}
                             </button>
-                            <button className="battle-btn battle-btn--secondary battle-btn--lg" onClick={handleSubmit} disabled={isSubmitting || !code.trim()}>
+                            <button className="battle-btn battle-btn--secondary battle-btn--lg" onClick={handleSubmit} disabled={isSubmitting || !code.trim() || isWaitingOpponent}>
                                 {isSubmitting ? t('battles.submitting') : t('battles.submit')}
                             </button>
                         </div>
@@ -523,28 +602,63 @@ const ActiveBattlePage = () => {
                         </div>
                     </section>
 
-                    {/* AI Opponent Panel */}
+                    {/* Opponent Panel */}
                     <section className="battle-panel battle-panel--opponent">
                         <div className="battle-panel-header">
-                            <h2 className="battle-text-lg battle-font-semibold">{t('battles.aiOpponent')}</h2>
-                            <span className="battle-badge battle-badge--purple">{t('battles.live')}</span>
+                            <h2 className="battle-text-lg battle-font-semibold">
+                                {battle.mode === BattleMode.ONE_VS_AI ? t('battles.aiOpponent') : t('battles.opponent')}
+                            </h2>
+                            <span className={`battle-badge ${hasOpponent ? 'battle-badge--purple' : 'battle-badge--yellow'}`}>
+                                {hasOpponent ? t('battles.live') : t('battles.statusWaiting')}
+                            </span>
                         </div>
-                        <div className="battle-opponent-card">
-                            <div className="battle-opponent-avatar">🤖</div>
-                            <div>
-                                <div className="battle-opponent-name">{opponentName}</div>
-                                <div className="battle-text-muted">{opponentLeague}</div>
-                            </div>
-                        </div>
-                        <div className="battle-opponent-status">
-                            <span className={`battle-status-dot ${aiTyping ? 'battle-status-dot--active' : ''}`} />
-                            <span>{aiStatus === 'error' ? t('battles.error') : aiTyping ? t('battles.thinking') : t('battles.ready')}</span>
-                        </div>
-                        <div className="battle-typing-indicator">
-                            <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
-                            <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
-                            <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
-                        </div>
+
+                        {!hasOpponent ? (
+                            <>
+                                <div className="battle-opponent-card battle-opponent-card--waiting">
+                                    <div className="battle-opponent-avatar battle-opponent-avatar--placeholder">?</div>
+                                    <div>
+                                        <div className="battle-opponent-name">{t('battles.waitingForOpponent')}</div>
+                                        <div className="battle-text-muted">{t('battles.waitingOpponentDesc')}</div>
+                                    </div>
+                                </div>
+                                <div className="battle-opponent-status">
+                                    <span className="battle-status-dot battle-status-dot--active" />
+                                    <span>{t('battles.searchingOpponent')}</span>
+                                </div>
+                                <div className="battle-waiting-loader" aria-hidden="true">
+                                    <span className="battle-waiting-ring" />
+                                    <span className="battle-waiting-ring battle-waiting-ring--delay" />
+                                    <span className="battle-waiting-ring battle-waiting-ring--delay2" />
+                                </div>
+                                <div className="battle-empty">{t('battles.battleStartsWhenOpponentJoins')}</div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="battle-opponent-card">
+                                    <div className="battle-opponent-avatar">
+                                        {battle.mode === BattleMode.ONE_VS_AI ? '🤖' : '👤'}
+                                    </div>
+                                    <div>
+                                        <div className="battle-opponent-name">{opponentName}</div>
+                                        <div className="battle-text-muted">{opponentLeague}</div>
+                                    </div>
+                                </div>
+                                <div className="battle-opponent-status">
+                                    <span className={`battle-status-dot ${aiTyping ? 'battle-status-dot--active' : ''}`} />
+                                    <span>
+                                        {battle.mode === BattleMode.ONE_VS_AI
+                                            ? aiStatus === 'error' ? t('battles.error') : aiTyping ? t('battles.thinking') : t('battles.ready')
+                                            : battleSocket.isConnected ? t('battles.connectedRealtime') : t('battles.waitingRealtime')}
+                                    </span>
+                                </div>
+                                <div className="battle-typing-indicator">
+                                    <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
+                                    <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
+                                    <span className={`typing-dot ${aiTyping ? 'typing-dot--active' : ''}`} />
+                                </div>
+                            </>
+                        )}
 
                         {aiError && (
                             <div className="battle-empty">{aiError}</div>

@@ -5,6 +5,10 @@ export const battlesService = {
     return apiClient('/battles/me', { method: 'GET' });
   },
 
+  getLobby: async () => {
+    return apiClient('/battles/lobby', { method: 'GET' });
+  },
+
   getAll: async (params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -36,6 +40,24 @@ export const battlesService = {
 
   remove: async (id) => {
     return apiClient(`/battles/${id}`, { method: 'DELETE' });
+  },
+
+  join: async (id) => {
+    return apiClient(`/battles/${id}/join`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  },
+
+  getRoundResults: async (id) => {
+    return apiClient(`/battles/${id}/round-results`, { method: 'GET' });
+  },
+
+  submitRoundResult: async (id, data) => {
+    return apiClient(`/battles/${id}/round-result`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   submitAiSolution: async (id, data = {}) => {

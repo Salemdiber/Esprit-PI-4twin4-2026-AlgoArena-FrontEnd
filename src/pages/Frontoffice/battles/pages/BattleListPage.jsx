@@ -27,6 +27,7 @@ const BattleListPage = () => {
         battles,
         selectBattle,
         openCreateModal,
+        joinBattle,
         cancelBattle,
         isLoading,
         error,
@@ -79,6 +80,13 @@ const BattleListPage = () => {
 
     const handleCancel = (id) => {
         cancelBattle(id);
+    };
+
+    const handleJoin = async (id) => {
+        const ok = await joinBattle(id);
+        if (!ok) return;
+        selectBattle(id);
+        navigate(`/battles/${id}`);
     };
 
     return (
@@ -144,6 +152,7 @@ const BattleListPage = () => {
                                             key={battle.id}
                                             battle={battle}
                                             onEnter={handleEnterBattle}
+                                            onJoin={handleJoin}
                                             onViewSummary={handleViewSummary}
                                             onCancel={handleCancel}
                                             aiBattlesEnabled={aiBattlesEnabled}

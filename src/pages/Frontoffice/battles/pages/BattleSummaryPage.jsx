@@ -4,7 +4,7 @@
  * Victory/Defeat banner, scoreboard, round breakdown,
  * and performance analytics — all dynamically derived.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
@@ -21,7 +21,6 @@ import {
     BattleMode,
     BattleStatus,
 } from '../types/battle.types';
-import ScoreBoard from '../components/ScoreBoard';
 import RoundCard from '../components/RoundCard';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import '../battles.css';
@@ -34,6 +33,7 @@ const BattleSummaryPage = () => {
     const { refreshUserStats } = useChallengeContext();
     const { currentUser } = useAuth();
     const xpAwardInFlightRef = useRef(false);
+    const [shareCopied, setShareCopied] = useState(false);
 
     const battle = battles.find(b => b.id === id);
 
@@ -114,8 +114,8 @@ const BattleSummaryPage = () => {
         : winner === 'opponent'
             ? 'battle-defeat-banner'
             : 'battle-draw-banner';
+    const resultTone = winner === 'player' ? 'victory' : winner === 'opponent' ? 'defeat' : 'draw';
 
-    const bannerEmoji = winner === 'player' ? '🏆' : winner === 'opponent' ? (isAiBattle ? '🤖' : '😔') : '🤝';
     const bannerTitle = winner === 'player'
         ? t('battles.playerWinsTitle', { name: battle.player.name })
         : winner === 'opponent'
@@ -126,6 +126,11 @@ const BattleSummaryPage = () => {
         : winner === 'opponent'
             ? (isAiBattle ? t('battles.botEdged') : t('battles.opponentWon', { name: battle.opponent?.name }))
             : t('battles.tieWith', { name: battle.opponent?.name });
+    const heroBigWord = winner === 'player'
+        ? 'WINNER'
+        : winner === 'opponent'
+            ? 'REMATCH'
+            : 'BALANCED';
 
     const aggregateResults = (side) => {
         const results = battle.rounds
@@ -164,108 +169,129 @@ const BattleSummaryPage = () => {
 
     const playerAggregate = aggregateResults('player');
     const opponentAggregate = aggregateResults('opponent');
+    const playerAvatar = typeof battle.player?.avatar === 'string' && battle.player.avatar.trim() !== ''
+        ? battle.player.avatar
+        : null;
+    const opponentAvatar = typeof battle.opponent?.avatar === 'string' && battle.opponent.avatar.trim() !== ''
+        ? battle.opponent.avatar
+        : null;
+
+    const getInitials = (name) => {
+        if (!name) return 'PL';
+        const cleaned = String(name).trim();
+        if (!cleaned) return 'PL';
+        const parts = cleaned.split(/\s+/).slice(0, 2);
+        return parts.map((part) => part.charAt(0).toUpperCase()).join('') || 'PL';
+    };
+
+    const handleShareResults = async () => {
+        const shareText = `${t('battles.battleResults')} - ${battle.player.name} ${playerScore} : ${opponentScore} ${battle.opponent?.name || t('battles.opponent')}`;
+        const shareUrl = window.location.href;
+        const payload = `${shareText}\n${shareUrl}`;
+
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(payload);
+                setShareCopied(true);
+                window.setTimeout(() => setShareCopied(false), 1800);
+            }
+        } catch {
+            // silently ignore clipboard permission errors
+        }
+    };
 
     return (
-        <div className="battle-page">
-            <div style={{ maxWidth: '72rem', margin: '0 auto' }}>
-                {/* Header */}
-                <div className="battle-text-center battle-mb-xl">
+        <div className="battle-page battle-summary-page">
+            <div className="battle-summary-shell">
+                <div className="battle-summary-topbar battle-mb-lg battle-summary-animate battle-summary-animate--1">
                     <button
                         className="battle-btn battle-btn--secondary"
                         onClick={() => navigate('/battles')}
-                        style={{ marginBottom: '1.5rem' }}
                     >
                         {t('battles.backToArenaArrow')}
                     </button>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-                        {t('battles.battleResults')}
-                    </h1>
-                    <p className="battle-text-muted" style={{ fontSize: '1.125rem' }}>
-                        {t('battles.roundsCompleted', { count: battle.totalRounds })} • {durationMins > 0 ? t('battles.nMinutes', { n: durationMins }) : t('battles.justNow')}
-                    </p>
-                </div>
-
-                {/* Victory/Defeat Banner */}
-                <div className={bannerClass}>
-                    <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>{bannerEmoji}</div>
-                    <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>
+                    <span className={`battle-summary-chip battle-summary-chip--${resultTone}`}>
                         {bannerTitle}
-                    </h2>
-                    <p style={{ color: 'white', fontSize: '1.125rem' }}>{bannerSubtitle}</p>
+                    </span>
                 </div>
 
-                {/* Scoreboard */}
-                <div className="battle-card battle-mb-xl" style={{ border: `1px solid ${winner === 'player' ? '#22c55e' : '#ef4444'}` }}>
-                    <div className="battle-scoreboard">
-                        {/* Player */}
-                        <div className="battle-scoreboard__player">
+                <section className={`${bannerClass} battle-summary-hero battle-mb-xl battle-summary-animate battle-summary-animate--2`}>
+                    <div className="battle-summary-watermark" aria-hidden="true">{heroBigWord}</div>
+                    <div className="battle-summary-hero__content">
+                        <p className="battle-summary-overline">{t('battles.statusCompleted')}</p>
+                        <h1 className="battle-summary-title">
+                            {t('battles.battleResults')}
+                        </h1>
+                        <p className="battle-summary-subtitle">{bannerSubtitle}</p>
+                        <div className="battle-summary-meta">
+                            <span className="battle-summary-meta-pill">{t('battles.roundsCompleted', { count: battle.totalRounds })}</span>
+                            <span className="battle-summary-meta-pill">{durationMins > 0 ? t('battles.nMinutes', { n: durationMins }) : t('battles.justNow')}</span>
+                            <span className="battle-summary-meta-pill">{t('battles.winnerLabel')} {winnerName}</span>
+                        </div>
+                    </div>
+                    <div className="battle-summary-stats-grid">
+                        <div className="battle-summary-stat-card">
+                            <p className="battle-summary-stat-label">{t('battles.roundsWon')}</p>
+                            <p className="battle-summary-stat-value">{playerWins} - {opponentWins}</p>
+                        </div>
+                        <div className="battle-summary-stat-card">
+                            <p className="battle-summary-stat-label">{t('battles.xpEarned')}</p>
+                            <p className="battle-summary-stat-value">+{xpEarned}</p>
+                        </div>
+                        <div className="battle-summary-stat-card">
+                            <p className="battle-summary-stat-label">{t('battles.rankProgress')}</p>
+                            <p className="battle-summary-stat-value">{rankProgress > 0 ? '+' : ''}{rankProgress} {t('battles.points')}</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section className={`battle-summary-duel battle-summary-duel--${resultTone} battle-mb-xl battle-summary-animate battle-summary-animate--3`}>
+                    <article className="battle-summary-combatant">
+                        {playerAvatar ? (
                             <img
-                                src={battle.player.avatar}
+                                src={playerAvatar}
                                 alt={battle.player.name}
                                 className={`battle-scoreboard__avatar ${winner === 'player' ? 'battle-scoreboard__avatar--winner' : 'battle-scoreboard__avatar--player'}`}
                             />
-                            <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.5rem' }}>
-                                {battle.player.name}
-                            </h3>
-                            {winner === 'player' && (
-                                <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{t('battles.winner')}</span>
-                            )}
-                            <p className={`battle-font-bold battle-text-5xl ${winner === 'player' ? 'battle-text-green' : ''}`} style={{ marginBottom: '0.25rem' }}>
-                                {playerScore}
-                            </p>
-                            <p className="battle-text-xs battle-text-muted battle-text-uppercase">{t('battles.finalScore')}</p>
-                        </div>
+                        ) : (
+                            <div className="battle-summary-initials battle-summary-initials--player">{getInitials(battle.player?.name)}</div>
+                        )}
+                        <p className="battle-summary-combatant-name">{battle.player.name}</p>
+                        <p className="battle-summary-combatant-score">{playerScore}</p>
+                        <p className="battle-summary-combatant-caption">{t('battles.finalScore')}</p>
+                    </article>
 
-                        {/* Center Stats */}
-                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.75rem' }}>
-                            <div className="battle-text-center">
-                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>{t('battles.roundsWon')}</p>
-                                <p className="battle-text-xl battle-font-bold battle-text-green">{playerWins} - {opponentWins}</p>
-                            </div>
-                            <div className="battle-text-center">
-                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>{t('battles.xpEarned')}</p>
-                                <p className="battle-text-xl battle-font-bold battle-text-yellow">+{xpEarned} XP</p>
-                            </div>
-                            <div className="battle-text-center">
-                                <p className="battle-text-muted battle-text-sm" style={{ marginBottom: '0.25rem' }}>{t('battles.rankProgress')}</p>
-                                <p className="battle-text-xl battle-font-bold battle-text-cyan">
-                                    {rankProgress > 0 ? '+' : ''}{rankProgress} {t('battles.points')}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Opponent */}
-                        <div className="battle-scoreboard__player">
-                            {battle.opponent?.avatar ? (
-                                <img
-                                    src={battle.opponent.avatar}
-                                    alt={battle.opponent.name}
-                                    className={`battle-scoreboard__avatar ${winner === 'opponent' ? 'battle-scoreboard__avatar--winner' : 'battle-scoreboard__avatar--opponent'}`}
-                                />
-                            ) : (
-                                <div className="battle-ai-avatar battle-ai-avatar--lg" style={{ margin: '0 auto 1rem', border: '4px solid #475569' }}>AI</div>
-                            )}
-                            <h3 className="battle-text-lg battle-font-bold" style={{ marginBottom: '0.5rem' }}>
-                                {battle.opponent?.name || t('battles.unknown')}
-                            </h3>
-                            {winner !== 'player' && winner !== 'draw' ? (
-                                <span className="battle-badge battle-badge--green" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{t('battles.winner')}</span>
-                            ) : (
-                                <span className="battle-badge battle-badge--gray" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{t('battles.defeated')}</span>
-                            )}
-                            <p className="battle-font-bold battle-text-5xl" style={{ color: winner === 'opponent' ? '#22c55e' : '#cbd5e1', marginBottom: '0.25rem' }}>
-                                {opponentScore}
-                            </p>
-                            <p className="battle-text-xs battle-text-muted battle-text-uppercase">{t('battles.finalScore')}</p>
-                        </div>
+                    <div className="battle-summary-versus">
+                        <div className="battle-summary-versus-core">VS</div>
+                        <div className="battle-summary-versus-line" />
+                        <p className="battle-summary-versus-caption">{t('battles.winnerLabel')} {winnerName}</p>
                     </div>
-                </div>
+
+                    <article className="battle-summary-combatant">
+                        {opponentAvatar ? (
+                            <img
+                                src={opponentAvatar}
+                                alt={battle.opponent?.name || t('battles.opponent')}
+                                className={`battle-scoreboard__avatar ${winner === 'opponent' ? 'battle-scoreboard__avatar--winner' : 'battle-scoreboard__avatar--opponent'}`}
+                            />
+                        ) : (
+                            <div className="battle-summary-initials battle-summary-initials--opponent">
+                                {getInitials(battle.opponent?.name || t('battles.opponent'))}
+                            </div>
+                        )}
+                        <p className="battle-summary-combatant-name">{battle.opponent?.name || t('battles.unknown')}</p>
+                        <p className="battle-summary-combatant-score">{opponentScore}</p>
+                        <p className="battle-summary-combatant-caption">{t('battles.finalScore')}</p>
+                    </article>
+                </section>
 
                 {/* Detailed Results */}
-                <div className="battle-mb-xl">
-                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.detailedResults')}</h2>
+                <div className="battle-mb-xl battle-summary-animate battle-summary-animate--4">
+                    <h2 className="battle-text-xl battle-font-bold battle-mb-md">
+                        {t('battles.battleResults')}
+                    </h2>
                     <div className="battle-results-grid">
-                        <div className="battle-result-card">
+                        <div className="battle-result-card battle-summary-result-card">
                             <div className="battle-result-title">{battle.player.name}</div>
                             {playerAggregate ? (
                                 <>
@@ -292,9 +318,9 @@ const BattleSummaryPage = () => {
                             )}
                         </div>
 
-                        <div className="battle-result-card">
+                        <div className="battle-result-card battle-summary-result-card">
                             <div className="battle-result-title">
-                                {winner === 'opponent' && isAiBattle ? `🤖 ${t('battles.iGotYou')}` : battle.opponent?.name || t('battles.opponent')}
+                                {winner === 'opponent' && isAiBattle ? t('battles.iGotYou') : battle.opponent?.name || t('battles.opponent')}
                             </div>
                             {opponentAggregate ? (
                                 <>
@@ -321,13 +347,10 @@ const BattleSummaryPage = () => {
                             )}
                         </div>
                     </div>
-                    <div className="battle-result-winner">
-                        {t('battles.winnerLabel')} <strong>{winnerName}</strong>
-                    </div>
                 </div>
 
                 {/* Round Breakdown */}
-                <div className="battle-mb-xl">
+                <div className="battle-mb-xl battle-summary-animate battle-summary-animate--5">
                     <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.roundBreakdown')}</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {battle.rounds.map(round => (
@@ -337,21 +360,29 @@ const BattleSummaryPage = () => {
                 </div>
 
                 {/* Performance Analytics */}
-                <div className="battle-mb-xl">
+                <div className="battle-mb-xl battle-summary-animate battle-summary-animate--6">
                     <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.performanceAnalytics')}</h2>
                     <PerformanceAnalytics battle={battle} />
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
+                <div className="battle-summary-actions battle-summary-animate battle-summary-animate--7">
                     <button className="battle-btn battle-btn--primary" onClick={() => navigate('/battles')}>
                         {t('battles.challengeAgain')}
                     </button>
                     <button className="battle-btn battle-btn--secondary" onClick={() => navigate('/battles')}>
                         {t('battles.backToArena')}
                     </button>
-                    <button className="battle-btn battle-btn--secondary">
-                        {t('battles.shareResults')}
+                </div>
+
+                <div className="battle-summary-share-card battle-summary-animate battle-summary-animate--8">
+                    <div>
+                        <p className="battle-summary-share-label">{t('battles.shareResults')}</p>
+                        <h3 className="battle-summary-share-title">{battle.player.name} {playerScore} : {opponentScore} {battle.opponent?.name || t('battles.opponent')}</h3>
+                        <p className="battle-summary-share-caption">{t('battles.winnerLabel')} {winnerName}</p>
+                    </div>
+                    <button className="battle-btn battle-btn--secondary" onClick={handleShareResults}>
+                        {shareCopied ? 'Copied' : t('battles.shareResults')}
                     </button>
                 </div>
             </div>
