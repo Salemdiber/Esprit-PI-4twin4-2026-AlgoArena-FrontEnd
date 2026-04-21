@@ -1,4 +1,5 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Avatar,
   Badge,
@@ -254,6 +255,7 @@ const addReplyInTree = (comments, parentCommentId, reply) => {
 
 
 const CommunityPage = () => {
+  const { t, i18n } = useTranslation();
   const { isLoggedIn, currentUser } = useAuth();
 
   const [posts, setPosts] = useState([]);
@@ -311,6 +313,10 @@ const CommunityPage = () => {
   const [savedItems, setSavedItems] = useState(() => safeRead(STORAGE_KEYS.savedItems, {}));
   const [bestAnswerByPost, setBestAnswerByPost] = useState(() => safeRead(STORAGE_KEYS.bestAnswers, {}));
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', postId: '', commentId: '' });
+
+  useEffect(() => {
+    void i18n.reloadResources([i18n.language], ['translation']);
+  }, [i18n, i18n.language]);
 
   useEffect(() => {
     safeWrite(STORAGE_KEYS.postReactions, postReactions);
@@ -372,7 +378,7 @@ const CommunityPage = () => {
       const remotePosts = await communityService.getPosts();
       setPosts(Array.isArray(remotePosts) ? remotePosts : []);
     } catch (err) {
-      setError(err.message || 'Failed to load community posts.');
+      setError(err.message || t('communityPage.errors.failedLoadPosts'));
     } finally {
       setLoading(false);
     }
@@ -472,8 +478,8 @@ const CommunityPage = () => {
 
   const validatePostForm = () => {
     const nextErrors = {};
-    if (!title.trim()) nextErrors.title = 'Title is required.';
-    if (!content.trim()) nextErrors.content = activeSection === 'problems' ? 'Description is required.' : 'Content is required.';
+    if (!title.trim()) nextErrors.title = t('communityPage.errors.titleRequired');
+    if (!content.trim()) nextErrors.content = activeSection === 'problems' ? t('communityPage.errors.descriptionRequired') : t('communityPage.errors.contentRequired');
     setPostErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -656,7 +662,7 @@ const CommunityPage = () => {
 
     if (!validatePostForm()) return;
     if (!isLoggedIn) {
-      setError('Please sign in to create a post.');
+      setError(t('communityPage.errors.signInCreatePost'));
       return;
     }
 
@@ -682,7 +688,7 @@ const CommunityPage = () => {
       setPosts((prev) => [savedPost, ...prev]);
       handleCreateModalClose();
     } catch (err) {
-      setError(err.message || 'Unable to create post.');
+      setError(err.message || t('communityPage.errors.unableCreatePost'));
     } finally {
       setCreatingPost(false);
     }
@@ -761,12 +767,12 @@ const CommunityPage = () => {
     const text = (draft.text || '').trim();
 
     if (!text) {
-      updateCommentDraft(postId, { error: 'Comment is required.' });
+      updateCommentDraft(postId, { error: t('communityPage.errors.commentRequired') });
       return;
     }
 
     if (!isLoggedIn) {
-      setError('Please sign in to comment on posts.');
+      setError(t('communityPage.errors.signInComment'));
       return;
     }
 
@@ -827,7 +833,7 @@ const CommunityPage = () => {
       setCommentsVisible((prev) => ({ ...prev, [postId]: true }));
       setCommentDrafts((prev) => ({ ...prev, [postId]: emptyDraft() }));
     } catch (err) {
-      setError(err.message || 'Unable to add comment.');
+      setError(err.message || t('communityPage.errors.unableAddComment'));
       updateCommentDraft(postId, { isSubmitting: false });
       return;
     }
@@ -842,12 +848,12 @@ const CommunityPage = () => {
     const text = (draft.text || '').trim();
 
     if (!text) {
-      updateReplyDraft(commentId, { error: 'Reply is required.' });
+      updateReplyDraft(commentId, { error: t('communityPage.errors.replyRequired') });
       return;
     }
 
     if (!isLoggedIn) {
-      setError('Please sign in to reply.');
+      setError(t('communityPage.errors.signInReply'));
       return;
     }
 
@@ -883,7 +889,7 @@ const CommunityPage = () => {
       setReplyVisibility((prev) => ({ ...prev, [commentId]: false }));
       setCommentsVisible((prev) => ({ ...prev, [postId]: true }));
     } catch (err) {
-      setError(err.message || 'Unable to add reply.');
+      setError(err.message || t('communityPage.errors.unableAddReply'));
       updateReplyDraft(commentId, { isSubmitting: false });
       return;
     }
@@ -897,7 +903,7 @@ const CommunityPage = () => {
       setPosts((prev) => prev.filter((post) => String(post._id) !== String(postId)));
       await fetchComments();
     } catch (err) {
-      setError(err.message || 'Unable to delete post.');
+      setError(err.message || t('communityPage.errors.unableDeletePost'));
     }
   };
 
@@ -907,7 +913,7 @@ const CommunityPage = () => {
       setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
       await fetchComments();
     } catch (err) {
-      setError(err.message || 'Unable to delete comment/reply.');
+      setError(err.message || t('communityPage.errors.unableDeleteComment'));
     }
   };
 
@@ -939,7 +945,7 @@ const CommunityPage = () => {
       const updatedPost = await communityService.setPostSolved(post._id, !post?.solved);
       setPosts((prev) => prev.map((x) => (String(x._id) === String(post._id) ? updatedPost : x)));
     } catch (err) {
-      setError(err.message || 'Unable to update solved state.');
+      setError(err.message || t('communityPage.errors.unableUpdateSolved'));
     }
   };
 
@@ -948,7 +954,7 @@ const CommunityPage = () => {
       const updatedPost = await communityService.setPostPinned(post._id, !post?.pinned);
       setPosts((prev) => prev.map((x) => (String(x._id) === String(post._id) ? updatedPost : x)));
     } catch (err) {
-      setError(err.message || 'Unable to pin post.');
+      setError(err.message || t('communityPage.errors.unablePinPost'));
     }
   };
 
@@ -959,7 +965,7 @@ const CommunityPage = () => {
       setPosts((prev) => prev.map((x) => (String(x._id) === String(postId) ? updatedPost : x)));
       await fetchComments();
     } catch (err) {
-      setError(err.message || 'Unable to pin comment.');
+      setError(err.message || t('communityPage.errors.unablePinComment'));
     }
   };
 
@@ -976,7 +982,7 @@ const CommunityPage = () => {
     const trimmedContent = editingPost.content.trim();
 
     if (!trimmedTitle || !trimmedContent) {
-      setError('Title and content are required.');
+      setError(t('communityPage.errors.titleAndContentRequired'));
       return;
     }
 
@@ -990,7 +996,7 @@ const CommunityPage = () => {
       setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
       handleCancelPostEdit();
     } catch (err) {
-      setError(err.message || 'Unable to modify post.');
+      setError(err.message || t('communityPage.errors.unableModifyPost'));
     } finally {
       setSavingPostEditId('');
     }
@@ -1007,12 +1013,12 @@ const CommunityPage = () => {
   const handleSaveCommentEdit = async (postId, commentId) => {
     const trimmedText = editingComment.text.trim();
     if (!trimmedText) {
-      setError('Comment text is required.');
+      setError(t('communityPage.errors.commentTextRequired'));
       return;
     }
 
     if (!commentId) {
-      setError('Unable to modify this comment.');
+      setError(t('communityPage.errors.unableModifyThisComment'));
       return;
     }
 
@@ -1024,7 +1030,7 @@ const CommunityPage = () => {
       await fetchComments();
       handleCancelCommentEdit();
     } catch (err) {
-      setError(err.message || 'Unable to modify comment.');
+      setError(err.message || t('communityPage.errors.unableModifyComment'));
     } finally {
       setSavingCommentEditKey('');
     }
@@ -1480,12 +1486,12 @@ const CommunityPage = () => {
               )}
               {comment?.pinned && (
                 <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                  Pinned
+                  {t('communityPage.pinned')}
                 </Badge>
               )}
               {isBestAnswer && (
                 <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
-                  Best Answer
+                  {t('communityPage.bestAnswer')}
                 </Badge>
               )}
             </HStack>
@@ -1500,7 +1506,7 @@ const CommunityPage = () => {
                   color="green.300"
                   onClick={() => handleMarkBestAnswer(postId, postAuthorId, comment)}
                 >
-                  {isBestAnswer ? 'Unmark Best' : 'Mark Best'}
+                  {isBestAnswer ? t('communityPage.unmarkBest') : t('communityPage.markBest')}
                 </Button>
               )}
               {isAdmin && comment._id && (
@@ -1511,7 +1517,7 @@ const CommunityPage = () => {
                   borderColor="rgba(34, 211, 238, 0.35)"
                   onClick={() => handleToggleCommentPin(postId, comment)}
                 >
-                  {comment?.pinned ? 'Unpin' : 'Pin'}
+                  {comment?.pinned ? t('communityPage.unpin') : t('communityPage.pin')}
                 </Button>
               )}
               {isOwner(comment.authorId) && comment._id && (
@@ -1522,7 +1528,7 @@ const CommunityPage = () => {
                   borderColor="rgba(34, 211, 238, 0.35)"
                   onClick={() => handleStartCommentEdit(postId, comment)}
                 >
-                  Modify
+                  {t('communityPage.modify')}
                 </Button>
               )}
               {canDelete && comment._id && (
@@ -1534,7 +1540,7 @@ const CommunityPage = () => {
                   color="red.300"
                   onClick={() => openDeleteConfirm('comment', postId, comment._id)}
                 >
-                  Delete
+                  {t('communityPage.delete')}
                 </Button>
               )}
             </HStack>
@@ -1585,14 +1591,14 @@ const CommunityPage = () => {
                 color="var(--color-text-primary)"
               />
               <HStack justify="flex-end">
-                <Button size="xs" variant="ghost" onClick={handleCancelCommentEdit}>Cancel</Button>
+                <Button size="xs" variant="ghost" onClick={handleCancelCommentEdit}>{t('communityPage.cancel')}</Button>
                 <Button
                   size="xs"
                   variant="primary"
                   isLoading={savingCommentEditKey === `${postId}:${comment._id}`}
                   onClick={() => handleSaveCommentEdit(postId, comment._id)}
                 >
-                  Save
+                  {t('communityPage.save')}
                 </Button>
               </HStack>
             </VStack>
@@ -1633,7 +1639,7 @@ const CommunityPage = () => {
                   borderColor="rgba(34, 211, 238, 0.35)"
                   onClick={() => setReplyVisibility((prev) => ({ ...prev, [commentId]: !prev[commentId] }))}
                 >
-                  Reply
+                  {t('communityPage.reply')}
                 </Button>
               </HStack>
 
@@ -1643,7 +1649,7 @@ const CommunityPage = () => {
                     <Textarea
                       value={replyDraft.text}
                       onChange={(e) => updateReplyDraft(commentId, { text: e.target.value })}
-                      placeholder={isLoggedIn ? 'Write a reply...' : 'Sign in to reply...'}
+                      placeholder={isLoggedIn ? t('communityPage.writeReply') : t('communityPage.signInToReply')}
                       minH="70px"
                       resize="vertical"
                       bg="#0b1220"
@@ -1655,12 +1661,12 @@ const CommunityPage = () => {
                     <HStack spacing={2}>
                       <Button as="label" size="xs" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
                         <ImageIcon width={12} height={12} />
-                        <Text ml={1}>Image</Text>
+                        <Text ml={1}>{t('communityPage.image')}</Text>
                         <Input type="file" accept="image/*" onChange={(e) => handleReplyMediaSelect(commentId, 'image', e)} hidden />
                       </Button>
                       <Button as="label" size="xs" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
                         <VideoIcon width={12} height={12} />
-                        <Text ml={1}>Video</Text>
+                        <Text ml={1}>{t('communityPage.video')}</Text>
                         <Input type="file" accept="video/*" onChange={(e) => handleReplyMediaSelect(commentId, 'video', e)} hidden />
                       </Button>
                     </HStack>
@@ -1685,7 +1691,7 @@ const CommunityPage = () => {
                     {replyDraft.error && <Text color="red.300" fontSize="xs">{replyDraft.error}</Text>}
 
                     <HStack justify="flex-end">
-                      <Button size="xs" variant="ghost" onClick={() => setReplyVisibility((prev) => ({ ...prev, [commentId]: false }))}>Cancel</Button>
+                      <Button size="xs" variant="ghost" onClick={() => setReplyVisibility((prev) => ({ ...prev, [commentId]: false }))}>{t('communityPage.cancel')}</Button>
                       <Button
                         type="submit"
                         size="xs"
@@ -1693,7 +1699,7 @@ const CommunityPage = () => {
                         isLoading={replyDraft.isSubmitting}
                         isDisabled={!isLoggedIn}
                       >
-                        Post Reply
+                        {t('communityPage.postReply')}
                       </Button>
                     </HStack>
                   </VStack>
@@ -1725,10 +1731,10 @@ const CommunityPage = () => {
         <Flex direction={{ base: 'column', md: 'row' }} align={{ base: 'start', md: 'center' }} justify="space-between" gap={4} mb={6}>
           <Box>
             <Text fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold" color="var(--color-text-heading)">
-              Community
+              {t('communityPage.title')}
             </Text>
             <Text mt={2} color="var(--color-text-muted)" fontFamily="body">
-              Ask questions, share ideas, and collaborate with other AlgoArena members.
+              {t('communityPage.subtitle')}
             </Text>
           </Box>
 
@@ -1741,7 +1747,7 @@ const CommunityPage = () => {
                 colorScheme="cyan"
                 size="sm"
               >
-                Community Dashboard
+                {t('communityPage.communityDashboard')}
               </Button>
             )}
 
@@ -1752,11 +1758,11 @@ const CommunityPage = () => {
               size="sm"
               onClick={() => setShowSavedOnly((prev) => !prev)}
             >
-              Saved Items
+              {t('communityPage.savedItems')}
             </Button>
 
             <Button leftIcon={<PlusIcon width={16} height={16} />} variant="primary" onClick={() => setIsCreateModalOpen(true)} isDisabled={!isLoggedIn}>
-              {activeSection === 'problems' ? 'Create Problem' : 'Create Community Post'}
+              {activeSection === 'problems' ? t('communityPage.createProblem') : t('communityPage.createPost')}
             </Button>
           </HStack>
         </Flex>
@@ -1770,7 +1776,7 @@ const CommunityPage = () => {
               onClick={() => setActiveSection('discussion')}
               transition="all 0.2s ease"
             >
-              Discussion
+              {t('communityPage.discussion')}
             </Button>
             <Button
               size="sm"
@@ -1779,7 +1785,7 @@ const CommunityPage = () => {
               onClick={() => setActiveSection('problems')}
               transition="all 0.2s ease"
             >
-              Problems
+              {t('communityPage.problems')}
             </Button>
           </HStack>
 
@@ -1787,7 +1793,7 @@ const CommunityPage = () => {
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by title or content"
+              placeholder={t('communityPage.searchPlaceholder')}
               bg="var(--color-bg-secondary)"
               borderColor="var(--color-border)"
               color="var(--color-text-primary)"
@@ -1796,7 +1802,7 @@ const CommunityPage = () => {
             />
 
             <Select
-              aria-label="Sort community posts"
+              aria-label={t('communityPage.sortAria')}
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
               bg="var(--color-bg-secondary)"
@@ -1804,13 +1810,13 @@ const CommunityPage = () => {
               color="var(--color-text-primary)"
               w={{ base: 'full', md: '220px' }}
             >
-              <option value="recent" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>Most Recent</option>
-              <option value="liked" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>Most Liked</option>
-              <option value="commented" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>Most Commented</option>
+              <option value="recent" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>{t('communityPage.sortMostRecent')}</option>
+              <option value="liked" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>{t('communityPage.sortMostLiked')}</option>
+              <option value="commented" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>{t('communityPage.sortMostCommented')}</option>
             </Select>
 
             <Select
-              aria-label="Filter community posts by tag"
+              aria-label={t('communityPage.filterTagsAria')}
               value={selectedTag}
               onChange={(e) => setSelectedTag(e.target.value)}
               bg="var(--color-bg-secondary)"
@@ -1818,7 +1824,7 @@ const CommunityPage = () => {
               color="var(--color-text-primary)"
               w={{ base: 'full', md: '220px' }}
             >
-              <option value="all" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>All Tags</option>
+              <option value="all" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>{t('communityPage.allTags')}</option>
               {allTags.map((tag) => (
                 <option key={tag} value={tag} style={{ backgroundColor: 'var(--color-bg-secondary)' }}>#{tag}</option>
               ))}
@@ -1842,7 +1848,7 @@ const CommunityPage = () => {
               {filteredAndSortedPosts.length === 0 ? (
                 <Box bg="var(--color-bg-secondary)" border="1px solid" borderColor="var(--color-border)" borderRadius="14px" p={7} textAlign="center">
                   <Text color="var(--color-text-muted)" fontSize="lg" fontFamily="heading">
-                    {activeSection === 'problems' ? 'No problems yet.' : 'No community posts yet.'}
+                    {activeSection === 'problems' ? t('communityPage.noProblemsYet') : t('communityPage.noPostsYet')}
                   </Text>
                 </Box>
               ) : (
@@ -1902,19 +1908,19 @@ const CommunityPage = () => {
                             <>
                               <HStack spacing={2} align="center" flexWrap="wrap">
                                 <Text color="var(--color-text-heading)" fontFamily="heading" fontSize={{ base: 'md', md: 'lg' }} fontWeight="semibold">{post.title}</Text>
-                                {post?.pinned && <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Pinned</Badge>}
-                                {post?.solved && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Solved</Badge>}
+                                {post?.pinned && <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{t('communityPage.pinned')}</Badge>}
+                                {post?.solved && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{t('communityPage.solved')}</Badge>}
                                 {post?.type === 'problem' && post?.problemType && <Badge colorScheme="orange" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{post.problemType}</Badge>}
-                                {isTrendingPost && <Badge colorScheme="red" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Trending</Badge>}
-                                {isHelpfulPost && <Badge colorScheme="yellow" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Helpful</Badge>}
-                                {hasSolutionFound && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Solution Found</Badge>}
+                                {isTrendingPost && <Badge colorScheme="red" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{t('communityPage.trending')}</Badge>}
+                                {isHelpfulPost && <Badge colorScheme="yellow" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{t('communityPage.helpful')}</Badge>}
+                                {hasSolutionFound && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{t('communityPage.solutionFound')}</Badge>}
                               </HStack>
 
                               <HStack spacing={2} mt={2} flexWrap="wrap">
                                 <Avatar size="xs" src={post.authorAvatar || undefined} name={post.authorUsername || 'unknown'} />
                                 <Text color="brand.500" fontWeight="semibold" fontSize="sm">@{post.authorUsername || 'unknown'}</Text>
                                 <Text color="var(--color-text-muted)" fontSize="xs">{relativeTime(post.createdAt)}</Text>
-                                <Text color="var(--color-text-muted)" fontSize="xs">{totalComments} comments</Text>
+                                <Text color="var(--color-text-muted)" fontSize="xs">{t('communityPage.commentsCount', { count: totalComments })}</Text>
                               </HStack>
 
                               <Text mt={3} color="var(--color-text-primary)" fontSize="sm" noOfLines={3}>
@@ -1983,7 +1989,7 @@ const CommunityPage = () => {
                                 border="1px solid"
                                 whiteSpace="nowrap"
                               >
-                                {commentsOpen ? 'Hide Comments' : 'View Comments'} ({allComments.length})
+                                {commentsOpen ? t('communityPage.hideComments') : t('communityPage.viewComments')} ({allComments.length})
                               </Button>
                               <Menu>
                                 <MenuButton
@@ -1991,31 +1997,31 @@ const CommunityPage = () => {
                                   size="xs"
                                   icon={<ThreeDotsIcon width={14} height={14} />}
                                   variant="ghost"
-                                  aria-label="Options"
+                                  aria-label={t('communityPage.options')}
                                   _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
                                 />
                                 <Portal>
                                   <MenuList bg="var(--color-bg-secondary)" borderColor="var(--color-border)" py={1} border="1px solid" zIndex="popover">
                                   {isOwner(post.authorId) && (
-                                    <MenuItem onClick={() => handleStartPostEdit(post)} icon={<Box as="span" fontSize="xs">✏️</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="var(--color-text-primary)">Edit Post</MenuItem>
+                                    <MenuItem onClick={() => handleStartPostEdit(post)} icon={<Box as="span" fontSize="xs">✏️</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="var(--color-text-primary)">{t('communityPage.editPost')}</MenuItem>
                                   )}
                                   {canDeletePost && (
-                                    <MenuItem onClick={() => openDeleteConfirm('post', postId)} icon={<Box as="span" fontSize="xs">🗑️</Box>} bg="transparent" _hover={{ bg: 'rgba(239, 68, 68, 0.1)' }} color="red.400">Delete Post</MenuItem>
+                                    <MenuItem onClick={() => openDeleteConfirm('post', postId)} icon={<Box as="span" fontSize="xs">🗑️</Box>} bg="transparent" _hover={{ bg: 'rgba(239, 68, 68, 0.1)' }} color="red.400">{t('communityPage.deletePost')}</MenuItem>
                                   )}
                                   <MenuItem onClick={() => handleSummarizeDiscussion(post)} icon={<Box as="span" fontSize="xs">✨</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="cyan.300" isDisabled={summarizingPostId === postId}>
-                                    {summarizingPostId === postId ? 'Summarizing...' : 'Summarize with AI'}
+                                    {summarizingPostId === postId ? t('communityPage.summarizing') : t('communityPage.summarizeWithAi')}
                                   </MenuItem>
                                   <MenuItem onClick={() => toggleSavePost(postId)} icon={<BookmarkIcon width={12} height={12} />} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color={isPostSaved(postId) ? 'brand.500' : 'var(--color-text-primary)'}>
-                                    {isPostSaved(postId) ? 'Unsave' : 'Save'}
+                                    {isPostSaved(postId) ? t('communityPage.unsave') : t('communityPage.save')}
                                   </MenuItem>
                                   {isAdmin && (
                                     <MenuItem onClick={() => handleTogglePostPin(post)} icon={<PinIcon width={12} height={12} />} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="cyan.300">
-                                      {post?.pinned ? 'Unpin' : 'Pin'}
+                                      {post?.pinned ? t('communityPage.unpin') : t('communityPage.pin')}
                                     </MenuItem>
                                   )}
                                   {post.type === 'problem' && isOwner(post.authorId) && (
                                     <MenuItem onClick={() => handleToggleSolved(post)} icon={<Box as="span" fontSize="xs">✅</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="green.400">
-                                      Mark as {post?.solved ? 'Unsolved' : 'Solved'}
+                                      {t('communityPage.markAs')} {post?.solved ? t('communityPage.unsolved') : t('communityPage.solved')}
                                     </MenuItem>
                                   )}
                                   </MenuList>
@@ -2024,8 +2030,8 @@ const CommunityPage = () => {
                             </>
                           ) : (
                             <HStack spacing={2}>
-                              <Button size="xs" variant="primary" isLoading={savingPostEditId === postId} onClick={() => handleSavePostEdit(postId)}>Save</Button>
-                              <Button size="xs" variant="ghost" onClick={handleCancelPostEdit}>Cancel</Button>
+                              <Button size="xs" variant="primary" isLoading={savingPostEditId === postId} onClick={() => handleSavePostEdit(postId)}>{t('communityPage.save')}</Button>
+                              <Button size="xs" variant="ghost" onClick={handleCancelPostEdit}>{t('communityPage.cancel')}</Button>
                             </HStack>
                           )}
                         </HStack>
@@ -2035,7 +2041,7 @@ const CommunityPage = () => {
                         <Box mt={3} p={3} bg="rgba(34, 211, 238, 0.04)" borderRadius="10px" borderLeft="3px solid" borderLeftColor="brand.500">
                           <HStack spacing={2} mb={1}>
                             <Box as="span" fontSize="xs">✨</Box>
-                            <Text fontSize="xs" fontWeight="bold" color="cyan.300" textTransform="uppercase" letterSpacing="wider">AI Summary</Text>
+                            <Text fontSize="xs" fontWeight="bold" color="cyan.300" textTransform="uppercase" letterSpacing="wider">{t('communityPage.aiSummary')}</Text>
                           </HStack>
                           <Text color="var(--color-text-primary)" fontSize="sm" fontStyle="italic">"{discussionSummaries[postId]}"</Text>
                         </Box>
@@ -2082,7 +2088,7 @@ const CommunityPage = () => {
                             <Textarea
                               value={draft.text}
                               onChange={(e) => updateCommentDraft(postId, { text: e.target.value })}
-                              placeholder={commentType === 'code' && post.type === 'problem' ? 'Write your code solution...' : 'Write a comment...'}
+                              placeholder={commentType === 'code' && post.type === 'problem' ? 'Write your code solution...' : t('communityPage.writeComment')}
                               minH={commentType === 'code' && post.type === 'problem' ? '130px' : '80px'}
                               bg="var(--color-bg-primary)"
                               borderColor="var(--color-border)"
@@ -2090,7 +2096,7 @@ const CommunityPage = () => {
                               fontFamily={commentType === 'code' && post.type === 'problem' ? 'mono' : 'body'}
                               _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
                             />
-                            <Button type="submit" size="xs" variant="primary" isLoading={draft.isSubmitting} alignSelf="flex-end">Post Comment</Button>
+                            <Button type="submit" size="xs" variant="primary" isLoading={draft.isSubmitting} alignSelf="flex-end">{t('communityPage.postComment')}</Button>
                           </VStack>
                         </Box>
                       )}
@@ -2098,13 +2104,13 @@ const CommunityPage = () => {
                       {commentsOpen && (
                         <VStack align="stretch" spacing={4} mt={6} pt={4} borderTop="1px solid" borderColor="var(--color-border)">
                           {allComments.length === 0 ? (
-                            <Text color="var(--color-text-muted)" fontSize="sm" textAlign="center" py={4}>No comments yet. Be the first to share your thoughts!</Text>
+                            <Text color="var(--color-text-muted)" fontSize="sm" textAlign="center" py={4}>{t('communityPage.noCommentsYet')}</Text>
                           ) : (
                             <>
                               {renderCommentTree(visibleComments, postId, post.authorId)}
                               {hiddenCount > 0 && (
                                 <Button size="sm" variant="ghost" onClick={() => setShowAllComments(prev => ({ ...prev, [postId]: true }))} color="brand.400">
-                                  Show {hiddenCount} more comments
+                                  {t('communityPage.showMoreComments', { count: hiddenCount })}
                                 </Button>
                               )}
                             </>
@@ -2125,7 +2131,7 @@ const CommunityPage = () => {
         <ModalContent bg="var(--color-bg-secondary)" border="1px solid" borderColor="rgba(34, 211, 238, 0.3)" borderRadius="16px" overflow="hidden">
           <ModalHeader borderBottom="1px solid" borderColor="var(--color-border)" px={6} py={4}>
             <Text color="var(--color-text-heading)" fontFamily="heading" fontSize="xl" fontWeight="bold">
-              {activeSection === 'problems' ? 'Create Problem' : 'Create Community Post'}
+              {activeSection === 'problems' ? t('communityPage.createProblem') : t('communityPage.createPost')}
             </Text>
           </ModalHeader>
           <ModalCloseButton color="var(--color-text-muted)" _hover={{ color: 'brand.500' }} mt={2} />
@@ -2133,11 +2139,11 @@ const CommunityPage = () => {
             <form onSubmit={handleCreatePost}>
               <VStack spacing={5} align="stretch">
                 <FormControl isInvalid={Boolean(postErrors.title)} isRequired>
-                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Title</FormLabel>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">{t('communityPage.postTitle')}</FormLabel>
                   <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder={activeSection === 'problems' ? 'Write a clear problem title' : 'Write a clear title'}
+                    placeholder={activeSection === 'problems' ? t('communityPage.problemTitlePlaceholder') : t('communityPage.titlePlaceholder')}
                     bg="var(--color-bg-primary)"
                     borderColor="var(--color-border)"
                     color="var(--color-text-primary)"
@@ -2148,11 +2154,11 @@ const CommunityPage = () => {
                 </FormControl>
 
                 <FormControl isInvalid={Boolean(postErrors.content)} isRequired>
-                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">{activeSection === 'problems' ? 'Description' : 'Content'}</FormLabel>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">{activeSection === 'problems' ? t('communityPage.description') : t('communityPage.content')}</FormLabel>
                   <Textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder={activeSection === 'problems' ? 'Describe your issue or question' : 'Describe your idea, question, or issue'}
+                    placeholder={activeSection === 'problems' ? t('communityPage.problemDescriptionPlaceholder') : t('communityPage.contentPlaceholder')}
                     minH="150px"
                     resize="vertical"
                     bg="var(--color-bg-primary)"
@@ -2166,32 +2172,22 @@ const CommunityPage = () => {
 
                 {activeSection === 'problems' && (
                   <FormControl>
-                    <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Problem Type</FormLabel>
+                    <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">{t('communityPage.problemType')}</FormLabel>
                     <Select value={problemType} onChange={(e) => setProblemType(e.target.value)} bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)">
-                      <option value="bug" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Bug</option>
-                      <option value="algorithm" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Algorithm</option>
-                      <option value="help" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Help</option>
-                      <option value="optimization" style={{ backgroundColor: 'var(--color-bg-primary)' }}>Optimization</option>
+                      <option value="bug" style={{ backgroundColor: 'var(--color-bg-primary)' }}>{t('communityPage.problemTypeBug')}</option>
+                      <option value="algorithm" style={{ backgroundColor: 'var(--color-bg-primary)' }}>{t('communityPage.problemTypeAlgorithm')}</option>
+                      <option value="help" style={{ backgroundColor: 'var(--color-bg-primary)' }}>{t('communityPage.problemTypeHelp')}</option>
+                      <option value="optimization" style={{ backgroundColor: 'var(--color-bg-primary)' }}>{t('communityPage.problemTypeOptimization')}</option>
                     </Select>
                   </FormControl>
                 )}
 
                 <FormControl>
-                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Tags (comma separated)</FormLabel>
-                  <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="javascript, help, bug" bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)" />
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">{t('communityPage.tagsLabel')}</FormLabel>
+                  <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder={t('communityPage.tagsPlaceholder')} bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)" />
                   <Flex mt={3} justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={2}>
-                    <Text color="var(--color-text-muted)" fontSize="xs">Click Generate Tags to request AI suggestions.</Text>
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      borderColor="brand.500"
-                      color="brand.300"
-                      onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())}
-                      isLoading={isFetchingAiTags}
-                      isDisabled={`${title.trim()}\n${content.trim()}`.trim().length < 20}
-                    >
-                      Generate Tags
-                    </Button>
+                    <Text color="var(--color-text-muted)" fontSize="xs">{t('communityPage.aiSuggestTagsHint')}</Text>
+                    <Button size="xs" variant="outline" borderColor="brand.500" color="brand.300" onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())} isLoading={isFetchingAiTags} isDisabled={`${title.trim()}\n${content.trim()}`.trim().length < 20}>{t('communityPage.suggestTags')}</Button>
                   </Flex>
 
                   {aiTagError && (
@@ -2262,8 +2258,8 @@ const CommunityPage = () => {
                 </FormControl>
 
                 <Flex justify="flex-end" gap={3} pt={4} borderTop="1px solid" borderColor="var(--color-border)">
-                  <Button variant="ghost" onClick={handleCreateModalClose} color="var(--color-text-muted)">Cancel</Button>
-                  <Button type="submit" variant="primary" isLoading={creatingPost} loadingText="Posting" px={8}>Publish Post</Button>
+                  <Button variant="ghost" onClick={handleCreateModalClose} color="var(--color-text-muted)">{t('communityPage.cancel')}</Button>
+                  <Button type="submit" variant="primary" isLoading={creatingPost} loadingText={t('communityPage.posting')} px={8}>{t('communityPage.publishPost')}</Button>
                 </Flex>
               </VStack>
             </form>
@@ -2274,16 +2270,16 @@ const CommunityPage = () => {
       <Modal isOpen={deleteConfirm.isOpen} onClose={closeDeleteConfirm} isCentered>
         <ModalOverlay bg="rgba(0, 0, 0, 0.7)" backdropFilter="blur(4px)" />
         <ModalContent bg="var(--color-bg-secondary)" border="1px solid rgba(239, 68, 68, 0.35)" borderRadius="16px">
-          <ModalHeader color="var(--color-text-heading)" fontFamily="heading" fontSize="lg" fontWeight="semibold">Confirm Deletion</ModalHeader>
+          <ModalHeader color="var(--color-text-heading)" fontFamily="heading" fontSize="lg" fontWeight="semibold">{t('communityPage.confirmDeletion')}</ModalHeader>
           <ModalCloseButton color="var(--color-text-muted)" _hover={{ color: 'red.300' }} />
           <ModalBody pb={6}>
             <VStack align="stretch" spacing={4}>
               <Text color="var(--color-text-secondary)" fontSize="sm">
-                {deleteConfirm.type === 'post' ? 'Are you sure you want to delete this post?' : 'Are you sure you want to delete this comment?'}
+                {deleteConfirm.type === 'post' ? t('communityPage.confirmDeletePost') : t('communityPage.confirmDeleteComment')}
               </Text>
               <HStack justify="flex-end">
-                <Button variant="ghost" onClick={closeDeleteConfirm}>Cancel</Button>
-                <Button colorScheme="red" onClick={confirmDelete}>Delete</Button>
+                <Button variant="ghost" onClick={closeDeleteConfirm}>{t('communityPage.cancel')}</Button>
+                <Button colorScheme="red" onClick={confirmDelete}>{t('communityPage.delete')}</Button>
               </HStack>
             </VStack>
           </ModalBody>

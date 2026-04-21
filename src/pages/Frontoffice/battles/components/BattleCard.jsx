@@ -13,7 +13,7 @@ import {
     getProgressPercent,
 } from '../types/battle.types';
 
-const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled = true }) => {
+const BattleCard = ({ battle, onEnter, onJoin, onViewSummary, onCancel, aiBattlesEnabled = true }) => {
     const { t } = useTranslation();
 
     const isLive = battle.status === BattleStatus.LIVE;
@@ -58,6 +58,10 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
     const resultText = isCompleted
         ? playerScore > opponentScore ? t('battles.victory') : playerScore < opponentScore ? t('battles.defeat') : t('battles.draw')
         : null;
+    const opponentAvatar = typeof battle.opponent?.avatar === 'string' && battle.opponent.avatar.trim() !== ''
+        ? battle.opponent.avatar
+        : null;
+    const showCreatorLine = isWaiting && battle.canJoin && battle.creatorName;
 
     return (
         <div className={cardClass} id={`battle-card-${battle.id}`} style={isAIDisabled ? { opacity: 0.5, pointerEvents: 'none', position: 'relative' } : {}}>
@@ -89,9 +93,9 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                     <div className="battle-waiting-avatar">👤</div>
                 ) : isAI ? (
                     <div className="battle-ai-avatar">AI</div>
-                ) : (
+                ) : opponentAvatar ? (
                     <img
-                        src={battle.opponent?.avatar || ''}
+                        src={opponentAvatar}
                         alt={battle.opponent?.name || t('battles.opponent')}
                         style={{
                             width: '3rem', height: '3rem', borderRadius: '50%',
@@ -99,11 +103,18 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                             objectFit: 'cover',
                         }}
                     />
+                ) : (
+                    <div className="battle-waiting-avatar">👤</div>
                 )}
                 <div style={{ flex: 1 }}>
                     <p className="battle-font-semibold">
                         {isWaiting ? t('battles.waitingForOpponent') : t('battles.vsOpponent', { name: battle.opponent?.name })}
                     </p>
+                    {showCreatorLine && (
+                        <p className="battle-text-sm battle-text-muted">
+                            Created by {battle.creatorName}
+                        </p>
+                    )}
                     <p className="battle-text-sm battle-text-muted">{roundText}</p>
                 </div>
             </div>
@@ -153,12 +164,22 @@ const BattleCard = ({ battle, onEnter, onViewSummary, onCancel, aiBattlesEnabled
                     {t('battles.cancelled')}
                 </button>
             ) : isWaiting ? (
-                <button
-                    className="battle-btn battle-btn--secondary battle-btn--full"
-                    onClick={() => onCancel?.(battle.id)}
-                >
-                    {t('battles.cancelBattle')}
-                </button>
+                battle.canJoin ? (
+                    <button
+                        className="battle-btn battle-btn--primary battle-btn--full"
+                        onClick={() => onJoin?.(battle.id)}
+                    >
+                        {t('battles.joinBattle')}
+                    </button>
+                ) : (
+                    <button
+                        className="battle-btn battle-btn--secondary battle-btn--full"
+                        onClick={() => onCancel?.(battle.id)}
+                        disabled={!battle.canCancel}
+                    >
+                        {battle.canCancel ? t('battles.cancelBattle') : t('battles.waitingForOpponent')}
+                    </button>
+                )
             ) : isCompleted ? (
                 <button
                     className="battle-btn battle-btn--secondary battle-btn--full"

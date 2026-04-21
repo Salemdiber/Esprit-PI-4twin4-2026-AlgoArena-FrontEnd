@@ -6,6 +6,7 @@
  * Step 3 → Confirm & create
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
 import { BattleMode, Difficulty } from '../types/battle.types';
@@ -13,6 +14,7 @@ import { settingsService } from '../../../../services/settingsService';
 
 const CreateBattleModal = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const {
         createModal,
         closeCreateModal,
@@ -78,9 +80,12 @@ const CreateBattleModal = () => {
         if (step > 1) setCreateStep(step - 1);
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (assignedChallenges.length === 0) return;
-        confirmCreateBattle();
+        const createdBattleId = await confirmCreateBattle();
+        if (createdBattleId) {
+            navigate(`/battles/${createdBattleId}`);
+        }
     };
 
     const stepCircleClass = (s) => {

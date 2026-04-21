@@ -68,6 +68,8 @@ const CommunityDashboardPage = lazy(() => import('./pages/Frontoffice/community/
 
 // Frontoffice Profile
 const ProfilePage = lazy(() => import('./pages/Frontoffice/profile/pages/ProfilePage'));
+const BillingHistoryPage = lazy(() => import('./pages/Frontoffice/profile/pages/BillingHistoryPage'));
+const BillingReturnPage = lazy(() => import('./pages/Frontoffice/profile/pages/BillingReturnPage'));
 const TwoFactorSetupPage = lazy(() => import('./pages/Frontoffice/profile/pages/TwoFactorSetupPage'));
 
 // Backoffice Pages
@@ -76,6 +78,7 @@ const Users = lazy(() => import('./pages/Backoffice/Users'));
 const Battles = lazy(() => import('./pages/Backoffice/Battles'));
 const Challenges = lazy(() => import('./pages/Backoffice/Challenges'));
 const AILogs = lazy(() => import('./pages/Backoffice/AILogs'));
+const AIAgents = lazy(() => import('./pages/Backoffice/AIAgents'));
 const Leaderboards = lazy(() => import('./pages/Backoffice/Leaderboards'));
 const Analytics = lazy(() => import('./pages/Backoffice/Analytics'));
 const CommunityAnalytics = lazy(() => import('./pages/Backoffice/CommunityAnalytics'));
@@ -393,6 +396,8 @@ function App() {
                             <Route path="/discussion" element={<Navigate to="/community" replace />} />
                             <Route path="/discussion/dashboard" element={<Navigate to="/community/dashboard" replace />} />
                             <Route path="/profile" element={<ProfilePage />} />
+                            <Route path="/profile/billing" element={<BillingHistoryPage />} />
+                            <Route path="/profile/billing/return" element={<BillingReturnPage />} />
                             <Route path="/speed-challenge" element={<SpeedChallengePage />} />
                             <Route path="/profile/2fa-setup" element={<TwoFactorSetupPage />} />
                           </Route>
@@ -414,6 +419,7 @@ function App() {
                             <Route path="battles" element={<Battles />} />
                             <Route path="challenges" element={<Challenges />} />
                             <Route path="ai-logs" element={<AILogs />} />
+                            <Route path="ai-agents" element={<AIAgents />} />
                             <Route path="leaderboards" element={<Leaderboards />} />
                             <Route path="analytics" element={<Analytics />} />
                             <Route path="community-analytics" element={<CommunityAnalytics />} />

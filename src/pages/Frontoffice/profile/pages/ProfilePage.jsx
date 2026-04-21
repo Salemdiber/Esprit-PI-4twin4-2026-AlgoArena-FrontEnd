@@ -34,7 +34,7 @@ const ProfilePage = () => {
     const cancelRef = useRef();
     const [deletePassword, setDeletePassword] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
-    const { logout } = useAuth();
+    const { logout, coinBalance } = useAuth();
     const navigate = useNavigate();
     const toast = useToast();
 
@@ -91,6 +91,51 @@ const ProfilePage = () => {
                 <VStack spacing={8} align="stretch">
                     <AvatarSection />
                     <ProfileInfoSection />
+
+                    <MotionBox
+                        initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.45, delay: 0.15, ease: 'easeOut' }}
+                        border="1px solid"
+                        borderColor="rgba(34, 211, 238, 0.18)"
+                        bg="rgba(8, 47, 73, 0.28)"
+                        borderRadius="12px"
+                        p={{ base: 6, md: 8 }}
+                    >
+                        <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} gap={4} direction={{ base: 'column', md: 'row' }}>
+                            <Box>
+                                <Text fontFamily="heading" color="cyan.300" fontWeight="600" fontSize="lg" mb={2}>
+                                    Billing & wallet
+                                </Text>
+                                <Text color={useColorModeValue('gray.500', 'gray.400')} fontSize="sm">
+                                    Manage your Arena Coins, top up your wallet, and review payment history.
+                                </Text>
+                            </Box>
+
+                            <Box textAlign={{ base: 'left', md: 'right' }}>
+                                <Text color={useColorModeValue('gray.500', 'gray.400')} fontSize="sm">Current balance</Text>
+                                <Text fontSize="3xl" fontWeight="900" color="cyan.300" lineHeight="1">
+                                    {coinBalance}
+                                </Text>
+                            </Box>
+                        </Flex>
+
+                        <Flex mt={6} gap={3} flexWrap="wrap">
+                            <Button colorScheme="cyan" onClick={() => navigate('/profile/billing')}>
+                                Open billing
+                            </Button>
+                            <Button
+                                variant="outline"
+                                borderColor="rgba(34, 211, 238, 0.25)"
+                                color="cyan.300"
+                                _hover={{ bg: 'rgba(34, 211, 238, 0.08)' }}
+                                onClick={() => navigate('/profile/billing')}
+                            >
+                                View wallet history
+                            </Button>
+                        </Flex>
+                    </MotionBox>
+
                     <ChangePasswordSection />
                     <TwoFactorSection />
 

@@ -483,6 +483,13 @@ export function BattleProvider({ children }) {
     const mapBattleFromApi = (battle) => {
         const mode = mapMode(battle?.battleType);
         const status = mapStatus(battle?.battleStatus);
+        const creatorId = String(battle?.userId || '');
+        const creatorUsername = String(battle?.creatorUsername || '').trim();
+        const creatorName = creatorUsername || creatorId;
+        const joinedOpponentId = battle?.opponentId ? String(battle.opponentId) : null;
+        const joinedOpponentUsername = String(battle?.opponentUsername || '').trim();
+        const me = String(currentUserId || '');
+        const isCreator = creatorId === me;
         const totalRounds = Math.max(1, Number(battle?.roundNumber) || 1);
         const botDifficulty = battle?.botDifficulty || battle?.difficulty || Difficulty.MEDIUM;
         const baseChallenge = mapChallenge(battle?.challengeId);
@@ -509,23 +516,87 @@ export function BattleProvider({ children }) {
             return round;
         });
 
-        const opponentName = battle?.opponentId || (mode === BattleMode.ONE_VS_AI ? 'AI Master' : 'Opponent');
-        const opponent = battle?.opponentId || mode === BattleMode.ONE_VS_AI
-            ? {
-                id: battle?.opponentId || 'ai-auto',
-                name: opponentName,
+        if (mode === BattleMode.ONE_VS_ONE) {
+            const pvpRows = Array.isArray(battle?.pvpRoundResults) ? battle.pvpRoundResults : [];
+            pvpRows.forEach((row) => {
+                const roundIndex = Number(row?.roundIndex);
+                if (!Number.isInteger(roundIndex) || roundIndex < 0 || roundIndex >= rounds.length) return;
+                const side = String(row?.userId || '') === String(currentUserId || '') ? 'player' : 'opponent';
+                const result = row?.result || null;
+                if (!result) return;
+                if (side === 'player') {
+                    rounds[roundIndex].playerResult = result;
+                    rounds[roundIndex].playerScore = Number(result?.score || rounds[roundIndex].playerScore || 0);
+                } else {
+                    rounds[roundIndex].opponentResult = result;
+                    rounds[roundIndex].opponentScore = Number(result?.score || rounds[roundIndex].opponentScore || 0);
+                }
+            });
+
+            rounds.forEach((round) => {
+                if (round.playerResult && round.opponentResult) {
+                    round.status = RoundStatus.COMPLETED;
+                    round.result = round.playerScore >= round.opponentScore ? RoundResult.WON : RoundResult.LOST;
+                }
+            });
+
+            const firstNotCompleted = rounds.findIndex((round) => round.status !== RoundStatus.COMPLETED);
+            if (status !== BattleStatus.WAITING && firstNotCompleted >= 0) {
+                rounds[firstNotCompleted].status = RoundStatus.IN_PROGRESS;
+            }
+        }
+
+        const isPvpCompleted =
+            mode === BattleMode.ONE_VS_ONE
+            && rounds.length > 0
+            && rounds.every((round) => Boolean(round.playerResult) && Boolean(round.opponentResult));
+
+        const effectiveStatus = isPvpCompleted ? BattleStatus.COMPLETED : status;
+
+        let opponent = null;
+        if (mode === BattleMode.ONE_VS_AI) {
+            opponent = {
+                id: 'ai-auto',
+                name: 'AI Master',
                 avatar: null,
                 level: 50,
-                league: mode === BattleMode.ONE_VS_AI ? 'AI League' : 'Silver League',
+                league: 'AI League',
+            };
+        } else {
+            const opponentUserId = isCreator ? joinedOpponentId : creatorId;
+            if (opponentUserId) {
+                const opponentName = isCreator
+                    ? (joinedOpponentUsername || opponentUserId)
+                    : (creatorUsername || opponentUserId);
+                opponent = {
+                    id: opponentUserId,
+                    name: opponentName,
+                    avatar: null,
+                    level: 50,
+                    league: 'Silver League',
+                };
             }
-            : null;
+        }
+
+        const canJoin =
+            mode === BattleMode.ONE_VS_ONE
+            && effectiveStatus === BattleStatus.WAITING
+            && !isCreator
+            && !joinedOpponentId;
+
+        const canCancel = effectiveStatus === BattleStatus.WAITING && isCreator;
 
         const mapped = {
             id: battle?._id || battle?.idBattle || battle?.id,
             mode,
-            status,
+            status: effectiveStatus,
             totalRounds,
-            currentRoundIndex: status === BattleStatus.ACTIVE ? 0 : status === BattleStatus.COMPLETED ? totalRounds - 1 : -1,
+            currentRoundIndex: (() => {
+                if (effectiveStatus === BattleStatus.COMPLETED) return totalRounds - 1;
+                if (mode !== BattleMode.ONE_VS_ONE || effectiveStatus === BattleStatus.WAITING) return 0;
+                const firstNotCompleted = rounds.findIndex((round) => round.status !== RoundStatus.COMPLETED);
+                return firstNotCompleted >= 0 ? firstNotCompleted : Math.max(0, totalRounds - 1);
+            })(),
             rounds,
             player: {
                 id: currentUser?.userId || currentUser?._id || currentUser?.id || 'me',
@@ -534,14 +605,20 @@ export function BattleProvider({ children }) {
                 level: currentUser?.level || 42,
                 league: 'Gold League',
             },
+            creatorId,
+            creatorName,
+            opponentUserId: joinedOpponentId,
+            isCreator,
+            canJoin,
+            canCancel,
             opponent,
             createdAt: battle?.createdAt ? new Date(battle.createdAt) : new Date(),
-            completedAt: battle?.endedAt ? new Date(battle.endedAt) : null,
+            completedAt: battle?.endedAt ? new Date(battle.endedAt) : (isPvpCompleted ? new Date() : null),
             timeLimit: 900,
             difficulty: botDifficulty,
         };
 
-        const stored = loadStoredBattle(mapped.id, currentUserId);
+        const stored = mode === BattleMode.ONE_VS_ONE ? null : loadStoredBattle(mapped.id, currentUserId);
         if (stored?.rounds?.length) {
             const mergedRounds = mapped.rounds.map((round) => {
                 const storedRound = stored.rounds.find((r) => r.index === round.index);
@@ -630,9 +707,20 @@ export function BattleProvider({ children }) {
                 dispatch({ type: ActionTypes.SET_BATTLES, payload: [] });
                 return;
             }
-            const resp = await battlesService.getMine();
+            const resp = await battlesService.getAll();
             const list = Array.isArray(resp?.battles) ? resp.battles : Array.isArray(resp) ? resp : [];
-            const mapped = list.map(mapBattleFromApi);
+            const relevant = list.filter((item) => {
+                const creatorId = String(item?.userId || '');
+                const opponentId = item?.opponentId ? String(item.opponentId) : '';
+                const isMine = creatorId === String(currentUserId) || opponentId === String(currentUserId);
+                const isJoinable =
+                    item?.battleType === '1VS1'
+                    && item?.battleStatus === 'PENDING'
+                    && !opponentId
+                    && creatorId !== String(currentUserId);
+                return isMine || isJoinable;
+            });
+            const mapped = relevant.map(mapBattleFromApi);
             dispatch({ type: ActionTypes.SET_BATTLES, payload: mapped });
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedLoadBattles') });
@@ -698,7 +786,7 @@ export function BattleProvider({ children }) {
             userId: currentUser?.userId || currentUser?._id || currentUser?.id || currentUser?.username,
             opponentId: mode === BattleMode.ONE_VS_AI ? 'AI-1' : null,
             roundNumber: totalRounds,
-            battleStatus: 'ACTIVE',
+            battleStatus: mode === BattleMode.ONE_VS_AI ? 'ACTIVE' : 'PENDING',
             challengeId: primary?._id,
             selectChallengeType: challengeType || resolveChallengeType(primary) || difficulty,
             battleType: mode === BattleMode.ONE_VS_AI ? '1VSBOT' : '1VS1',
@@ -736,8 +824,10 @@ export function BattleProvider({ children }) {
             storeBattlePlan(battleId, assignedIds, payload, currentUserId);
             dispatch({ type: ActionTypes.CLOSE_CREATE_MODAL });
             await refreshBattles();
+            return battleId || null;
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCreateBattle') });
+            return null;
         }
     }, [
         state.createModal,
@@ -756,6 +846,17 @@ export function BattleProvider({ children }) {
             await refreshBattles();
         } catch (err) {
             dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedCancelBattle') });
+        }
+    }, [refreshBattles]);
+
+    const joinBattle = useCallback(async (id) => {
+        try {
+            await battlesService.join(id);
+            await refreshBattles();
+            return true;
+        } catch (err) {
+            dispatch({ type: ActionTypes.SET_ERROR, payload: err?.message || i18n.t('battles.failedJoinBattle') });
+            return false;
         }
     }, [refreshBattles]);
 
@@ -829,6 +930,7 @@ export function BattleProvider({ children }) {
         setCreateMode,
         setCreateConfig,
         confirmCreateBattle,
+        joinBattle,
         cancelBattle,
         activateBattle,
         startRound,

@@ -16,13 +16,14 @@ const AccessibilityIcon = (props) => (
 
 const GlobalAccessibilityUI = () => {
     const { t } = useTranslation();
+    const location = useLocation();
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const isCommunityPage = location.pathname.startsWith('/community');
 
 
     return (
         <>
             <AccessibilityDrawer isOpen={isOpen} onClose={onClose} />
-
             <m.div
                 drag
                 dragMomentum={false}
@@ -31,7 +32,8 @@ const GlobalAccessibilityUI = () => {
                 style={{
                     position: 'fixed',
                     bottom: '110px',
-                    right: '30px',
+                    right: isCommunityPage ? 'auto' : '30px',
+                    left: isCommunityPage ? '30px' : 'auto',
                     zIndex: 9999,
                     cursor: 'grab',
                 }}
