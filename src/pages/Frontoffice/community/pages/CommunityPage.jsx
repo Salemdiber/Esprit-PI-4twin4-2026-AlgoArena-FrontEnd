@@ -23,6 +23,7 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Portal,
   Select,
   Spinner,
   Text,
@@ -31,27 +32,12 @@ import {
 } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { Link as RouterLink } from 'react-router-dom';
-import {
-  getComments,
-  getPosts,
-  getUsers,
-  mergeCommunitySnapshot,
-  saveComments,
-  savePosts,
-  saveUsers,
-} from '../../../Backoffice/communityData';
 import { communityService } from '../../../../services/communityService';
 import { useAuth } from '../../auth/context/AuthContext';
 
 const MotionBox = m.create(Box);
 const COMMENT_PREVIEW_LIMIT = 3;
-const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODELS = [
-  'openrouter/auto',
-  'mistralai/mistral-7b-instruct',
-  'mistralai/mistral-7b-instruct:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-];
+const GROQ_MAX_TOKENS = 100;
 
 const STORAGE_KEYS = {
   postReactions: 'discussion_post_reactions_v1',
@@ -59,7 +45,10 @@ const STORAGE_KEYS = {
   savedItems: 'discussion_saved_items_v1',
   bestAnswers: 'discussion_best_answers_v1',
   userNotifications: 'discussion_user_notifications_v1',
+  commentMeta: 'discussion_comment_meta_v1',
 };
+
+const CODE_LANGUAGES = ['javascript', 'python', 'cpp'];
 
 const safeRead = (key, fallback) => {
   try {
@@ -159,23 +148,36 @@ const relativeTime = (value) => {
   return `${Math.max(1, days)} day${days === 1 ? '' : 's'} ago`;
 };
 
+const getApiOrigin = () => {
+  const raw = String(import.meta.env.VITE_API_URL || '').trim();
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      return new URL(raw).origin;
+    } catch {
+      // ignore malformed URLs and use fallback below
+    }
+  }
+
+  if (raw.startsWith('/')) {
+    return window.location.origin;
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:3000`;
+};
+
 const toMediaUrl = (url) => {
   if (!url) return '';
   if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url;
-  const apiOrigin = `${window.location.protocol}//${window.location.hostname}:3000`;
+  const apiOrigin = getApiOrigin();
   return `${apiOrigin}${url.startsWith('/') ? url : `/${url}`}`;
 };
 
-const fileToDataUrl = (file) => new Promise((resolve, reject) => {
-  if (!file) {
-    resolve('');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result || ''));
-  reader.onerror = () => reject(new Error('Unable to read selected file.'));
-  reader.readAsDataURL(file);
-});
+const uploadMediaAndGetUrl = async (file) => {
+  if (!file) return '';
+  const result = await communityService.uploadMedia(file);
+  return String(result?.url || result?.absoluteUrl || '');
+};
 
 const keyOf = (comment) => String(comment?._id || `${comment?.createdAt || ''}:${comment?.text || ''}`);
 
@@ -235,50 +237,6 @@ const moveCommentToTopById = (comments, targetId) => {
   return [picked, ...rest];
 };
 
-const flattenCommentsForStorage = (postId, comments, parentCommentId = null) => {
-  if (!Array.isArray(comments)) return [];
-  return comments.flatMap((comment) => {
-    const current = {
-      _id: String(comment?._id || ''),
-      postId: String(postId || ''),
-      parentCommentId,
-      text: String(comment?.text || ''),
-      authorId: String(comment?.authorId || ''),
-      authorUsername: String(comment?.authorUsername || 'unknown'),
-      authorAvatar: String(comment?.authorAvatar || ''),
-      imageUrl: String(comment?.imageUrl || ''),
-      videoUrl: String(comment?.videoUrl || ''),
-      createdAt: String(comment?.createdAt || ''),
-      updatedAt: String(comment?.updatedAt || ''),
-      pinned: Boolean(comment?.pinned),
-    };
-    return [current, ...flattenCommentsForStorage(postId, comment?.replies || [], current._id)];
-  });
-};
-
-const upsertCommentInTree = (comments, targetCommentId, updater) => {
-  if (!Array.isArray(comments)) return [];
-  return comments.map((comment) => {
-    if (String(comment?._id || '') === String(targetCommentId)) {
-      return updater(comment);
-    }
-    return {
-      ...comment,
-      replies: upsertCommentInTree(comment?.replies || [], targetCommentId, updater),
-    };
-  });
-};
-
-const deleteCommentInTree = (comments, targetCommentId) => {
-  if (!Array.isArray(comments)) return [];
-  return comments
-    .filter((comment) => String(comment?._id || '') !== String(targetCommentId))
-    .map((comment) => ({
-      ...comment,
-      replies: deleteCommentInTree(comment?.replies || [], targetCommentId),
-    }));
-};
-
 const addReplyInTree = (comments, parentCommentId, reply) => {
   if (!Array.isArray(comments)) return [];
   return comments.map((comment) => {
@@ -301,6 +259,7 @@ const CommunityPage = () => {
   const { isLoggedIn, currentUser } = useAuth();
 
   const [posts, setPosts] = useState([]);
+  const [, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -323,7 +282,6 @@ const CommunityPage = () => {
   const [aiSuggestedTags, setAiSuggestedTags] = useState([]);
   const [isFetchingAiTags, setIsFetchingAiTags] = useState(false);
   const [aiTagError, setAiTagError] = useState('');
-  const [lastAiSource, setLastAiSource] = useState('');
   const [discussionSummaries, setDiscussionSummaries] = useState({});
   const [summaryErrors, setSummaryErrors] = useState({});
   const [summarizingPostId, setSummarizingPostId] = useState('');
@@ -333,6 +291,15 @@ const CommunityPage = () => {
   const [commentsVisible, setCommentsVisible] = useState({});
   const [showAllComments, setShowAllComments] = useState({});
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [commentType, setCommentType] = useState('text');
+  const [commentLanguage, setCommentLanguage] = useState('javascript');
+  const [commentMeta, setCommentMeta] = useState(() => safeRead(STORAGE_KEYS.commentMeta, {}));
+  const [codeOutputModal, setCodeOutputModal] = useState({
+    isOpen: false,
+    language: 'javascript',
+    output: '',
+    isError: false,
+  });
 
   const [replyVisibility, setReplyVisibility] = useState({});
   const [replyDrafts, setReplyDrafts] = useState({});
@@ -341,21 +308,11 @@ const CommunityPage = () => {
   const [savingPostEditId, setSavingPostEditId] = useState('');
   const [editingComment, setEditingComment] = useState({ postId: '', commentId: '', text: '' });
   const [savingCommentEditKey, setSavingCommentEditKey] = useState('');
-
   const [postReactions, setPostReactions] = useState(() => safeRead(STORAGE_KEYS.postReactions, {}));
   const [commentReactions, setCommentReactions] = useState(() => safeRead(STORAGE_KEYS.commentReactions, {}));
   const [savedItems, setSavedItems] = useState(() => safeRead(STORAGE_KEYS.savedItems, {}));
   const [bestAnswerByPost, setBestAnswerByPost] = useState(() => safeRead(STORAGE_KEYS.bestAnswers, {}));
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', postId: '', commentId: '' });
-  const openRouterApiKey = String(
-    import.meta.env.VITE_OPENROUTER_API_KEY
-    || import.meta.env.VITE_OPEN_ROUTER_API_KEY
-    || safeRead('openrouter_api_key', '')
-    || safeRead('VITE_OPENROUTER_API_KEY', '')
-    || ''
-  ).trim();
-  const openRouterModelOverride = String(import.meta.env.VITE_OPENROUTER_MODEL || '').trim();
-  const isOpenRouterKeyDetected = Boolean(openRouterApiKey);
 
   useEffect(() => {
     void i18n.reloadResources([i18n.language], ['translation']);
@@ -377,6 +334,10 @@ const CommunityPage = () => {
     safeWrite(STORAGE_KEYS.bestAnswers, bestAnswerByPost);
   }, [bestAnswerByPost]);
 
+  useEffect(() => {
+    safeWrite(STORAGE_KEYS.commentMeta, commentMeta);
+  }, [commentMeta]);
+
   const currentUserId = useMemo(
     () => String(currentUser?._id || currentUser?.id || currentUser?.userId || ''),
     [currentUser],
@@ -386,28 +347,6 @@ const CommunityPage = () => {
   const isAdmin = currentRole === 'ADMIN';
 
   const isOwner = (authorId) => currentUserId && String(authorId || '') === currentUserId;
-
-  const persistPostsAndComments = (nextPosts) => {
-    savePosts(nextPosts);
-    const flatComments = nextPosts.flatMap((post) => flattenCommentsForStorage(post._id, post.comments || []));
-    saveComments(flatComments);
-  };
-
-  const persistCurrentUser = () => {
-    if (!currentUserId) return;
-    const users = getUsers();
-    const exists = users.some((user) => String(user?.id || user?._id || '') === currentUserId);
-    if (exists) return;
-    saveUsers([
-      {
-        id: currentUserId,
-        username: String(currentUser?.username || 'unknown'),
-        role: String(currentUser?.role || 'USER'),
-        avatar: String(currentUser?.avatar || ''),
-      },
-      ...users,
-    ]);
-  };
 
   const pushNotificationForUser = (userId, payload) => {
     if (!userId || !payload) return;
@@ -432,45 +371,31 @@ const CommunityPage = () => {
     });
   };
 
-  const loadPosts = async () => {
+  const fetchPosts = async () => {
     try {
       setLoading(true);
       setError('');
-      const localData = getPosts();
-      setPosts(Array.isArray(localData) ? localData : []);
+      const remotePosts = await communityService.getPosts();
+      setPosts(Array.isArray(remotePosts) ? remotePosts : []);
     } catch (err) {
       setError(err.message || t('communityPage.errors.failedLoadPosts'));
     } finally {
       setLoading(false);
     }
+  };
 
-    // Keep first paint fast, then hydrate the local snapshot in idle time.
-    const hydrateRemoteSnapshot = async () => {
-      try {
-        const remotePosts = await communityService.getPosts();
-        if (!Array.isArray(remotePosts) || remotePosts.length === 0) return;
-        mergeCommunitySnapshot(remotePosts);
-        const mergedData = getPosts();
-        setPosts(Array.isArray(mergedData) ? mergedData : []);
-      } catch {
-        // keep local store when remote source is unavailable
-      }
-    };
-
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        void hydrateRemoteSnapshot();
-      }, { timeout: 2000 });
-      return;
+  const fetchComments = async () => {
+    try {
+      const remoteComments = await communityService.getComments();
+      setComments(Array.isArray(remoteComments) ? remoteComments : []);
+    } catch {
+      setComments([]);
     }
-
-    window.setTimeout(() => {
-      void hydrateRemoteSnapshot();
-    }, 250);
   };
 
   useEffect(() => {
-    loadPosts();
+    void fetchPosts();
+    void fetchComments();
   }, []);
 
   const allTags = useMemo(() => {
@@ -543,7 +468,6 @@ const CommunityPage = () => {
     setVideoPreviewUrl('');
     setAiSuggestedTags([]);
     setAiTagError('');
-    setLastAiSource('');
     setPostErrors({});
   };
 
@@ -649,11 +573,6 @@ const CommunityPage = () => {
   };
 
   const requestAiTags = async (sourceText, { silent = false } = {}) => {
-    if (!openRouterApiKey) {
-      if (!silent) setAiTagError('Missing OpenRouter API key. Set VITE_OPENROUTER_API_KEY in your frontend env.');
-      return;
-    }
-
     if (!sourceText || sourceText.length < 20) {
       if (!silent) setAiTagError('Write a bit more title and description to generate useful tags.');
       return;
@@ -663,58 +582,12 @@ const CommunityPage = () => {
       setIsFetchingAiTags(true);
       if (!silent) setAiTagError('');
 
-      // Mark this source as attempted so auto mode doesn't repeatedly retry unchanged text.
-      setLastAiSource(sourceText);
+      const modelText = await communityService.generateAiText({
+        prompt: `Extract 3 to 5 relevant tags from this text. Return ONLY a JSON array like ['tag1','tag2'].\n\n${sourceText}`,
+        maxTokens: GROQ_MAX_TOKENS,
+        temperature: 0.2,
+      });
 
-      const modelCandidates = openRouterModelOverride
-        ? [openRouterModelOverride, ...OPENROUTER_MODELS]
-        : OPENROUTER_MODELS;
-      const modelsToTry = [...new Set(modelCandidates.map((model) => String(model || '').trim()).filter(Boolean))];
-      const effectiveModels = silent
-        ? ['openrouter/auto', ...modelsToTry.filter((model) => model !== 'openrouter/auto')].slice(0, 1)
-        : modelsToTry;
-
-      let payload = null;
-      let lastErrorText = '';
-
-      for (const model of effectiveModels) {
-        const response = await fetch(OPENROUTER_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openRouterApiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: `Extract 3 to 5 relevant tags from this text. Return ONLY a JSON array like ['tag1','tag2'].\n\n${sourceText}`,
-              },
-            ],
-            temperature: 0.2,
-          }),
-        });
-
-        const result = await response.json().catch(() => null);
-        if (response.ok) {
-          payload = result;
-          break;
-        }
-
-        const details = result?.error?.message || `HTTP ${response.status}`;
-        lastErrorText = `${model}: ${details}`;
-
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(`OpenRouter: ${lastErrorText}`);
-        }
-      }
-
-      if (!payload) {
-        throw new Error(`OpenRouter: ${lastErrorText || 'No available endpoint for configured models.'}`);
-      }
-
-      const modelText = String(payload?.choices?.[0]?.message?.content || '');
       const rawTags = extractJsonArray(modelText);
       const normalized = normalizeTagList(rawTags).slice(0, 5);
 
@@ -727,7 +600,7 @@ const CommunityPage = () => {
     } catch (err) {
       if (!silent) {
         const message = String(err?.message || 'Unable to generate AI tags right now. Please try again.');
-        setAiTagError(message.includes('HTTP') || message.includes('OpenRouter') || message.includes(':')
+        setAiTagError(message.includes('HTTP') || message.includes('GROQ') || message.includes(':')
           ? message
           : 'Unable to generate AI tags right now. Please try again.');
       }
@@ -740,11 +613,6 @@ const CommunityPage = () => {
     const postId = post?._id;
     if (!postId) return;
 
-    if (!openRouterApiKey) {
-      setSummaryErrors((prev) => ({ ...prev, [postId]: 'Missing OpenRouter API key.' }));
-      return;
-    }
-
     const commentTexts = flattenCommentTexts(post.comments || []);
     if (commentTexts.length === 0) {
       setSummaryErrors((prev) => ({ ...prev, [postId]: 'No comments to summarize yet.' }));
@@ -755,52 +623,14 @@ const CommunityPage = () => {
       setSummarizingPostId(postId);
       setSummaryErrors((prev) => ({ ...prev, [postId]: '' }));
 
-      const modelCandidates = openRouterModelOverride
-        ? [openRouterModelOverride, ...OPENROUTER_MODELS]
-        : OPENROUTER_MODELS;
-      const modelsToTry = [...new Set(modelCandidates.map((model) => String(model || '').trim()).filter(Boolean))];
-
-      let summary = '';
-      let lastErrorText = '';
-
       const discussionText = commentTexts.join('\n- ');
-
-      for (const model of modelsToTry) {
-        const response = await fetch(OPENROUTER_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openRouterApiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: `Summarize this discussion in 1-2 short, very clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
-              },
-            ],
-            temperature: 0.2,
-          }),
-        });
-
-        const payload = await response.json().catch(() => null);
-        if (response.ok) {
-          summary = String(payload?.choices?.[0]?.message?.content || '').trim();
-          if (summary) break;
-          lastErrorText = `${model}: Empty summary response`;
-          continue;
-        }
-
-        const details = payload?.error?.message || `HTTP ${response.status}`;
-        lastErrorText = `${model}: ${details}`;
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(lastErrorText);
-        }
-      }
-
+      const summary = await communityService.generateAiText({
+        prompt: `Summarize this discussion in 1-2 short, very clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
+        maxTokens: GROQ_MAX_TOKENS,
+        temperature: 0.2,
+      });
       if (!summary) {
-        throw new Error(lastErrorText || 'Unable to summarize discussion right now.');
+        throw new Error('Unable to summarize discussion right now.');
       }
 
       const cleanSummary = summary
@@ -808,6 +638,7 @@ const CommunityPage = () => {
         .replace(/\s+/g, ' ')
         .trim();
       const sentenceParts = cleanSummary.match(/[^.!?]+[.!?]?/g) || [cleanSummary];
+
       const compactSummary = sentenceParts
         .slice(0, 2)
         .join(' ')
@@ -826,25 +657,6 @@ const CommunityPage = () => {
     }
   };
 
-  useEffect(() => {
-    if (!isCreateModalOpen) return;
-
-    const sourceText = `${title.trim()}\n${content.trim()}`.trim();
-    if (sourceText.length < 20) {
-      setAiSuggestedTags([]);
-      setLastAiSource('');
-      return;
-    }
-
-    if (sourceText === lastAiSource || !openRouterApiKey) return;
-
-    const timer = setTimeout(() => {
-      requestAiTags(sourceText, { silent: true });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [title, content, isCreateModalOpen, lastAiSource, openRouterApiKey]);
-
   const handleCreatePost = async (event) => {
     event.preventDefault();
 
@@ -858,19 +670,10 @@ const CommunityPage = () => {
       setCreatingPost(true);
       setError('');
 
-      let imageUrl;
-      let videoUrl;
+      const imageUrl = await uploadMediaAndGetUrl(imageFile);
+      const videoUrl = await uploadMediaAndGetUrl(videoFile);
 
-      if (imageFile) {
-        imageUrl = await fileToDataUrl(imageFile);
-      }
-
-      if (videoFile) {
-        videoUrl = await fileToDataUrl(videoFile);
-      }
-
-      const created = {
-        _id: `post_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      const newPost = {
         title: title.trim(),
         content: content.trim(),
         type: activeSection === 'problems' ? 'problem' : 'normal',
@@ -878,23 +681,11 @@ const CommunityPage = () => {
         tags: parsedTagsInput,
         imageUrl,
         videoUrl,
-        authorId: currentUserId,
-        authorUsername: currentUser?.username || 'unknown',
-        authorAvatar: currentUser?.avatar || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pinned: false,
-        solved: false,
-        comments: [],
       };
+      console.log('Creating post:', newPost);
+      const savedPost = await communityService.createPost(newPost);
 
-      persistCurrentUser();
-
-      setPosts((prev) => {
-        const next = [created, ...prev];
-        persistPostsAndComments(next);
-        return next;
-      });
+      setPosts((prev) => [savedPost, ...prev]);
       handleCreateModalClose();
     } catch (err) {
       setError(err.message || t('communityPage.errors.unableCreatePost'));
@@ -987,33 +778,35 @@ const CommunityPage = () => {
 
     try {
       const targetPost = posts.find((post) => String(post._id) === String(postId));
+      const selectedType = targetPost?.type === 'problem' ? commentType : 'text';
+      const selectedLanguage = selectedType === 'code' ? commentLanguage : '';
       updateCommentDraft(postId, { isSubmitting: true });
       setError('');
 
-      let imageUrl;
-      let videoUrl;
-
-      if (draft.imageFile) {
-        imageUrl = await fileToDataUrl(draft.imageFile);
-      }
-
-      if (draft.videoFile) {
-        videoUrl = await fileToDataUrl(draft.videoFile);
-      }
+      const imageUrl = await uploadMediaAndGetUrl(draft.imageFile);
+      const videoUrl = await uploadMediaAndGetUrl(draft.videoFile);
 
       const newComment = {
-        _id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        postId,
         text,
         imageUrl,
         videoUrl,
-        authorId: currentUserId,
-        authorUsername: currentUser?.username || 'unknown',
-        authorAvatar: currentUser?.avatar || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pinned: false,
-        replies: [],
       };
+      const savedComment = await communityService.createComment(newComment);
+
+      const savedCommentId = String(savedComment?._id || keyOf(savedComment));
+      setCommentMeta((prev) => ({
+        ...prev,
+        [savedCommentId]: {
+          id: savedCommentId,
+          postId: String(postId),
+          user: String(currentUser?.username || currentUser?.email || currentUserId || 'unknown'),
+          type: selectedType,
+          content: text,
+          language: selectedLanguage,
+          likes: 0,
+        },
+      }));
 
       if (targetPost?.authorId && !isOwner(targetPost.authorId)) {
         pushNotificationForUser(String(targetPost.authorId), {
@@ -1025,38 +818,17 @@ const CommunityPage = () => {
           preview: text,
         });
       }
-
-      persistCurrentUser();
-      const comments = getComments();
-      saveComments([
-        {
-          _id: newComment._id,
-          postId,
-          parentCommentId: null,
-          text,
-          authorId: currentUserId,
-          authorUsername: currentUser?.username || 'unknown',
-          authorAvatar: currentUser?.avatar || '',
-          imageUrl: imageUrl || '',
-          videoUrl: videoUrl || '',
-          createdAt: newComment.createdAt,
-          updatedAt: newComment.updatedAt,
-          pinned: false,
-        },
-        ...comments,
-      ]);
+      setComments((prev) => [savedComment, ...prev]);
 
       setPosts((prev) => {
-        const next = prev.map((post) => {
+        return prev.map((post) => {
           if (String(post._id) !== String(postId)) return post;
           return {
             ...post,
-            comments: [newComment, ...(Array.isArray(post.comments) ? post.comments : [])],
+            comments: [savedComment, ...(Array.isArray(post.comments) ? post.comments : [])],
             updatedAt: new Date().toISOString(),
           };
         });
-        persistPostsAndComments(next);
-        return next;
       });
       setCommentsVisible((prev) => ({ ...prev, [postId]: true }));
       setCommentDrafts((prev) => ({ ...prev, [postId]: emptyDraft() }));
@@ -1089,62 +861,29 @@ const CommunityPage = () => {
       updateReplyDraft(commentId, { isSubmitting: true });
       setError('');
 
-      let imageUrl;
-      let videoUrl;
-
-      if (draft.imageFile) {
-        imageUrl = await fileToDataUrl(draft.imageFile);
-      }
-
-      if (draft.videoFile) {
-        videoUrl = await fileToDataUrl(draft.videoFile);
-      }
+      const imageUrl = await uploadMediaAndGetUrl(draft.imageFile);
+      const videoUrl = await uploadMediaAndGetUrl(draft.videoFile);
 
       const newReply = {
-        _id: `reply_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        postId,
+        parentCommentId: commentId,
         text,
         imageUrl,
         videoUrl,
-        authorId: currentUserId,
-        authorUsername: currentUser?.username || 'unknown',
-        authorAvatar: currentUser?.avatar || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pinned: false,
-        replies: [],
       };
+      const savedReply = await communityService.createComment(newReply);
 
-      persistCurrentUser();
-      const comments = getComments();
-      saveComments([
-        {
-          _id: newReply._id,
-          postId,
-          parentCommentId: commentId,
-          text,
-          authorId: currentUserId,
-          authorUsername: currentUser?.username || 'unknown',
-          authorAvatar: currentUser?.avatar || '',
-          imageUrl: imageUrl || '',
-          videoUrl: videoUrl || '',
-          createdAt: newReply.createdAt,
-          updatedAt: newReply.updatedAt,
-          pinned: false,
-        },
-        ...comments,
-      ]);
+      setComments((prev) => [savedReply, ...prev]);
 
       setPosts((prev) => {
-        const next = prev.map((post) => {
+        return prev.map((post) => {
           if (String(post._id) !== String(postId)) return post;
           return {
             ...post,
-            comments: addReplyInTree(post.comments || [], commentId, newReply),
+            comments: addReplyInTree(post.comments || [], commentId, savedReply),
             updatedAt: new Date().toISOString(),
           };
         });
-        persistPostsAndComments(next);
-        return next;
       });
       setReplyDrafts((prev) => ({ ...prev, [commentId]: emptyDraft() }));
       setReplyVisibility((prev) => ({ ...prev, [commentId]: false }));
@@ -1160,11 +899,9 @@ const CommunityPage = () => {
 
   const handleDeletePost = async (postId) => {
     try {
-      setPosts((prev) => {
-        const next = prev.filter((post) => String(post._id) !== String(postId));
-        persistPostsAndComments(next);
-        return next;
-      });
+      await communityService.deletePost(postId);
+      setPosts((prev) => prev.filter((post) => String(post._id) !== String(postId)));
+      await fetchComments();
     } catch (err) {
       setError(err.message || t('communityPage.errors.unableDeletePost'));
     }
@@ -1172,18 +909,9 @@ const CommunityPage = () => {
 
   const handleDeleteComment = async (postId, commentId) => {
     try {
-      setPosts((prev) => {
-        const next = prev.map((post) => {
-          if (String(post._id) !== String(postId)) return post;
-          return {
-            ...post,
-            comments: deleteCommentInTree(post.comments || [], commentId),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.deleteComment(postId, commentId);
+      setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
+      await fetchComments();
     } catch (err) {
       setError(err.message || t('communityPage.errors.unableDeleteComment'));
     }
@@ -1214,15 +942,8 @@ const CommunityPage = () => {
 
   const handleToggleSolved = async (post) => {
     try {
-      setPosts((prev) => {
-        const next = prev.map((x) => (
-          String(x._id) === String(post._id)
-            ? { ...x, solved: !x?.solved, updatedAt: new Date().toISOString() }
-            : x
-        ));
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.setPostSolved(post._id, !post?.solved);
+      setPosts((prev) => prev.map((x) => (String(x._id) === String(post._id) ? updatedPost : x)));
     } catch (err) {
       setError(err.message || t('communityPage.errors.unableUpdateSolved'));
     }
@@ -1230,15 +951,8 @@ const CommunityPage = () => {
 
   const handleTogglePostPin = async (post) => {
     try {
-      setPosts((prev) => {
-        const next = prev.map((x) => (
-          String(x._id) === String(post._id)
-            ? { ...x, pinned: !x?.pinned, updatedAt: new Date().toISOString() }
-            : x
-        ));
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.setPostPinned(post._id, !post?.pinned);
+      setPosts((prev) => prev.map((x) => (String(x._id) === String(post._id) ? updatedPost : x)));
     } catch (err) {
       setError(err.message || t('communityPage.errors.unablePinPost'));
     }
@@ -1247,22 +961,9 @@ const CommunityPage = () => {
   const handleToggleCommentPin = async (postId, comment) => {
     if (!comment?._id) return;
     try {
-      setPosts((prev) => {
-        const next = prev.map((x) => {
-          if (String(x._id) !== String(postId)) return x;
-          return {
-            ...x,
-            comments: upsertCommentInTree(x.comments || [], comment._id, (target) => ({
-              ...target,
-              pinned: !target?.pinned,
-              updatedAt: new Date().toISOString(),
-            })),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.setCommentPinned(postId, comment._id, !comment?.pinned);
+      setPosts((prev) => prev.map((x) => (String(x._id) === String(postId) ? updatedPost : x)));
+      await fetchComments();
     } catch (err) {
       setError(err.message || t('communityPage.errors.unablePinComment'));
     }
@@ -1288,20 +989,11 @@ const CommunityPage = () => {
     try {
       setSavingPostEditId(postId);
       setError('');
-      setPosts((prev) => {
-        const next = prev.map((post) => (
-          String(post._id) === String(postId)
-            ? {
-              ...post,
-              title: trimmedTitle,
-              content: trimmedContent,
-              updatedAt: new Date().toISOString(),
-            }
-            : post
-        ));
-        persistPostsAndComments(next);
-        return next;
+      const updatedPost = await communityService.updatePost(postId, {
+        title: trimmedTitle,
+        content: trimmedContent,
       });
+      setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
       handleCancelPostEdit();
     } catch (err) {
       setError(err.message || t('communityPage.errors.unableModifyPost'));
@@ -1333,22 +1025,9 @@ const CommunityPage = () => {
     try {
       setSavingCommentEditKey(`${postId}:${commentId}`);
       setError('');
-      setPosts((prev) => {
-        const next = prev.map((post) => {
-          if (String(post._id) !== String(postId)) return post;
-          return {
-            ...post,
-            comments: upsertCommentInTree(post.comments || [], commentId, (target) => ({
-              ...target,
-              text: trimmedText,
-              updatedAt: new Date().toISOString(),
-            })),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-        persistPostsAndComments(next);
-        return next;
-      });
+      const updatedPost = await communityService.updateComment(postId, commentId, { text: trimmedText });
+      setPosts((prev) => prev.map((post) => (String(post._id) === String(postId) ? updatedPost : post)));
+      await fetchComments();
       handleCancelCommentEdit();
     } catch (err) {
       setError(err.message || t('communityPage.errors.unableModifyComment'));
@@ -1498,6 +1177,232 @@ const CommunityPage = () => {
 
   };
 
+  const resolveCommentMeta = (comment, postId) => {
+    const commentId = String(comment?._id || keyOf(comment));
+    const stored = commentMeta[commentId] || {};
+    const type = stored?.type === 'code' ? 'code' : 'text';
+    const language = type === 'code'
+      ? String(stored?.language || 'javascript').toLowerCase()
+      : '';
+
+    return {
+      id: commentId,
+      postId: String(postId || stored?.postId || ''),
+      user: String(stored?.user || comment?.authorUsername || 'unknown'),
+      type,
+      content: String(comment?.text || stored?.content || ''),
+      language,
+      likes: Number(stored?.likes || 0),
+    };
+  };
+
+  const handleRunCode = (commentRecord) => {
+    if (!commentRecord || commentRecord.type !== 'code') return;
+
+    const serializeValue = (value) => {
+      if (typeof value === 'function') {
+        return `[Function${value.name ? `: ${value.name}` : ''}]`;
+      }
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' || typeof value === 'boolean' || value == null) {
+        return String(value);
+      }
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    };
+
+    const buildHint = (message, sourceCode) => {
+      const msg = String(message || '').toLowerCase();
+      if (msg.includes('illegal return')) {
+        return 'Hint: Put return inside a function body, or just write an expression like 2 + 2.';
+      }
+      if (msg.includes('is not defined')) {
+        return 'Hint: A variable/function name is missing. Check spelling and declaration scope.';
+      }
+      if (msg.includes('unexpected token')) {
+        return 'Hint: Check for syntax typos near punctuation, brackets, or commas.';
+      }
+      if (msg.includes('missing') && (msg.includes(')') || msg.includes(']') || msg.includes('}'))) {
+        return 'Hint: One closing bracket might be missing.';
+      }
+      if (!String(sourceCode || '').trim()) {
+        return 'Hint: Add code before running.';
+      }
+      return 'Hint: Check syntax and variable names near the reported line.';
+    };
+
+    const extractUserLine = (errorObj) => {
+      const stack = String(errorObj?.stack || '');
+      const match = stack.match(/<anonymous>:(\d+):(\d+)/);
+      if (!match) return null;
+
+      // Function wrapper adds one line for "use strict".
+      const rawLine = Number(match[1]);
+      const column = Number(match[2]);
+      const line = Number.isFinite(rawLine) ? Math.max(1, rawLine - 1) : null;
+      return line ? { line, column } : null;
+    };
+
+    const formatTerminalOutput = ({ logs = [], resultText = '', errorText = '', hintText = '', lineInfo = null, language = 'javascript', exitCode = 0 }) => {
+      const rows = [];
+      rows.push(`[terminal] language=${language}`);
+      rows.push('[terminal] executing...');
+
+      if (logs.length > 0) {
+        rows.push('[stdout]');
+        logs.forEach((line) => rows.push(serializeValue(line)));
+      }
+
+      if (lineInfo?.line) {
+        rows.push(`[error-line] line ${lineInfo.line}${lineInfo.column ? `, column ${lineInfo.column}` : ''}`);
+      }
+
+      if (errorText) {
+        rows.push(`[stderr] ${errorText}`);
+      }
+
+      if (resultText && !errorText) {
+        rows.push(`[result] ${resultText}`);
+      }
+
+      if (hintText) {
+        rows.push(hintText);
+      }
+
+      rows.push(`[terminal] exited with code ${exitCode}`);
+      return rows.join('\n');
+    };
+
+    const handleFunctionResult = (fn, sourceCode) => {
+      if (typeof fn !== 'function') {
+        return {
+          result: fn,
+          hint: '',
+        };
+      }
+
+      const code = String(sourceCode || '');
+      const fnName = String(fn.name || '').trim();
+      const looksLikeTwoSum = /two\s*sum|twoSum|nums|target/i.test(code) || fnName === 'twoSum';
+
+      if (looksLikeTwoSum) {
+        try {
+          const demoResult = fn([2, 7, 11, 15], 9);
+          return {
+            result: `Demo call ${fnName || 'solution'}([2,7,11,15], 9) => ${serializeValue(demoResult)}`,
+            hint: 'Hint: Your code returned a function, so demo inputs were used automatically.',
+          };
+        } catch (invokeError) {
+          return {
+            result: '[Function detected]',
+            hint: `Hint: Function detected but demo execution failed: ${String(invokeError?.message || 'Unknown error')}`,
+          };
+        }
+      }
+
+      return {
+        result: '[Function detected]',
+        hint: `Hint: Call the function with inputs to get a solution value, e.g. ${fnName || 'yourFunction'}(...)`,
+      };
+    };
+
+    if (commentRecord.language !== 'javascript') {
+      setCodeOutputModal({
+        isOpen: true,
+        language: commentRecord.language,
+        output: formatTerminalOutput({
+          language: commentRecord.language,
+          errorText: 'Execution not supported for this language (demo mode)',
+          hintText: 'Hint: Switch language to JavaScript to run in this demo terminal.',
+          exitCode: 1,
+        }),
+        isError: false,
+      });
+      return;
+    }
+
+    const capturedLogs = [];
+    const originalLog = console.log;
+
+    try {
+
+      console.log = (...args) => {
+        capturedLogs.push(args.map((arg) => serializeValue(arg)).join(' '));
+      };
+
+      // Execute as a function body so `return` statements are valid in demo runner.
+      const runAsBody = new Function(`"use strict";\n${commentRecord.content}`);
+      let result = runAsBody();
+
+      // If no explicit return was used, try treating input as a single expression.
+      if (result === undefined) {
+        try {
+          const runAsExpression = new Function(`"use strict";\nreturn (${commentRecord.content});`);
+          result = runAsExpression();
+        } catch {
+          // Keep undefined from body execution.
+        }
+      }
+
+      if (result === undefined) {
+        const lines = String(commentRecord.content || '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean);
+        const lastLine = lines[lines.length - 1] || '';
+        const prefix = lines.slice(0, -1).join('\n');
+
+        if (lastLine) {
+          try {
+            const runLastExpression = new Function(`"use strict";\n${prefix}\nreturn (${lastLine});`);
+            result = runLastExpression();
+          } catch {
+            // Keep previous result.
+          }
+        }
+      }
+
+      const functionResult = handleFunctionResult(result, commentRecord.content);
+      const finalResultText = serializeValue(functionResult.result ?? 'undefined');
+      const finalHintText = functionResult.hint || '';
+
+      setCodeOutputModal({
+        isOpen: true,
+        language: 'javascript',
+        output: formatTerminalOutput({
+          logs: capturedLogs,
+          resultText: finalResultText,
+          hintText: finalHintText,
+          language: 'javascript',
+          exitCode: 0,
+        }),
+        isError: false,
+      });
+    } catch (runError) {
+      const lineInfo = extractUserLine(runError);
+      const errorMessage = String(runError?.message || 'Execution failed');
+      const hintText = buildHint(errorMessage, commentRecord.content);
+
+      setCodeOutputModal({
+        isOpen: true,
+        language: 'javascript',
+        output: formatTerminalOutput({
+          errorText: errorMessage,
+          hintText,
+          lineInfo,
+          language: 'javascript',
+          exitCode: 1,
+        }),
+        isError: true,
+      });
+    } finally {
+      console.log = originalLog;
+    }
+  };
+
   const renderMedia = (mediaUrl, isVideo = false) => {
     if (!mediaUrl) return null;
     const mediaSrc = toMediaUrl(mediaUrl);
@@ -1545,6 +1450,8 @@ const CommunityPage = () => {
 
     return sorted.map((comment) => {
       const commentId = keyOf(comment);
+      const commentRecord = resolveCommentMeta(comment, postId);
+      const isCodeComment = commentRecord.type === 'code';
       const isEditing = editingComment.postId === postId && editingComment.commentId === (comment._id || '');
       const replyDraft = replyDrafts[commentId] || emptyDraft();
       const repliesOpen = Boolean(replyVisibility[commentId]);
@@ -1556,9 +1463,9 @@ const CommunityPage = () => {
       return (
         <Box
           key={commentId}
-          bg={isBestAnswer ? 'rgba(16, 185, 129, 0.12)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.08)' : 'var(--color-bg-primary)')}
+          bg={isBestAnswer ? 'rgba(16, 185, 129, 0.12)' : (isCodeComment ? 'rgba(59, 130, 246, 0.08)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.08)' : 'var(--color-bg-primary)'))}
           border="1px solid"
-          borderColor={isBestAnswer ? 'rgba(16, 185, 129, 0.65)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.65)' : 'rgba(148, 163, 184, 0.22)')}
+          borderColor={isBestAnswer ? 'rgba(16, 185, 129, 0.65)' : (isCodeComment ? 'rgba(59, 130, 246, 0.45)' : (comment?.pinned ? 'rgba(34, 211, 238, 0.65)' : 'rgba(148, 163, 184, 0.22)'))}
           borderRadius="10px"
           p={2.5}
           ml={depth > 0 ? `${Math.min(depth, 5) * 20}px` : '0'}
@@ -1569,6 +1476,14 @@ const CommunityPage = () => {
             <HStack spacing={2}>
               <Avatar size="xs" src={comment.authorAvatar || undefined} name={comment.authorUsername || 'unknown'} />
               <Text color="brand.500" fontWeight="semibold" fontSize="sm">@{comment.authorUsername || 'unknown'}</Text>
+              <Badge colorScheme={isCodeComment ? 'blue' : 'gray'} variant="subtle" fontSize="10px" px={1.5} py={0.5}>
+                {isCodeComment ? '💻 Code Solution' : '💬 Comment'}
+              </Badge>
+              {isCodeComment && (
+                <Badge colorScheme="purple" variant="subtle" fontSize="10px" px={1.5} py={0.5} textTransform="uppercase">
+                  {commentRecord.language || 'javascript'}
+                </Badge>
+              )}
               {comment?.pinned && (
                 <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>
                   {t('communityPage.pinned')}
@@ -1633,7 +1548,35 @@ const CommunityPage = () => {
 
           {!isEditing ? (
             <>
-              <Text mt={2} color="var(--color-text-secondary)" fontSize="sm" whiteSpace="pre-wrap">{comment.text}</Text>
+              {!isCodeComment ? (
+                <Text mt={2} color="var(--color-text-secondary)" fontSize="sm" whiteSpace="pre-wrap">{comment.text}</Text>
+              ) : (
+                <VStack align="stretch" spacing={2} mt={2}>
+                  <Box
+                    as="pre"
+                    p={3}
+                    borderRadius="8px"
+                    bg="rgba(2, 6, 23, 0.9)"
+                    border="1px solid rgba(59, 130, 246, 0.35)"
+                    color="blue.100"
+                    fontFamily="mono"
+                    fontSize="xs"
+                    whiteSpace="pre-wrap"
+                    overflowX="auto"
+                  >
+                    <Box as="code">{comment.text}</Box>
+                  </Box>
+                  <Button
+                    size="xs"
+                    alignSelf="flex-start"
+                    variant="outline"
+                    colorScheme="blue"
+                    onClick={() => handleRunCode(commentRecord)}
+                  >
+                    ▶ Run Code
+                  </Button>
+                </VStack>
+              )}
               {renderMedia(comment.imageUrl, false)}
               {renderMedia(comment.videoUrl, true)}
             </>
@@ -1930,8 +1873,15 @@ const CommunityPage = () => {
                   const totalDislikes = Math.max(Number(postReaction.dislikes || 0), backendDislikes);
                   const score = totalLikes + (totalComments * 2);
                   const likeRatio = totalLikes + totalDislikes > 0 ? totalLikes / (totalLikes + totalDislikes) : 0;
-                  const isTrendingPost = score >= 4 || totalComments >= 2;
-                  const isHelpfulPost = (totalLikes >= 2 && likeRatio >= 0.65) || (totalLikes >= 1 && totalComments >= 2 && likeRatio >= 0.7);
+                  const hasMinimumDiscussion = totalComments >= 3;
+                  const isTrendingPost = hasMinimumDiscussion && (
+                    (score >= 10 && likeRatio >= 0.6) ||
+                    (totalComments >= 6 && totalLikes >= 3)
+                  );
+                  const isHelpfulPost = hasMinimumDiscussion && (
+                    (totalLikes >= 4 && likeRatio >= 0.7) ||
+                    (totalLikes >= 3 && totalComments >= 5 && likeRatio >= 0.65)
+                  );
                   const hasSolutionFound = Boolean(bestAnswerByPost[postId]);
 
                   return (
@@ -1945,7 +1895,6 @@ const CommunityPage = () => {
                       borderColor={post?.pinned ? 'rgba(34, 211, 238, 0.75)' : 'rgba(34, 211, 238, 0.12)'}
                       borderRadius="14px"
                       p={{ base: 3, md: 4 }}
-                      sx={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
                       transition="all 0.25s ease"
                       _hover={{
                         borderColor: 'rgba(34, 211, 238, 0.45)',
@@ -1953,8 +1902,8 @@ const CommunityPage = () => {
                         transform: 'translateY(-2px)',
                       }}
                     >
-                      <Flex justify="space-between" align={{ base: 'start', md: 'center' }} gap={3} direction={{ base: 'column', md: 'row' }}>
-                        <Box flex="1">
+                      <Flex justify="space-between" align="start" gap={3} direction="row">
+                        <Box flex="1" minW="0">
                           {!isEditingPost ? (
                             <>
                               <HStack spacing={2} align="center" flexWrap="wrap">
@@ -1977,6 +1926,9 @@ const CommunityPage = () => {
                               <Text mt={3} color="var(--color-text-primary)" fontSize="sm" noOfLines={3}>
                                 {post.content}
                               </Text>
+
+                              {renderMedia(post.imageUrl, false)}
+                              {renderMedia(post.videoUrl, true)}
 
                               {(post.tags || []).length > 0 && (
                                 <HStack spacing={2} mt={2} flexWrap="wrap">
@@ -2018,7 +1970,15 @@ const CommunityPage = () => {
                           )}
                         </Box>
 
-                        <HStack spacing={2} alignSelf={{ base: 'stretch', md: 'center' }} flexWrap="wrap">
+                        <HStack
+                          spacing={2}
+                          w="auto"
+                          justify="flex-end"
+                          alignSelf="flex-start"
+                          flexWrap="nowrap"
+                          whiteSpace="nowrap"
+                          flexShrink={0}
+                        >
                           {!isEditingPost ? (
                             <>
                               <Button
@@ -2027,6 +1987,7 @@ const CommunityPage = () => {
                                 onClick={() => toggleComments(postId)}
                                 borderColor="rgba(34, 211, 238, 0.35)"
                                 border="1px solid"
+                                whiteSpace="nowrap"
                               >
                                 {commentsOpen ? t('communityPage.hideComments') : t('communityPage.viewComments')} ({allComments.length})
                               </Button>
@@ -2039,7 +2000,8 @@ const CommunityPage = () => {
                                   aria-label={t('communityPage.options')}
                                   _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }}
                                 />
-                                <MenuList bg="var(--color-bg-secondary)" borderColor="var(--color-border)" py={1} border="1px solid" zIndex={10}>
+                                <Portal>
+                                  <MenuList bg="var(--color-bg-secondary)" borderColor="var(--color-border)" py={1} border="1px solid" zIndex="popover">
                                   {isOwner(post.authorId) && (
                                     <MenuItem onClick={() => handleStartPostEdit(post)} icon={<Box as="span" fontSize="xs">✏️</Box>} bg="transparent" _hover={{ bg: 'rgba(34, 211, 238, 0.1)' }} color="var(--color-text-primary)">{t('communityPage.editPost')}</MenuItem>
                                   )}
@@ -2062,7 +2024,8 @@ const CommunityPage = () => {
                                       {t('communityPage.markAs')} {post?.solved ? t('communityPage.unsolved') : t('communityPage.solved')}
                                     </MenuItem>
                                   )}
-                                </MenuList>
+                                  </MenuList>
+                                </Portal>
                               </Menu>
                             </>
                           ) : (
@@ -2087,14 +2050,50 @@ const CommunityPage = () => {
                       {isLoggedIn && (
                         <Box as="form" mt={4} onSubmit={(e) => handleAddComment(e, postId)}>
                           <VStack align="stretch" spacing={2}>
+                            {post.type === 'problem' && (
+                              <HStack spacing={2}>
+                                <Select
+                                  size="sm"
+                                  value={commentType}
+                                  onChange={(e) => setCommentType(e.target.value)}
+                                  maxW="220px"
+                                  bg="var(--color-bg-primary)"
+                                  borderColor="var(--color-border)"
+                                  color="var(--color-text-primary)"
+                                >
+                                  <option value="text" style={{ backgroundColor: 'var(--color-bg-primary)' }}>💬 Comment</option>
+                                  <option value="code" style={{ backgroundColor: 'var(--color-bg-primary)' }}>💻 Code Solution</option>
+                                </Select>
+
+                                {commentType === 'code' && (
+                                  <Select
+                                    size="sm"
+                                    value={commentLanguage}
+                                    onChange={(e) => setCommentLanguage(e.target.value)}
+                                    maxW="180px"
+                                    bg="var(--color-bg-primary)"
+                                    borderColor="var(--color-border)"
+                                    color="var(--color-text-primary)"
+                                  >
+                                    {CODE_LANGUAGES.map((lang) => (
+                                      <option key={lang} value={lang} style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+                                        {lang === 'javascript' ? 'JavaScript' : lang === 'python' ? 'Python' : 'C++'}
+                                      </option>
+                                    ))}
+                                  </Select>
+                                )}
+                              </HStack>
+                            )}
+
                             <Textarea
                               value={draft.text}
                               onChange={(e) => updateCommentDraft(postId, { text: e.target.value })}
-                              placeholder={t('communityPage.writeComment')}
-                              minH="80px"
+                              placeholder={commentType === 'code' && post.type === 'problem' ? 'Write your code solution...' : t('communityPage.writeComment')}
+                              minH={commentType === 'code' && post.type === 'problem' ? '130px' : '80px'}
                               bg="var(--color-bg-primary)"
                               borderColor="var(--color-border)"
                               color="var(--color-text-primary)"
+                              fontFamily={commentType === 'code' && post.type === 'problem' ? 'mono' : 'body'}
                               _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #22d3ee' }}
                             />
                             <Button type="submit" size="xs" variant="primary" isLoading={draft.isSubmitting} alignSelf="flex-end">{t('communityPage.postComment')}</Button>
@@ -2188,8 +2187,74 @@ const CommunityPage = () => {
                   <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder={t('communityPage.tagsPlaceholder')} bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)" />
                   <Flex mt={3} justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={2}>
                     <Text color="var(--color-text-muted)" fontSize="xs">{t('communityPage.aiSuggestTagsHint')}</Text>
-                    <Button size="xs" variant="outline" borderColor="brand.500" color="brand.300" onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())} isLoading={isFetchingAiTags}>{t('communityPage.suggestTags')}</Button>
+                    <Button size="xs" variant="outline" borderColor="brand.500" color="brand.300" onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())} isLoading={isFetchingAiTags} isDisabled={`${title.trim()}\n${content.trim()}`.trim().length < 20}>{t('communityPage.suggestTags')}</Button>
                   </Flex>
+
+                  {aiTagError && (
+                    <Text mt={2} color="red.300" fontSize="xs">
+                      {aiTagError}
+                    </Text>
+                  )}
+
+                  {aiSuggestedTags.length > 0 && (
+                    <VStack align="stretch" spacing={2} mt={3}>
+                      <Text color="var(--color-text-muted)" fontSize="xs">Suggested tags (click to add/remove):</Text>
+                      <HStack spacing={2} flexWrap="wrap">
+                        {aiSuggestedTags.map((tag) => {
+                          const selected = parsedTagsInput.includes(tag);
+                          return (
+                            <Badge
+                              key={`suggested-${tag}`}
+                              px={2}
+                              py={1}
+                              borderRadius="md"
+                              cursor="pointer"
+                              colorScheme={selected ? 'cyan' : 'gray'}
+                              variant={selected ? 'solid' : 'subtle'}
+                              onClick={() => toggleSuggestedTag(tag)}
+                            >
+                              #{tag}
+                            </Badge>
+                          );
+                        })}
+                      </HStack>
+                    </VStack>
+                  )}
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Media (optional)</FormLabel>
+                  <HStack spacing={2}>
+                    <Button as="label" size="sm" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
+                      <ImageIcon width={14} height={14} />
+                      <Text ml={1}>Insert Image</Text>
+                      <Input type="file" accept="image/*" onChange={handleImageSelect} hidden />
+                    </Button>
+                    <Button as="label" size="sm" variant="outline" borderColor="brand.500" color="brand.300" cursor="pointer">
+                      <VideoIcon width={14} height={14} />
+                      <Text ml={1}>Insert Video</Text>
+                      <Input type="file" accept="video/*" onChange={handleVideoSelect} hidden />
+                    </Button>
+                  </HStack>
+
+                  {imagePreviewUrl && (
+                    <Box
+                      mt={3}
+                      w="full"
+                      h="160px"
+                      borderRadius="10px"
+                      border="1px solid rgba(34, 211, 238, 0.2)"
+                      backgroundImage={`url(${imagePreviewUrl})`}
+                      backgroundSize="cover"
+                      backgroundPosition="center"
+                    />
+                  )}
+
+                  {videoPreviewUrl && (
+                    <Box mt={3} borderRadius="10px" overflow="hidden" border="1px solid rgba(34, 211, 238, 0.2)">
+                      <video src={videoPreviewUrl} controls style={{ width: '100%', maxHeight: '220px', background: '#020617' }} />
+                    </Box>
+                  )}
                 </FormControl>
 
                 <Flex justify="flex-end" gap={3} pt={4} borderTop="1px solid" borderColor="var(--color-border)">
@@ -2217,6 +2282,32 @@ const CommunityPage = () => {
                 <Button colorScheme="red" onClick={confirmDelete}>{t('communityPage.delete')}</Button>
               </HStack>
             </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={codeOutputModal.isOpen} onClose={() => setCodeOutputModal((prev) => ({ ...prev, isOpen: false }))} isCentered size="lg">
+        <ModalOverlay bg="rgba(0, 0, 0, 0.7)" backdropFilter="blur(4px)" />
+        <ModalContent bg="#020617" border="1px solid rgba(56, 189, 248, 0.45)" borderRadius="14px">
+          <ModalHeader color="cyan.300" fontFamily="mono" fontSize="sm">
+            Output ({codeOutputModal.language || 'javascript'})
+          </ModalHeader>
+          <ModalCloseButton color="gray.300" />
+          <ModalBody pb={5}>
+            <Box
+              as="pre"
+              p={3}
+              borderRadius="10px"
+              bg="#010409"
+              border="1px solid rgba(148, 163, 184, 0.25)"
+              color={codeOutputModal.isError ? 'red.300' : 'green.300'}
+              fontFamily="mono"
+              fontSize="sm"
+              whiteSpace="pre-wrap"
+              minH="90px"
+            >
+              {String(codeOutputModal.output || '')}
+            </Box>
           </ModalBody>
         </ModalContent>
       </Modal>
