@@ -682,16 +682,6 @@ const Header = () => {
                                         _hover={{ bg: useColorModeValue('rgba(0,0,0,0.04)', 'rgba(255,255,255,0.06)') }}
                                     >
                                         <HStack spacing={2}>
-                                            <Text
-                                                fontSize="sm"
-                                                fontWeight="600"
-                                                color="var(--color-text-primary)"
-                                                display={{ base: 'none', lg: 'block' }}
-                                                maxW="120px"
-                                                isTruncated
-                                            >
-                                                {currentUser?.username}
-                                            </Text>
                                             <Avatar
                                                 size="sm"
                                                 name={currentUser?.username}
