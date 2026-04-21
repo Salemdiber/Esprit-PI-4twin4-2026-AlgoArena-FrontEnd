@@ -30,7 +30,9 @@ const buildAiCacheKey = ({ prompt, systemPrompt, maxTokens, temperature }) => {
     prompt: String(prompt || "").trim(),
     systemPrompt: String(systemPrompt || "").trim(),
     maxTokens: Math.min(100, Math.max(20, Number(maxTokens) || 100)),
-    temperature: Number.isFinite(Number(temperature)) ? Number(temperature) : 0.2,
+    temperature: Number.isFinite(Number(temperature))
+      ? Number(temperature)
+      : 0.2,
   };
   return JSON.stringify(payload);
 };
@@ -68,7 +70,8 @@ export async function callAI(
   });
 
   const cacheTimestamp = Number(aiCacheMeta[cacheKey] || 0);
-  const isFresh = cacheTimestamp > 0 && Date.now() - cacheTimestamp < AI_CACHE_TTL_MS;
+  const isFresh =
+    cacheTimestamp > 0 && Date.now() - cacheTimestamp < AI_CACHE_TTL_MS;
   if (isFresh && typeof aiCache[cacheKey] === "string") {
     return aiCache[cacheKey];
   }
@@ -87,7 +90,10 @@ export async function callAI(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const normalizedMaxTokens = Math.min(100, Math.max(20, Number(maxTokens) || 100));
+  const normalizedMaxTokens = Math.min(
+    100,
+    Math.max(20, Number(maxTokens) || 100),
+  );
 
   const requestPayload = {
     prompt: normalizedPrompt,
