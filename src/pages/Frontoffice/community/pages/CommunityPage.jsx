@@ -36,7 +36,7 @@ import { useAuth } from '../../auth/context/AuthContext';
 
 const MotionBox = m.create(Box);
 const COMMENT_PREVIEW_LIMIT = 3;
-const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+const GROQ_MAX_TOKENS = 100;
 
 const STORAGE_KEYS = {
   postReactions: 'discussion_post_reactions_v1',
@@ -280,7 +280,6 @@ const CommunityPage = () => {
   const [aiSuggestedTags, setAiSuggestedTags] = useState([]);
   const [isFetchingAiTags, setIsFetchingAiTags] = useState(false);
   const [aiTagError, setAiTagError] = useState('');
-  const [lastAiSource, setLastAiSource] = useState('');
   const [discussionSummaries, setDiscussionSummaries] = useState({});
   const [summaryErrors, setSummaryErrors] = useState({});
   const [summarizingPostId, setSummarizingPostId] = useState('');
@@ -312,16 +311,6 @@ const CommunityPage = () => {
   const [savedItems, setSavedItems] = useState(() => safeRead(STORAGE_KEYS.savedItems, {}));
   const [bestAnswerByPost, setBestAnswerByPost] = useState(() => safeRead(STORAGE_KEYS.bestAnswers, {}));
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', postId: '', commentId: '' });
-  const openRouterApiKey = String(
-    import.meta.env.VITE_OPENROUTER_API_KEY
-    || import.meta.env.VITE_OPEN_ROUTER_API_KEY
-    || safeRead('openrouter_api_key', '')
-    || safeRead('VITE_OPENROUTER_API_KEY', '')
-    || ''
-  ).trim();
-  const isOpenRouterKeyDetected = Boolean(openRouterApiKey);
-  const openRouterSiteUrl = String(import.meta.env.VITE_OPENROUTER_SITE_URL || window.location.origin).trim();
-  const openRouterAppName = String(import.meta.env.VITE_OPENROUTER_APP_NAME || 'AlgoArena Frontend').trim();
 
   useEffect(() => {
     safeWrite(STORAGE_KEYS.postReactions, postReactions);
@@ -473,7 +462,6 @@ const CommunityPage = () => {
     setVideoPreviewUrl('');
     setAiSuggestedTags([]);
     setAiTagError('');
-    setLastAiSource('');
     setPostErrors({});
   };
 
@@ -579,11 +567,6 @@ const CommunityPage = () => {
   };
 
   const requestAiTags = async (sourceText, { silent = false } = {}) => {
-    if (!openRouterApiKey) {
-      if (!silent) setAiTagError('Missing OpenRouter API key. Set VITE_OPENROUTER_API_KEY in your frontend env.');
-      return;
-    }
-
     if (!sourceText || sourceText.length < 20) {
       if (!silent) setAiTagError('Write a bit more title and description to generate useful tags.');
       return;
@@ -593,37 +576,12 @@ const CommunityPage = () => {
       setIsFetchingAiTags(true);
       if (!silent) setAiTagError('');
 
-      // Mark this source as attempted so auto mode doesn't repeatedly retry unchanged text.
-      setLastAiSource(sourceText);
-
-      const response = await fetch(OPENROUTER_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openRouterApiKey}`,
-          'HTTP-Referer': openRouterSiteUrl,
-          'X-Title': openRouterAppName,
-        },
-        body: JSON.stringify({
-          model: 'openrouter/auto',
-          messages: [
-            {
-              role: 'user',
-              content: `Extract 3 to 5 relevant tags from this text. Return ONLY a JSON array like ['tag1','tag2'].\n\n${sourceText}`,
-            },
-          ],
-          max_tokens: 150,
-          temperature: 0.2,
-        }),
+      const modelText = await communityService.generateAiText({
+        prompt: `Extract 3 to 5 relevant tags from this text. Return ONLY a JSON array like ['tag1','tag2'].\n\n${sourceText}`,
+        maxTokens: GROQ_MAX_TOKENS,
+        temperature: 0.2,
       });
 
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        const details = payload?.error?.message || `HTTP ${response.status}`;
-        throw new Error(`OpenRouter: ${details}`);
-      }
-
-      const modelText = String(payload?.choices?.[0]?.message?.content || '');
       const rawTags = extractJsonArray(modelText);
       const normalized = normalizeTagList(rawTags).slice(0, 5);
 
@@ -636,7 +594,7 @@ const CommunityPage = () => {
     } catch (err) {
       if (!silent) {
         const message = String(err?.message || 'Unable to generate AI tags right now. Please try again.');
-        setAiTagError(message.includes('HTTP') || message.includes('OpenRouter') || message.includes(':')
+        setAiTagError(message.includes('HTTP') || message.includes('GROQ') || message.includes(':')
           ? message
           : 'Unable to generate AI tags right now. Please try again.');
       }
@@ -649,11 +607,6 @@ const CommunityPage = () => {
     const postId = post?._id;
     if (!postId) return;
 
-    if (!openRouterApiKey) {
-      setSummaryErrors((prev) => ({ ...prev, [postId]: 'Missing OpenRouter API key.' }));
-      return;
-    }
-
     const commentTexts = flattenCommentTexts(post.comments || []);
     if (commentTexts.length === 0) {
       setSummaryErrors((prev) => ({ ...prev, [postId]: 'No comments to summarize yet.' }));
@@ -664,36 +617,12 @@ const CommunityPage = () => {
       setSummarizingPostId(postId);
       setSummaryErrors((prev) => ({ ...prev, [postId]: '' }));
 
-      let summary = '';
-
       const discussionText = commentTexts.join('\n- ');
-      const response = await fetch(OPENROUTER_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openRouterApiKey}`,
-          'HTTP-Referer': openRouterSiteUrl,
-          'X-Title': openRouterAppName,
-        },
-        body: JSON.stringify({
-          model: 'openrouter/auto',
-          messages: [
-            {
-              role: 'user',
-              content: `Summarize this discussion in 1-2 short, very clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
-            },
-          ],
-          max_tokens: 150,
-          temperature: 0.2,
-        }),
+      const summary = await communityService.generateAiText({
+        prompt: `Summarize this discussion in 1-2 short, very clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
+        maxTokens: GROQ_MAX_TOKENS,
+        temperature: 0.2,
       });
-
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        const details = payload?.error?.message || `HTTP ${response.status}`;
-        throw new Error(`OpenRouter: ${details}`);
-      }
-      summary = String(payload?.choices?.[0]?.message?.content || '').trim();
       if (!summary) {
         throw new Error('Unable to summarize discussion right now.');
       }
@@ -703,6 +632,7 @@ const CommunityPage = () => {
         .replace(/\s+/g, ' ')
         .trim();
       const sentenceParts = cleanSummary.match(/[^.!?]+[.!?]?/g) || [cleanSummary];
+
       const compactSummary = sentenceParts
         .slice(0, 2)
         .join(' ')
@@ -720,25 +650,6 @@ const CommunityPage = () => {
       setSummarizingPostId('');
     }
   };
-
-  useEffect(() => {
-    if (!isCreateModalOpen) return;
-
-    const sourceText = `${title.trim()}\n${content.trim()}`.trim();
-    if (sourceText.length < 20) {
-      setAiSuggestedTags([]);
-      setLastAiSource('');
-      return;
-    }
-
-    if (sourceText === lastAiSource || !openRouterApiKey) return;
-
-    const timer = setTimeout(() => {
-      requestAiTags(sourceText, { silent: true });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [title, content, isCreateModalOpen, lastAiSource, openRouterApiKey]);
 
   const handleCreatePost = async (event) => {
     event.preventDefault();
@@ -1956,8 +1867,15 @@ const CommunityPage = () => {
                   const totalDislikes = Math.max(Number(postReaction.dislikes || 0), backendDislikes);
                   const score = totalLikes + (totalComments * 2);
                   const likeRatio = totalLikes + totalDislikes > 0 ? totalLikes / (totalLikes + totalDislikes) : 0;
-                  const isTrendingPost = score >= 4 || totalComments >= 2;
-                  const isHelpfulPost = (totalLikes >= 2 && likeRatio >= 0.65) || (totalLikes >= 1 && totalComments >= 2 && likeRatio >= 0.7);
+                  const hasMinimumDiscussion = totalComments >= 3;
+                  const isTrendingPost = hasMinimumDiscussion && (
+                    (score >= 10 && likeRatio >= 0.6) ||
+                    (totalComments >= 6 && totalLikes >= 3)
+                  );
+                  const isHelpfulPost = hasMinimumDiscussion && (
+                    (totalLikes >= 4 && likeRatio >= 0.7) ||
+                    (totalLikes >= 3 && totalComments >= 5 && likeRatio >= 0.65)
+                  );
                   const hasSolutionFound = Boolean(bestAnswerByPost[postId]);
 
                   return (
@@ -1987,9 +1905,9 @@ const CommunityPage = () => {
                                 {post?.pinned && <Badge colorScheme="cyan" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Pinned</Badge>}
                                 {post?.solved && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Solved</Badge>}
                                 {post?.type === 'problem' && post?.problemType && <Badge colorScheme="orange" variant="subtle" fontSize="10px" px={1.5} py={0.5}>{post.problemType}</Badge>}
-                                {isTrendingPost && <Badge colorScheme="red" variant="subtle" fontSize="10px" px={1.5} py={0.5}>🔥 Trending</Badge>}
-                                {isHelpfulPost && <Badge colorScheme="yellow" variant="subtle" fontSize="10px" px={1.5} py={0.5}>⭐ Helpful</Badge>}
-                                {hasSolutionFound && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>🧠 Solution Found</Badge>}
+                                {isTrendingPost && <Badge colorScheme="red" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Trending</Badge>}
+                                {isHelpfulPost && <Badge colorScheme="yellow" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Helpful</Badge>}
+                                {hasSolutionFound && <Badge colorScheme="green" variant="subtle" fontSize="10px" px={1.5} py={0.5}>Solution Found</Badge>}
                               </HStack>
 
                               <HStack spacing={2} mt={2} flexWrap="wrap">
@@ -2262,8 +2180,18 @@ const CommunityPage = () => {
                   <FormLabel color="var(--color-text-muted)" fontSize="sm" fontWeight="medium">Tags (comma separated)</FormLabel>
                   <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="javascript, help, bug" bg="var(--color-bg-primary)" borderColor="var(--color-border)" color="var(--color-text-primary)" />
                   <Flex mt={3} justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={2}>
-                    <Text color="var(--color-text-muted)" fontSize="xs">AI can suggest 3 to 5 tags from your title and description.</Text>
-                    <Button size="xs" variant="outline" borderColor="brand.500" color="brand.300" onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())} isLoading={isFetchingAiTags}>Suggest Tags</Button>
+                    <Text color="var(--color-text-muted)" fontSize="xs">Click Generate Tags to request AI suggestions.</Text>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      borderColor="brand.500"
+                      color="brand.300"
+                      onClick={() => requestAiTags(`${title.trim()}\n${content.trim()}`.trim())}
+                      isLoading={isFetchingAiTags}
+                      isDisabled={`${title.trim()}\n${content.trim()}`.trim().length < 20}
+                    >
+                      Generate Tags
+                    </Button>
                   </Flex>
 
                   {aiTagError && (
