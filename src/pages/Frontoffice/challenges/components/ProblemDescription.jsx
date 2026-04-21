@@ -27,12 +27,21 @@ import {
     Tooltip,
     List,
     ListItem,
+    Modal,
+    ModalOverlay,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    ModalCloseButton,
 } from '@chakra-ui/react';
 import { TimeIcon, InfoIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META } from '../data/mockChallenges';
 import CodeEditor from '../../../../editor/components/CodeEditor';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/context/AuthContext';
 
 const StarIcon = (props) => (
     <Icon viewBox="0 0 20 20" fill="currentColor" {...props}>
@@ -100,8 +109,11 @@ const ProblemDescription = () => {
         currentSubmission,
         submissionHistoryByChallenge,
     } = useChallengeContext();
+    const { coinBalance } = useAuth();
+    const navigate = useNavigate();
 
     const [openHints, setOpenHints] = useState({});
+    const [isRechargeOpen, setIsRechargeOpen] = useState(false);
 
     const gray800_100 = useColorModeValue('gray.800', 'white');
     const gray600_300 = useColorModeValue('gray.600', 'gray.300');
@@ -120,6 +132,19 @@ const ProblemDescription = () => {
 
     const toggleHint = (idx) => {
         setOpenHints((prev) => ({ ...prev, [idx]: !prev[idx] }));
+    };
+
+    const handleHintRequest = async () => {
+        try {
+            await requestHint();
+        } catch (error) {
+            const message = String(error?.message || '').toLowerCase();
+            if (message.includes('hint credits required') || message.includes('insufficient')) {
+                setIsRechargeOpen(true);
+                return;
+            }
+            throw error;
+        }
     };
 
     if (activeTab === 1) {
@@ -238,11 +263,19 @@ const ProblemDescription = () => {
                             variant="outline"
                             colorScheme="brand"
                             isDisabled={!hintAvailable}
-                            onClick={requestHint}
+                            onClick={handleHintRequest}
                         >
                             {t('challengePage.requestAiHint')}
                         </Button>
                     </Flex>
+                    <HStack spacing={2} mb={2} flexWrap="wrap">
+                        <Badge colorScheme="green" borderRadius="full" px={3} py={1}>
+                            First hint free
+                        </Badge>
+                        <Badge colorScheme="cyan" borderRadius="full" px={3} py={1}>
+                            Next hints: 1 coin
+                        </Badge>
+                    </HStack>
                     {hint ? (
                         <Alert status="info" borderRadius="12px" mt={2}>
                             <AlertIcon />
@@ -256,6 +289,30 @@ const ProblemDescription = () => {
                         </Text>
                     )}
                 </Box>
+
+                <Modal isOpen={isRechargeOpen} onClose={() => setIsRechargeOpen(false)} isCentered>
+                    <ModalOverlay bg="blackAlpha.700" />
+                    <ModalContent bg="var(--color-bg-secondary)" border="1px solid" borderColor="var(--color-border)">
+                        <ModalHeader color={gray800_100}>Arena Coins depleted</ModalHeader>
+                        <ModalCloseButton />
+                        <ModalBody>
+                            <Text color={gray600_300} mb={3}>
+                                Your wallet balance is {Number(coinBalance ?? 0)}. Recharge Arena Coins to keep requesting paid hints.
+                            </Text>
+                            <Text color={gray500_400} fontSize="sm">
+                                The first hint stays free. After that, each hint costs 1 coin.
+                            </Text>
+                        </ModalBody>
+                        <ModalFooter gap={3}>
+                            <Button variant="ghost" onClick={() => setIsRechargeOpen(false)}>
+                                Maybe later
+                            </Button>
+                            <Button colorScheme="cyan" onClick={() => navigate('/profile/billing')}>
+                                Recharge now
+                            </Button>
+                        </ModalFooter>
+                    </ModalContent>
+                </Modal>
             </VStack>
         );
     }

@@ -83,6 +83,7 @@ const Analytics = lazy(() => import('./pages/Backoffice/Analytics'));
 const CommunityAnalytics = lazy(() => import('./pages/Backoffice/CommunityAnalytics'));
 const SystemHealth = lazy(() => import('./pages/Backoffice/SystemHealth'));
 const Settings = lazy(() => import('./pages/Backoffice/Settings'));
+const Billing = lazy(() => import('./pages/Backoffice/Billing'));
 const Profile = lazy(() => import('./pages/Backoffice/Profile'));
 const AddAdmin = lazy(() => import('./pages/Backoffice/AddAdmin'));
 const Sessions = lazy(() => import('./pages/Backoffice/Sessions'));
@@ -423,6 +424,7 @@ function App() {
                             <Route path="community-analytics" element={<CommunityAnalytics />} />
                             <Route path="system-health" element={<SystemHealth />} />
                             <Route path="settings" element={<Settings />} />
+                            <Route path="billing" element={<Billing />} />
                             <Route path="sessions" element={<Sessions />} />
                             <Route path="activity-logs" element={<ActivityLogs />} />
                             <Route path="profile" element={<Profile />} />

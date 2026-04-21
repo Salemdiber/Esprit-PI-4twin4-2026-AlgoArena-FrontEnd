@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { settingsService } from '../../services/settingsService';
 
 const Settings = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -203,7 +205,9 @@ const Settings = () => {
                             <NavButton active icon="general">{t('admin.settings.navGeneral')}</NavButton>
                             <NavButton icon="security">{t('admin.settings.navSecurity')}</NavButton>
                             <NavButton icon="notifications">{t('admin.settings.navNotifications')}</NavButton>
-                            <NavButton icon="billing">{t('admin.settings.navBilling')}</NavButton>
+                            <NavButton icon="billing" onClick={() => navigate('/admin/billing')}>
+                                {t('admin.settings.navBilling')}
+                            </NavButton>
                             <NavButton icon="advanced">{t('admin.settings.navAdvanced')}</NavButton>
                         </nav>
                     </div>
@@ -337,7 +341,7 @@ const Settings = () => {
     );
 };
 
-const NavButton = ({ active, icon, children }) => {
+const NavButton = ({ active, icon, children, onClick }) => {
     const icons = {
         general: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>,
         security: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>,
@@ -347,7 +351,10 @@ const NavButton = ({ active, icon, children }) => {
     };
 
     return (
-        <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all spotlight-hover ${active ? 'text-cyan-400' : ''}`}
+        <button
+            type="button"
+            onClick={onClick}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all spotlight-hover text-left ${active ? 'text-cyan-400' : ''}`}
             style={{
                 background: active ? 'rgba(34,211,238,0.08)' : 'transparent',
                 color: active ? 'var(--color-cyan-400)' : 'var(--color-text-secondary)',
@@ -358,7 +365,7 @@ const NavButton = ({ active, icon, children }) => {
                 {icons[icon]}
             </svg>
             <span className="font-medium">{children}</span>
-        </a>
+        </button>
     );
 };
 
