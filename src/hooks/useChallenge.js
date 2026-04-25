@@ -44,8 +44,8 @@ export function useChallenge(challengeId, timeLimitMinutes) {
   const handleHintRequest = async () => {
     try {
       const res = await judgeService.requestHint(challengeId, elapsedMinutes, failedCount, hintsUnlocked);
-      if (res && res !== 'HINT_LOCKED') {
-        setHint(res);
+      if (res && res.unlocked) {
+        setHint(res.hint);
         setHintsUnlocked((n) => Math.min(n + 1, 3));
       }
     } catch (err) {

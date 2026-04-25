@@ -789,21 +789,20 @@ export const ChallengeProvider = ({ children }) => {
 
     const requestHint = useCallback(async () => {
         if (!state.selectedChallengeId) return;
-        try {
-            const res = await judgeService.requestHint(
-                state.selectedChallengeId,
-                state.elapsedSeconds,
-                state.failedCount,
-                state.hintsUnlocked,
-            );
-            if (res && res.unlocked) {
-                dispatch({ type: ActionTypes.SET_HINT, payload: res.hint });
-                dispatch({ type: ActionTypes.SET_HINTS_UNLOCKED, payload: state.hintsUnlocked + 1 });
+        const res = await judgeService.requestHint(
+            state.selectedChallengeId,
+            state.elapsedSeconds,
+            state.failedCount,
+            state.hintsUnlocked,
+        );
+        if (res && res.unlocked) {
+            dispatch({ type: ActionTypes.SET_HINT, payload: res.hint });
+            dispatch({ type: ActionTypes.SET_HINTS_UNLOCKED, payload: state.hintsUnlocked + 1 });
+            if (res.hintCredits !== undefined) {
+                updateCurrentUser?.({ hintCredits: res.hintCredits });
             }
-        } catch (err) {
-            console.error('Hint request failed:', err);
         }
-    }, [state.selectedChallengeId, state.elapsedSeconds, state.failedCount, state.hintsUnlocked]);
+    }, [state.selectedChallengeId, state.elapsedSeconds, state.failedCount, state.hintsUnlocked, updateCurrentUser]);
 
     const refreshUserStats = useCallback(async () => {
         try {

@@ -21,25 +21,29 @@ const MotionBox = m.create(Box);
 
 const languages = ['C', 'C++', 'Java', 'Python', 'JS', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript', 'Scala', 'Perl', 'R'];
 
-const PixelGrid = () => {
+const PixelGrid = ({ enabled }) => {
     const containerRef = useRef(null);
     const pixelsRef = useRef([]);
     const gridSize = 15;
 
     // Generate static grid data once
     const pixels = useMemo(() => {
+        if (!enabled) return [];
+
         const newPixels = [];
         for (let i = 0; i < gridSize * gridSize; i++) {
-            const hasLang = Math.random() > 0.7;
+            const hasLang = i % 3 === 0;
             newPixels.push({
                 id: i,
-                lang: hasLang ? languages[Math.floor(Math.random() * languages.length)] : null,
+                lang: hasLang ? languages[(i * 7) % languages.length] : null,
             });
         }
         return newPixels;
-    }, []);
+    }, [enabled]);
 
     useEffect(() => {
+        if (!enabled) return undefined;
+
         const container = containerRef.current;
         if (!container) return;
 
@@ -81,7 +85,11 @@ const PixelGrid = () => {
         return () => {
             container.closest('section')?.removeEventListener('mousemove', handleMouseMove);
         };
-    }, []);
+    }, [enabled]);
+
+    if (!enabled) {
+        return null;
+    }
 
     return (
         <Box
@@ -137,6 +145,7 @@ const Hero = () => {
     const spotlightRef = useRef(null);
     const [progress, setProgress] = useState(0);
     const [gridCubes, setGridCubes] = useState([]);
+    const [showDecorations, setShowDecorations] = useState(false);
     const timeoutsRef = useRef([]);
 
     /* Theme-aware colors */
@@ -162,6 +171,20 @@ const Hero = () => {
 
     // Animate hero grid
     useEffect(() => {
+        const revealTimer = window.setTimeout(() => {
+            setShowDecorations(true);
+        }, 160);
+
+        return () => {
+            window.clearTimeout(revealTimer);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!showDecorations) {
+            return undefined;
+        }
+
         const animateGrid = () => {
             // Clear any existing timeouts for this cycle
             timeoutsRef.current.forEach(clearTimeout);
@@ -194,7 +217,7 @@ const Hero = () => {
             clearInterval(interval);
             timeoutsRef.current.forEach(clearTimeout);
         };
-    }, []);
+    }, [showDecorations]);
 
     return (
         <Box
@@ -236,10 +259,10 @@ const Hero = () => {
             </Box>
 
             {/* Optimized Pixel Grid Layer */}
-            <PixelGrid />
+            <PixelGrid enabled={showDecorations} />
 
             {/* Floating Code Snippets */}
-            {['function solve() {', 'const result = [];', 'return optimized;', 'while (i < n) {'].map((code, index) => (
+            {showDecorations && ['function solve() {', 'const result = [];', 'return optimized;', 'while (i < n) {'].map((code, index) => (
                 <Text
                     key={index}
                     position="absolute"
@@ -339,15 +362,14 @@ const Hero = () => {
                                         {t('landing.hero.gameSimulation')}
                                     </Text>
                                     <Grid templateColumns="repeat(4, 1fr)" gap={1} mb={4}>
-                                        {gridCubes.map((cube) => (
-                                            <MotionBox
+                                        {(showDecorations ? gridCubes : Array.from({ length: 8 }, (_, index) => ({ id: index, opacity: 0.12 }))).map((cube) => (
+                                            <Box
                                                 key={cube.id}
                                                 aspectRatio={1}
                                                 bg="brand.500"
                                                 borderRadius="4px"
-                                                initial={{ opacity: 0, scale: 0.5, y: -20 }}
-                                                animate={{ opacity: cube.opacity, scale: 1, y: 0 }}
-                                                transition={{ duration: 0.5 }}
+                                                opacity={cube.opacity}
+                                                transition="opacity 0.2s ease, transform 0.2s ease"
                                             />
                                         ))}
                                     </Grid>
