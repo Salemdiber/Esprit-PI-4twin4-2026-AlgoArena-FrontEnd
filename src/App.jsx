@@ -357,6 +357,32 @@ const ChatPanelMount = () => {
   );
 };
 
+const DeferredGlobalUi = () => {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setIsMounted(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
+  return (
+    <>
+      <NavigationProgress />
+      <GlobalAccessibilityUI />
+      <IdleRoutePrefetcher />
+    </>
+  );
+};
+
 function App() {
   const { t } = useTranslation();
 
@@ -372,10 +398,8 @@ function App() {
           <LoadingProvider>
             <Router>
             <NavigateRegistrar />
-            <NavigationProgress />
-            <GlobalAccessibilityUI />
             <AuthProvider>
-              <IdleRoutePrefetcher />
+              <DeferredGlobalUi />
               <ChatProvider>
                 <SupportProvider>
                   <FeatureScopedProviders>
