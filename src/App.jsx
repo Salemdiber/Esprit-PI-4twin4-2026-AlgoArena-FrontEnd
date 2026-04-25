@@ -78,6 +78,7 @@ const Users = lazy(() => import('./pages/Backoffice/Users'));
 const Battles = lazy(() => import('./pages/Backoffice/Battles'));
 const Challenges = lazy(() => import('./pages/Backoffice/Challenges'));
 const AILogs = lazy(() => import('./pages/Backoffice/AILogs'));
+const AIAgents = lazy(() => import('./pages/Backoffice/AIAgents'));
 const Leaderboards = lazy(() => import('./pages/Backoffice/Leaderboards'));
 const Analytics = lazy(() => import('./pages/Backoffice/Analytics'));
 const CommunityAnalytics = lazy(() => import('./pages/Backoffice/CommunityAnalytics'));
@@ -443,6 +444,7 @@ function App() {
                             <Route path="battles" element={<Battles />} />
                             <Route path="challenges" element={<Challenges />} />
                             <Route path="ai-logs" element={<AILogs />} />
+                            <Route path="ai-agents" element={<AIAgents />} />
                             <Route path="leaderboards" element={<Leaderboards />} />
                             <Route path="analytics" element={<Analytics />} />
                             <Route path="community-analytics" element={<CommunityAnalytics />} />

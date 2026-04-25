@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
 import ActiveUsersChart from '../../components/Charts/ActiveUsersChart';
@@ -38,6 +38,15 @@ import {
     PauseCircle,
     AlertTriangle,
     Trophy,
+    Search,
+    RotateCcw,
+    Download,
+    Flag,
+    Filter,
+    ListFilter,
+    Users,
+    Flame,
+    AlertOctagon,
 } from 'lucide-react';
 
 /* ─── Keyframes ─── */
@@ -60,26 +69,6 @@ const goldPulse = keyframes`
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 `;
-
-/* ─── Count-up hook for hero numbers ─── */
-const useCountUp = (target, duration = 1000) => {
-    const [value, setValue] = useState(0);
-    const hasAnimated = useRef(false);
-    useEffect(() => {
-        if (hasAnimated.current || target === 0) { setValue(target); return; }
-        hasAnimated.current = true;
-        const start = performance.now();
-        const animate = (now) => {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
-            setValue(Math.round(eased * target));
-            if (progress < 1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
-    }, [target, duration]);
-    return value;
-};
 
 /* ─── Circular Progress Ring (FIX 1 — guaranteed text fit) ─── */
 const ProgressRing = ({ value, color, size = 72, strokeWidth = 4, showLabel = true }) => {
@@ -157,11 +146,60 @@ const difficultyColors = {
 
 const getDiffColor = (diff) => difficultyColors[diff] || '#9F7AEA';
 
-const getRateColor = (rate) => {
-    if (rate >= 90) return '#22c55e';
-    if (rate >= 70) return '#eab308';
-    if (rate >= 50) return '#f97316';
-    return '#ef4444';
+const FILTER_DEFAULTS = {
+    difficulty: 'all',
+    status: 'all',
+    language: 'all',
+    sortBy: 'mostSubmissions',
+    search: '',
+};
+
+const normalizeLanguage = (language) => {
+    const lowered = String(language || '').trim().toLowerCase();
+    if (lowered === 'c++' || lowered === 'cpp') return 'cpp';
+    return lowered || 'other';
+};
+
+const getLanguageVisual = (language) => {
+    const normalized = normalizeLanguage(language);
+    if (normalized === 'javascript') {
+        return {
+            label: 'JS',
+            bg: 'var(--color-warning-bg)',
+            text: 'var(--color-yellow-500)',
+            border: 'var(--color-yellow-600)',
+        };
+    }
+    if (normalized === 'python') {
+        return {
+            label: 'PY',
+            bg: 'var(--color-info-bg)',
+            text: 'var(--color-cyan-400)',
+            border: 'var(--color-cyan-500)',
+        };
+    }
+    if (normalized === 'java') {
+        return {
+            label: 'JV',
+            bg: 'var(--color-warning-bg)',
+            text: 'var(--color-yellow-600)',
+            border: 'var(--color-yellow-500)',
+        };
+    }
+    if (normalized === 'cpp') {
+        return {
+            label: 'C++',
+            bg: 'var(--color-bg-secondary)',
+            text: 'var(--color-purple-500)',
+            border: 'var(--color-purple-500)',
+        };
+    }
+    return {
+        label: String(language || 'N/A').slice(0, 3).toUpperCase(),
+        bg: 'var(--color-bg-secondary)',
+        text: 'var(--color-text-muted)',
+        border: 'var(--color-border)',
+    };
 };
 
 /* ─── Glassmorphism Stat Card (shared between widgets) ─── */
@@ -246,11 +284,32 @@ const Dashboard = () => {
     const [challengeSubmissionOverview, setChallengeSubmissionOverview] = useState([]);
     const [selectedChallengeId, setSelectedChallengeId] = useState(null);
     const [expandedSubmissionKey, setExpandedSubmissionKey] = useState(null);
+    const [activeSubmissionTab, setActiveSubmissionTab] = useState('all');
+    const [challengeFilters, setChallengeFilters] = useState(FILTER_DEFAULTS);
+    const [searchInput, setSearchInput] = useState('');
+    const [flaggedSubmissionKeys, setFlaggedSubmissionKeys] = useState({});
     const [sandboxStatus, setSandboxStatus] = useState(null);
     const [sandboxLoading, setSandboxLoading] = useState(true);
     const [sandboxError, setSandboxError] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('admin_challenge_flagged_submissions');
+            if (!saved) return;
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                setFlaggedSubmissionKeys(parsed);
+            }
+        } catch {
+            setFlaggedSubmissionKeys({});
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('admin_challenge_flagged_submissions', JSON.stringify(flaggedSubmissionKeys));
+    }, [flaggedSubmissionKeys]);
 
     useEffect(() => {
         const loadStats = async () => {
@@ -352,10 +411,131 @@ const Dashboard = () => {
         };
     }), [submissionQualityStats]);
 
+    useEffect(() => {
+        const handle = window.setTimeout(() => {
+            setChallengeFilters((prev) => (prev.search === searchInput ? prev : { ...prev, search: searchInput }));
+        }, 300);
+        return () => window.clearTimeout(handle);
+    }, [searchInput]);
+
+    const availableLanguages = useMemo(() => {
+        const languageSet = new Set();
+        challengeSubmissionOverview.forEach((challenge) => {
+            (challenge.recentSubmissions || []).forEach((submission) => {
+                const normalized = normalizeLanguage(submission.language);
+                if (normalized && normalized !== 'other') languageSet.add(normalized);
+            });
+        });
+        return [...languageSet].sort((a, b) => a.localeCompare(b));
+    }, [challengeSubmissionOverview]);
+
+    const globalChallengeStats = useMemo(() => {
+        const totals = challengeSubmissionOverview.reduce((acc, challenge) => {
+            acc.totalSubmissions += Number(challenge.totalSubmissions || 0);
+            acc.passed += Number(challenge.successfulSubmissions || 0);
+            acc.failed += Number(challenge.failedSubmissions || 0);
+            acc.abandoned += Number(challenge.abandonedAttempts || 0);
+            return acc;
+        }, { totalSubmissions: 0, passed: 0, failed: 0, abandoned: 0 });
+
+        const highestSubmissions = [...challengeSubmissionOverview].sort(
+            (a, b) => Number(b.totalSubmissions || 0) - Number(a.totalSubmissions || 0),
+        )[0];
+        const highestDropout = [...challengeSubmissionOverview].sort((a, b) => {
+            const aDropout = Number(a.totalSubmissions || 0) > 0 ? Number(a.abandonedAttempts || 0) / Number(a.totalSubmissions || 0) : -1;
+            const bDropout = Number(b.totalSubmissions || 0) > 0 ? Number(b.abandonedAttempts || 0) / Number(b.totalSubmissions || 0) : -1;
+            return bDropout - aDropout;
+        })[0];
+
+        return {
+            ...totals,
+            overallPassRate: totals.totalSubmissions > 0 ? (totals.passed / totals.totalSubmissions) * 100 : null,
+            mostAttemptedTitle: highestSubmissions?.challengeTitle || null,
+            highestDropoutTitle: highestDropout?.challengeTitle || null,
+        };
+    }, [challengeSubmissionOverview]);
+
+    const filteredChallenges = useMemo(() => {
+        const filtered = challengeSubmissionOverview.filter((challenge) => {
+            const difficulty = String(challenge.difficulty || '').toLowerCase();
+            const matchesDifficulty = challengeFilters.difficulty === 'all' || difficulty === challengeFilters.difficulty;
+            const matchesSearch = !challengeFilters.search
+                || String(challenge.challengeTitle || '').toLowerCase().includes(challengeFilters.search.toLowerCase());
+            return matchesDifficulty && matchesSearch;
+        });
+
+        filtered.sort((a, b) => {
+            if (challengeFilters.sortBy === 'highestPassRate') return Number(b.successRate || 0) - Number(a.successRate || 0);
+            if (challengeFilters.sortBy === 'lowestPassRate') return Number(a.successRate || 0) - Number(b.successRate || 0);
+            if (challengeFilters.sortBy === 'highestAbandonment') {
+                const aDropout = Number(a.totalSubmissions || 0) > 0 ? Number(a.abandonedAttempts || 0) / Number(a.totalSubmissions || 0) : -1;
+                const bDropout = Number(b.totalSubmissions || 0) > 0 ? Number(b.abandonedAttempts || 0) / Number(b.totalSubmissions || 0) : -1;
+                return bDropout - aDropout;
+            }
+            if (challengeFilters.sortBy === 'alphabetical') {
+                return String(a.challengeTitle || '').localeCompare(String(b.challengeTitle || ''));
+            }
+            return Number(b.totalSubmissions || 0) - Number(a.totalSubmissions || 0);
+        });
+        return filtered;
+    }, [challengeSubmissionOverview, challengeFilters]);
+
     const selectedChallengeOverview = useMemo(
-        () => challengeSubmissionOverview.find((item) => item.challengeId === selectedChallengeId) || challengeSubmissionOverview[0] || null,
-        [challengeSubmissionOverview, selectedChallengeId],
+        () => filteredChallenges.find((item) => item.challengeId === selectedChallengeId) || filteredChallenges[0] || null,
+        [filteredChallenges, selectedChallengeId],
     );
+
+    const filteredSubmissions = useMemo(() => {
+        if (!selectedChallengeOverview) return [];
+        return (selectedChallengeOverview.recentSubmissions || []).filter((submission) => {
+            const status = String(submission.status || '').toLowerCase();
+            const language = normalizeLanguage(submission.language);
+            const matchesStatus = challengeFilters.status === 'all' || status === challengeFilters.status;
+            const matchesLanguage = challengeFilters.language === 'all' || language === challengeFilters.language;
+            return matchesStatus && matchesLanguage;
+        });
+    }, [selectedChallengeOverview, challengeFilters.status, challengeFilters.language]);
+
+    const challengeSummaryExtras = useMemo(() => {
+        const uniqueUsers = new Set(filteredSubmissions.map((item) => item.username || 'Unknown')).size;
+        const failedCount = filteredSubmissions.filter((item) => item.status === 'failed').length;
+        const failedRate = filteredSubmissions.length > 0 ? (failedCount / filteredSubmissions.length) * 100 : 0;
+        const topLanguageMap = filteredSubmissions.reduce((acc, item) => {
+            const language = normalizeLanguage(item.language);
+            acc[language] = (acc[language] || 0) + 1;
+            return acc;
+        }, {});
+        const topLanguage = Object.entries(topLanguageMap).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+        return { uniqueUsers, failedRate, topLanguage };
+    }, [filteredSubmissions]);
+
+    const submissionsByUser = useMemo(() => {
+        const grouped = filteredSubmissions.reduce((acc, submission) => {
+            const username = submission.username || 'Unknown';
+            if (!acc[username]) acc[username] = [];
+            acc[username].push(submission);
+            return acc;
+        }, {});
+
+        return Object.entries(grouped)
+            .map(([username, submissions]) => {
+                const ordered = [...submissions].sort(
+                    (a, b) => new Date(a.submittedAt || 0).getTime() - new Date(b.submittedAt || 0).getTime(),
+                );
+                const passed = ordered.filter((item) => item.status === 'success').length;
+                const failed = ordered.filter((item) => item.status === 'failed').length;
+                return {
+                    username,
+                    attempts: ordered.length,
+                    passed,
+                    failed,
+                    abandoned: ordered.filter((item) => item.status === 'abandoned').length,
+                    passRate: ordered.length > 0 ? (passed / ordered.length) * 100 : 0,
+                    timeline: ordered,
+                };
+            })
+            .sort((a, b) => b.attempts - a.attempts);
+    }, [filteredSubmissions]);
 
     const formatRelative = (value) => {
         if (!value) return t('admin.dashboard.na');
@@ -368,6 +548,91 @@ const Dashboard = () => {
         return t('admin.dashboard.daysAgo', { value: Math.floor(diff / 86400) });
     };
 
+    const getSubmissionRowKey = (challengeId, submission, index) => (
+        `${challengeId}-${submission.userId || 'unknown'}-${submission.submittedAt || index}-${submission.status || 'status'}`
+    );
+
+    const getLastActivity = (challenge) => {
+        const mostRecent = (challenge.recentSubmissions || [])
+            .map((submission) => submission.submittedAt)
+            .filter(Boolean)
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+        return mostRecent || null;
+    };
+
+    const getLastActivityColor = (challenge) => {
+        const value = getLastActivity(challenge);
+        if (!value) return 'var(--color-text-muted)';
+        const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+        if (diffSeconds < 7 * 24 * 3600) return 'var(--color-green-500)';
+        if (diffSeconds < 30 * 24 * 3600) return 'var(--color-yellow-500)';
+        return 'var(--color-text-muted)';
+    };
+
+    const runtimeDisplay = (executionTime) => {
+        const value = Number(executionTime || 0);
+        if (value <= 0) return { label: '—', color: 'var(--color-text-muted)' };
+        if (value < 500) return { label: `${value}ms`, color: 'var(--color-green-500)' };
+        if (value <= 2000) return { label: `${value}ms`, color: 'var(--color-yellow-500)' };
+        return { label: `${value}ms`, color: 'var(--color-red-500)' };
+    };
+
+    const isAnyFilterActive = (
+        challengeFilters.difficulty !== FILTER_DEFAULTS.difficulty
+        || challengeFilters.status !== FILTER_DEFAULTS.status
+        || challengeFilters.language !== FILTER_DEFAULTS.language
+        || challengeFilters.sortBy !== FILTER_DEFAULTS.sortBy
+        || challengeFilters.search !== FILTER_DEFAULTS.search
+    );
+
+    const handleResetFilters = () => {
+        setChallengeFilters(FILTER_DEFAULTS);
+        setSearchInput('');
+        setActiveSubmissionTab('all');
+    };
+
+    const handleExportChallengeCsv = () => {
+        const headers = [
+            'Challenge',
+            'Difficulty',
+            'Total Submissions',
+            'Passed',
+            'Failed',
+            'Abandoned',
+            'Pass Rate %',
+            'Avg Time (ms)',
+            'Last Activity',
+        ];
+        const rows = filteredChallenges.map((challenge) => [
+            challenge.challengeTitle || '',
+            challenge.difficulty || '',
+            Number(challenge.totalSubmissions || 0),
+            Number(challenge.successfulSubmissions || 0),
+            Number(challenge.failedSubmissions || 0),
+            Number(challenge.abandonedAttempts || 0),
+            Number(challenge.successRate || 0).toFixed(1),
+            Number(challenge.averageSolveTime || 0) > 0 ? Number(challenge.averageSolveTime || 0).toFixed(1) : '—',
+            getLastActivity(challenge) ? new Date(getLastActivity(challenge)).toISOString() : 'No activity',
+        ]);
+        const csv = [headers, ...rows].map((row) => row.map((value) => `"${value}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `challenges-${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    useEffect(() => {
+        if (!filteredChallenges.length) return;
+        const stillExists = filteredChallenges.some((item) => item.challengeId === selectedChallengeId);
+        if (!stillExists) {
+            setSelectedChallengeId(filteredChallenges[0].challengeId);
+            setExpandedSubmissionKey(null);
+        }
+    }, [filteredChallenges, selectedChallengeId]);
+
     /* Overall quality stats */
     const overallQuality = useMemo(() => {
         const totalSub = qualityRows.reduce((s, r) => s + r.total, 0);
@@ -375,9 +640,6 @@ const Dashboard = () => {
         const rate = totalSub > 0 ? (totalSuccess / totalSub) * 100 : 0;
         return { total: totalSub, successful: totalSuccess, rate };
     }, [qualityRows]);
-
-    /* Count-up for overall rate */
-    const animatedOverallRate = useCountUp(Math.round(overallQuality.rate * 10) / 10, 1200);
 
     if (loading) {
         return <div className="p-6" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.loading')}</div>;
@@ -701,6 +963,177 @@ const Dashboard = () => {
                     </Flex>
                 </Box>
 
+                {/* Icon library found: lucide-react. Using Filter, ListFilter, Search, RotateCcw, Download, Users, Flag, Flame, AlertOctagon, CheckCircle2, XCircle, PauseCircle, Eye, EyeOff. */}
+                {/* Colors confirmed from index.css: success var(--color-green-500), error var(--color-red-500), warning var(--color-yellow-500), muted var(--color-text-muted), border var(--color-border), card bg var(--color-bg-card). */}
+                <Box px={4} pb={3}>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={2}>
+                        <Flex align="center" gap={2} px={3} py={2} borderRadius="lg" bg="var(--color-bg-secondary)" border="1px solid var(--color-border)">
+                            <Icon as={BarChart3} boxSize={4} color="var(--color-cyan-400)" />
+                            <Text fontSize="xs" color="var(--color-text-secondary)">Total submissions: <Text as="span" color="var(--color-text-heading)" fontWeight="700">{globalChallengeStats.totalSubmissions}</Text></Text>
+                        </Flex>
+                        <Flex align="center" gap={2} px={3} py={2} borderRadius="lg" bg="var(--color-bg-secondary)" border="1px solid var(--color-border)">
+                            <Icon as={CheckCircle2} boxSize={4} color="var(--color-green-500)" />
+                            <Text fontSize="xs" color="var(--color-text-secondary)">Overall pass rate: <Text as="span" color="var(--color-text-heading)" fontWeight="700">{globalChallengeStats.overallPassRate === null ? '—' : `${globalChallengeStats.overallPassRate.toFixed(1)}%`}</Text></Text>
+                        </Flex>
+                        <Flex align="center" gap={2} px={3} py={2} borderRadius="lg" bg="var(--color-bg-secondary)" border="1px solid var(--color-border)">
+                            <Icon as={XCircle} boxSize={4} color="var(--color-red-500)" />
+                            <Text fontSize="xs" color="var(--color-text-secondary)">Total failed: <Text as="span" color="var(--color-text-heading)" fontWeight="700">{globalChallengeStats.failed}</Text></Text>
+                        </Flex>
+                        <Flex align="center" gap={2} px={3} py={2} borderRadius="lg" bg="var(--color-bg-secondary)" border="1px solid var(--color-border)">
+                            <Icon as={PauseCircle} boxSize={4} color="var(--color-text-muted)" />
+                            <Text fontSize="xs" color="var(--color-text-secondary)">Total abandoned: <Text as="span" color="var(--color-text-heading)" fontWeight="700">{globalChallengeStats.abandoned}</Text></Text>
+                        </Flex>
+                        <Tooltip label={globalChallengeStats.mostAttemptedTitle || '—'}>
+                            <Flex align="center" gap={2} px={3} py={2} borderRadius="lg" bg="var(--color-bg-secondary)" border="1px solid var(--color-border)">
+                                <Icon as={Flame} boxSize={4} color="var(--color-yellow-500)" />
+                                <Text fontSize="xs" color="var(--color-text-secondary)">Most attempted: <Text as="span" color="var(--color-text-heading)" fontWeight="700">{globalChallengeStats.mostAttemptedTitle ? `${globalChallengeStats.mostAttemptedTitle.slice(0, 20)}${globalChallengeStats.mostAttemptedTitle.length > 20 ? '...' : ''}` : '—'}</Text></Text>
+                            </Flex>
+                        </Tooltip>
+                        <Tooltip label={globalChallengeStats.highestDropoutTitle || '—'}>
+                            <Flex align="center" gap={2} px={3} py={2} borderRadius="lg" bg="var(--color-bg-secondary)" border="1px solid var(--color-border)">
+                                <Icon as={AlertOctagon} boxSize={4} color="var(--color-red-500)" />
+                                <Text fontSize="xs" color="var(--color-text-secondary)">Highest dropout: <Text as="span" color="var(--color-text-heading)" fontWeight="700">{globalChallengeStats.highestDropoutTitle ? `${globalChallengeStats.highestDropoutTitle.slice(0, 20)}${globalChallengeStats.highestDropoutTitle.length > 20 ? '...' : ''}` : '—'}</Text></Text>
+                            </Flex>
+                        </Tooltip>
+                    </SimpleGrid>
+                </Box>
+
+                <Box px={4} pb={3} borderTop="1px solid var(--color-border)">
+                    <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={2} mt={3}>
+                        <Flex align="center" gap={2} p={1.5} borderRadius="md" bg="var(--color-bg-secondary)">
+                            <Icon as={Filter} boxSize={3.5} color="var(--color-text-muted)" />
+                            {['all', 'easy', 'medium', 'hard'].map((value) => {
+                                const isActive = challengeFilters.difficulty === value;
+                                return (
+                                    <Box
+                                        key={value}
+                                        as="button"
+                                        px={2}
+                                        py={0.5}
+                                        borderRadius="full"
+                                        fontSize="10px"
+                                        fontWeight="700"
+                                        textTransform="uppercase"
+                                        bg={isActive ? 'var(--color-cyan-500)' : 'transparent'}
+                                        color={isActive ? 'var(--color-text-inverted)' : 'var(--color-text-muted)'}
+                                        border="1px solid var(--color-border)"
+                                        onClick={() => {
+                                            setChallengeFilters((prev) => ({ ...prev, difficulty: value }));
+                                            setExpandedSubmissionKey(null);
+                                        }}
+                                    >
+                                        {value}
+                                    </Box>
+                                );
+                            })}
+                        </Flex>
+                        <Flex align="center" gap={2}>
+                            <Icon as={ListFilter} boxSize={3.5} color="var(--color-text-muted)" />
+                            <select
+                                className="form-select"
+                                value={challengeFilters.status}
+                                onChange={(event) => {
+                                    setChallengeFilters((prev) => ({ ...prev, status: event.target.value }));
+                                    setExpandedSubmissionKey(null);
+                                }}
+                                style={{ fontSize: '12px', width: '100%' }}
+                            >
+                                <option value="all">Status: All</option>
+                                <option value="success">Passed</option>
+                                <option value="failed">Failed</option>
+                                <option value="abandoned">Abandoned</option>
+                            </select>
+                        </Flex>
+                        <Flex align="center" gap={2}>
+                            <Icon as={Code2} boxSize={3.5} color="var(--color-text-muted)" />
+                            <select
+                                className="form-select"
+                                value={challengeFilters.language}
+                                onChange={(event) => {
+                                    setChallengeFilters((prev) => ({ ...prev, language: event.target.value }));
+                                    setExpandedSubmissionKey(null);
+                                }}
+                                style={{ fontSize: '12px', width: '100%' }}
+                            >
+                                <option value="all">Language: All</option>
+                                {availableLanguages.map((language) => (
+                                    <option key={language} value={language}>{language}</option>
+                                ))}
+                            </select>
+                        </Flex>
+                        <Flex align="center" gap={2}>
+                            <Icon as={BarChart3} boxSize={3.5} color="var(--color-text-muted)" />
+                            <select
+                                className="form-select"
+                                value={challengeFilters.sortBy}
+                                onChange={(event) => setChallengeFilters((prev) => ({ ...prev, sortBy: event.target.value }))}
+                                style={{ fontSize: '12px', width: '100%' }}
+                            >
+                                <option value="mostSubmissions">Most submissions</option>
+                                <option value="highestPassRate">Highest pass rate</option>
+                                <option value="lowestPassRate">Lowest pass rate</option>
+                                <option value="highestAbandonment">Highest abandonment</option>
+                                <option value="alphabetical">Alphabetical</option>
+                            </select>
+                        </Flex>
+                    </SimpleGrid>
+                    <Flex mt={2} align="center" gap={2}>
+                        <Box position="relative" flex={1}>
+                            <Icon as={Search} boxSize={3.5} color="var(--color-text-muted)" position="absolute" left="10px" top="50%" transform="translateY(-50%)" />
+                            <input
+                                className="search-input"
+                                placeholder="Search challenge..."
+                                value={searchInput}
+                                onChange={(event) => setSearchInput(event.target.value)}
+                                style={{ width: '100%', paddingLeft: '30px', paddingRight: '30px', fontSize: '12px' }}
+                            />
+                            {searchInput && (
+                                <Box
+                                    as="button"
+                                    position="absolute"
+                                    right="8px"
+                                    top="50%"
+                                    transform="translateY(-50%)"
+                                    color="var(--color-text-muted)"
+                                    onClick={() => setSearchInput('')}
+                                >
+                                    x
+                                </Box>
+                            )}
+                        </Box>
+                        <Tooltip label="Export CSV">
+                            <Box
+                                as="button"
+                                p={2}
+                                borderRadius="md"
+                                border="1px solid var(--color-border)"
+                                color="var(--color-text-muted)"
+                                onClick={handleExportChallengeCsv}
+                            >
+                                <Icon as={Download} boxSize={4} />
+                            </Box>
+                        </Tooltip>
+                        {isAnyFilterActive && (
+                            <Tooltip label="Reset filters">
+                                <Box
+                                    as="button"
+                                    p={2}
+                                    borderRadius="md"
+                                    border="1px solid var(--color-border)"
+                                    color="var(--color-text-muted)"
+                                    onClick={handleResetFilters}
+                                >
+                                    <Icon as={RotateCcw} boxSize={4} />
+                                </Box>
+                            </Tooltip>
+                        )}
+                    </Flex>
+                    <Text fontSize="xs" mt={2} color="var(--color-text-muted)">
+                        Showing {filteredChallenges.length} of {challengeSubmissionOverview.length} challenges
+                    </Text>
+                </Box>
+
+
                 <Flex direction={{ base: 'column', lg: 'row' }} minH="520px">
                     {/* ─── LEFT PANEL: Challenge List ─── */}
                     <Box
@@ -716,16 +1149,19 @@ const Dashboard = () => {
                             px={2}
                             py={2}
                         >
-                            {challengeSubmissionOverview.length === 0 ? (
+                            {filteredChallenges.length === 0 ? (
                                 <Flex direction="column" align="center" justify="center" py={16} gap={3}>
                                     <Icon as={BarChart3} boxSize={8} color="var(--color-text-muted)" opacity={0.4} />
                                     <Text fontSize="sm" color="var(--color-text-muted)">{t('admin.dashboard.noChallengesFound')}</Text>
                                 </Flex>
-                            ) : challengeSubmissionOverview.map((item, i) => {
+                            ) : filteredChallenges.map((item, i) => {
                                 const rate = Number(item.successRate || 0);
-                                const rateColor = getRateColor(rate);
+                                const rateColor = rate > 70 ? 'var(--color-green-500)' : rate >= 40 ? 'var(--color-yellow-500)' : 'var(--color-red-500)';
                                 const selected = selectedChallengeOverview?.challengeId === item.challengeId;
                                 const diffColor = getDiffColor(item.difficulty);
+                                const totalSubmissions = Number(item.totalSubmissions || 0);
+                                const abandonedRate = totalSubmissions > 0 ? (Number(item.abandonedAttempts || 0) / totalSubmissions) * 100 : 0;
+                                const lastActivity = getLastActivity(item);
                                 return (
                                     <Box
                                         key={item.challengeId}
@@ -737,6 +1173,7 @@ const Dashboard = () => {
                                         onClick={() => {
                                             setSelectedChallengeId(item.challengeId);
                                             setExpandedSubmissionKey(null);
+                                            setActiveSubmissionTab('all');
                                         }}
                                         bg={selected ? 'rgba(255,255,255,0.06)' : 'transparent'}
                                         borderLeft="3px solid"
@@ -786,13 +1223,30 @@ const Dashboard = () => {
                                             >
                                                 {t(`admin.dashboard.${(item.difficulty || 'easy').toLowerCase()}`)}
                                             </Text>
+                                            {abandonedRate > 30 && (
+                                                <Badge fontSize="10px" bg="var(--color-warning-bg)" color="var(--color-yellow-500)" border="1px solid var(--color-border)">
+                                                    High dropout
+                                                </Badge>
+                                            )}
+                                        </Flex>
+                                        <Flex mt={1.5} align="center" gap={2}>
                                             <Text fontSize="xs" color="var(--color-text-muted)">
                                                 {t('admin.dashboard.subs', { count: item.totalSubmissions })}
                                             </Text>
-                                            <Text fontSize="xs" fontWeight="600" color={item.totalSubmissions === 0 ? 'var(--color-text-muted)' : rateColor}>
-                                                {item.totalSubmissions === 0 ? '—' : `${rate.toFixed(0)}%`}
-                                            </Text>
+                                            {totalSubmissions === 0 ? (
+                                                <Text fontSize="xs" fontWeight="600" color="var(--color-text-muted)">?</Text>
+                                            ) : (
+                                                <>
+                                                    <Box flex={1} h="6px" borderRadius="full" bg="var(--color-bg-secondary)" overflow="hidden">
+                                                        <Box h="full" borderRadius="full" bg={rateColor} w={`${Math.max(4, Math.min(100, rate))}%`} />
+                                                    </Box>
+                                                    <Text fontSize="xs" fontWeight="600" color={rateColor}>{rate.toFixed(0)}%</Text>
+                                                </>
+                                            )}
                                         </Flex>
+                                        <Text mt={1} fontSize="11px" color={getLastActivityColor(item)}>
+                                            {lastActivity ? formatRelative(lastActivity) : 'No activity'}
+                                        </Text>
                                     </Box>
                                 );
                             })}
@@ -863,13 +1317,13 @@ const Dashboard = () => {
                                 )}
 
                                 {/* Stats row */}
-                                <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3} role="group">
+                                <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={3} role="group">
                                     {/* Total Submissions */}
                                     <GlassStatCard
                                         icon={BarChart3} iconColor="#22d3ee" iconBg="rgba(34,211,238,0.12)"
                                         label={t('admin.dashboard.totalSubs')} delay={0.05}
                                     >
-                                        <Text fontWeight="800" fontSize="2xl" color="var(--color-text-heading)">
+                                        <Text fontWeight="800" fontSize="xl" color="var(--color-text-heading)">
                                             {selectedChallengeOverview.totalSubmissions}
                                         </Text>
                                     </GlassStatCard>
@@ -880,12 +1334,12 @@ const Dashboard = () => {
                                         label={t('admin.dashboard.success')} delay={0.1}
                                     >
                                         <Flex align="center" gap={3}>
-                                            <Text fontWeight="800" fontSize="2xl" color="green.400">
+                                            <Text fontWeight="800" fontSize="xl" color="green.400">
                                                 {selectedChallengeOverview.totalSubmissions > 0 ? `${Number(selectedChallengeOverview.successRate || 0).toFixed(1)}%` : '—'}
                                             </Text>
                                             <ProgressRing
                                                 value={selectedChallengeOverview.totalSubmissions > 0 ? Number(selectedChallengeOverview.successRate || 0) : 0}
-                                                color="#22c55e" size={40} strokeWidth={3}
+                                                color="#22c55e" size={34} strokeWidth={3}
                                             />
                                         </Flex>
                                     </GlassStatCard>
@@ -895,7 +1349,7 @@ const Dashboard = () => {
                                         icon={Clock} iconColor="#6366f1" iconBg="rgba(99,102,241,0.12)"
                                         label={t('admin.dashboard.avgTime')} delay={0.15}
                                     >
-                                        <Text fontWeight="800" fontSize="2xl" color="var(--color-text-heading)">
+                                        <Text fontWeight="800" fontSize="xl" color="var(--color-text-heading)">
                                             {selectedChallengeOverview.averageSolveTime > 0 ? `${Number(selectedChallengeOverview.averageSolveTime).toFixed(1)}s` : '—'}
                                         </Text>
                                     </GlassStatCard>
@@ -905,152 +1359,281 @@ const Dashboard = () => {
                                         icon={PauseCircle} iconColor="#f97316" iconBg="rgba(249,115,22,0.12)"
                                         label={t('admin.dashboard.abandoned')} delay={0.2}
                                     >
-                                        <Text fontWeight="800" fontSize="2xl" color="orange.300">
+                                        <Text fontWeight="800" fontSize="xl" color="orange.300">
                                             {selectedChallengeOverview.abandonedAttempts}
                                         </Text>
+                                    </GlassStatCard>
+
+                                    <GlassStatCard
+                                        icon={Users} iconColor="var(--color-cyan-400)" iconBg="var(--color-info-bg)"
+                                        label="Unique users" delay={0.25}
+                                    >
+                                        <Text fontWeight="800" fontSize="xl" color="var(--color-text-heading)">
+                                            {challengeSummaryExtras.uniqueUsers}
+                                        </Text>
+                                    </GlassStatCard>
+
+                                    <GlassStatCard
+                                        icon={XCircle} iconColor="var(--color-red-500)" iconBg="var(--color-error-bg)"
+                                        label="Failed" delay={0.3}
+                                    >
+                                        <Text fontWeight="800" fontSize="xl" color={challengeSummaryExtras.failedRate > 50 ? 'var(--color-red-500)' : 'var(--color-text-heading)'}>
+                                            {filteredSubmissions.length > 0 ? `${challengeSummaryExtras.failedRate.toFixed(1)}%` : '—'}
+                                        </Text>
+                                    </GlassStatCard>
+
+                                    <GlassStatCard
+                                        icon={Code2} iconColor="var(--color-text-muted)" iconBg="var(--color-bg-secondary)"
+                                        label="Top language" delay={0.35}
+                                    >
+                                        {challengeSummaryExtras.topLanguage ? (
+                                            <Text
+                                                fontSize="11px"
+                                                px={2}
+                                                py={1}
+                                                borderRadius="md"
+                                                border="1px solid var(--color-border)"
+                                                bg={getLanguageVisual(challengeSummaryExtras.topLanguage).bg}
+                                                color={getLanguageVisual(challengeSummaryExtras.topLanguage).text}
+                                                fontWeight="700"
+                                                textTransform="uppercase"
+                                            >
+                                                {getLanguageVisual(challengeSummaryExtras.topLanguage).label}
+                                            </Text>
+                                        ) : (
+                                            <Text fontWeight="800" fontSize="xl" color="var(--color-text-muted)">—</Text>
+                                        )}
                                     </GlassStatCard>
                                 </SimpleGrid>
 
                                 {/* Divider */}
                                 <Box h="1px" bg="rgba(255,255,255,0.06)" />
 
-                                {/* Submissions timeline */}
-                                <VStack align="stretch" spacing={2} maxH="360px" overflowY="auto" className="scrollbar-thin">
-                                    {(selectedChallengeOverview.recentSubmissions || []).map((submission, index) => {
-                                        const rowKey = `${submission.userId}-${submission.submittedAt || index}`;
-                                        const status = submission.status === 'success' ? t('admin.dashboard.passed') : submission.status === 'abandoned' ? t('admin.dashboard.abandoned') : t('admin.dashboard.failed');
-                                        const statusColor = submission.status === 'success' ? '#22c55e' : submission.status === 'abandoned' ? '#f97316' : '#ef4444';
-                                        const StatusIcon = submission.status === 'success' ? CheckCircle2 : submission.status === 'abandoned' ? PauseCircle : XCircle;
-                                        const isExpanded = expandedSubmissionKey === rowKey;
-                                        return (
-                                            <Box
-                                                key={rowKey}
-                                                borderRadius="lg"
-                                                border="1px solid rgba(255,255,255,0.06)"
-                                                bg="rgba(255,255,255,0.02)"
-                                                overflow="hidden"
-                                                transition="all .15s ease"
-                                                _hover={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                                                animation={`${fadeSlideIn} 0.3s ease ${index * 0.05}s both`}
-                                            >
-                                                <Flex
-                                                    px={4} py={3}
-                                                    align={{ base: 'flex-start', md: 'center' }}
-                                                    direction={{ base: 'column', md: 'row' }}
-                                                    gap={2}
-                                                >
-                                                    {/* Avatar + User info */}
-                                                    <Flex align="center" gap={3} flex={1} minW={0}>
-                                                        <Flex
-                                                            align="center" justify="center"
-                                                            boxSize={8} borderRadius="full"
-                                                            bg="rgba(34,211,238,0.1)"
-                                                            border="1px solid rgba(34,211,238,0.15)"
-                                                            flexShrink={0}
-                                                        >
-                                                            <Text fontSize="xs" fontWeight="700" color="#22d3ee">
-                                                                {(submission.username || '?')[0].toUpperCase()}
-                                                            </Text>
-                                                        </Flex>
-                                                        <Box minW={0}>
-                                                            <Text fontWeight="500" fontSize="sm" color="var(--color-text-primary)" noOfLines={1}>
-                                                                {submission.username}
-                                                            </Text>
-                                                            <Text fontSize="xs" color="var(--color-text-muted)">
-                                                                {formatRelative(submission.submittedAt)}
-                                                            </Text>
-                                                        </Box>
-                                                    </Flex>
+                                <Flex align="center" gap={2} borderBottom="1px solid var(--color-border)" pb={2}>
+                                    <Box
+                                        as="button"
+                                        px={3}
+                                        py={1.5}
+                                        borderRadius="md"
+                                        border="1px solid var(--color-border)"
+                                        bg={activeSubmissionTab === 'all' ? 'var(--color-hover-bg)' : 'transparent'}
+                                        color={activeSubmissionTab === 'all' ? 'var(--color-text-heading)' : 'var(--color-text-muted)'}
+                                        fontSize="sm"
+                                        onClick={() => setActiveSubmissionTab('all')}
+                                    >
+                                        All submissions
+                                    </Box>
+                                    <Box
+                                        as="button"
+                                        px={3}
+                                        py={1.5}
+                                        borderRadius="md"
+                                        border="1px solid var(--color-border)"
+                                        bg={activeSubmissionTab === 'byUser' ? 'var(--color-hover-bg)' : 'transparent'}
+                                        color={activeSubmissionTab === 'byUser' ? 'var(--color-text-heading)' : 'var(--color-text-muted)'}
+                                        fontSize="sm"
+                                        onClick={() => {
+                                            setActiveSubmissionTab('byUser');
+                                            setExpandedSubmissionKey(null);
+                                        }}
+                                    >
+                                        By user
+                                    </Box>
+                                </Flex>
 
-                                                    {/* Status + Metrics */}
-                                                    <Flex gap={2} align="center" flexWrap="wrap" flexShrink={0}>
-                                                        <Flex
-                                                            align="center" gap={1}
-                                                            px={2} py={1} borderRadius="full"
-                                                            bg={`${statusColor}15`}
-                                                            border={`1px solid ${statusColor}30`}
-                                                        >
-                                                            <Icon as={StatusIcon} boxSize={3} color={statusColor} />
-                                                            <Text fontSize="10px" fontWeight="700" color={statusColor} textTransform="uppercase">
-                                                                {status}
-                                                            </Text>
-                                                        </Flex>
-                                                        <Text fontSize="xs" color="var(--color-text-muted)" fontFamily="var(--font-mono)">
-                                                            {submission.executionTime || 0}ms
-                                                        </Text>
-                                                        <Text
-                                                            fontSize="10px" px={1.5} py={0.5}
-                                                            borderRadius="md" fontFamily="var(--font-mono)"
-                                                            bg="rgba(34,211,238,0.08)" border="1px solid rgba(34,211,238,0.15)"
-                                                            color="#22d3ee"
-                                                        >
-                                                            {submission.language || 'javascript'}
-                                                        </Text>
-                                                        <Flex
-                                                            as="button"
-                                                            align="center" gap={1}
-                                                            px={2} py={1} borderRadius="md"
-                                                            bg="transparent"
-                                                            border="1px solid rgba(255,255,255,0.08)"
-                                                            cursor="pointer"
-                                                            transition="all .15s"
-                                                            _hover={{ bg: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' }}
-                                                            _focusVisible={{ boxShadow: '0 0 0 2px rgba(34,211,238,0.4)' }}
-                                                            onClick={() => setExpandedSubmissionKey(isExpanded ? null : rowKey)}
-                                                        >
-                                                            <Icon as={isExpanded ? EyeOff : Eye} boxSize={3} color="var(--color-text-muted)" />
-                                                            <Text fontSize="10px" fontWeight="600" color="var(--color-text-muted)">
-                                                                {isExpanded ? t('admin.dashboard.hide') : t('admin.dashboard.code')}
-                                                            </Text>
-                                                        </Flex>
+                                {activeSubmissionTab === 'byUser' ? (
+                                    <VStack align="stretch" spacing={3} maxH="360px" overflowY="auto" className="scrollbar-thin">
+                                        {submissionsByUser.length === 0 ? (
+                                            <Flex direction="column" align="center" justify="center" py={10} gap={2}>
+                                                <Text color="var(--color-text-muted)" fontSize="sm">No submissions for this filter</Text>
+                                            </Flex>
+                                        ) : submissionsByUser.map((userRow) => (
+                                            <Box key={userRow.username} borderRadius="lg" border="1px solid var(--color-border)" bg="var(--color-bg-secondary)" px={3} py={3}>
+                                                <Flex align="center" gap={2} wrap="wrap">
+                                                    <Flex align="center" justify="center" boxSize={7} borderRadius="full" bg="var(--color-info-bg)" border="1px solid var(--color-border)">
+                                                        <Text fontSize="xs" fontWeight="700" color="var(--color-cyan-400)">{(userRow.username || '?')[0].toUpperCase()}</Text>
                                                     </Flex>
+                                                    <Text fontSize="sm" fontWeight="700" color="var(--color-text-heading)">{userRow.username}</Text>
+                                                    <Text fontSize="xs" color="var(--color-text-muted)">{userRow.attempts} attempts</Text>
+                                                    <Text fontSize="xs" color="var(--color-green-500)">{userRow.passed} passed</Text>
+                                                    <Text fontSize="xs" color="var(--color-red-500)">{userRow.failed} failed</Text>
+                                                    <Text fontSize="xs" color="var(--color-text-muted)">{userRow.passRate.toFixed(1)}%</Text>
                                                 </Flex>
-
-                                                {/* Expandable code block */}
-                                                <Collapse in={isExpanded} animateOpacity>
-                                                    <Box px={4} pb={3}>
-                                                        {/* Code header bar */}
-                                                        <Flex
-                                                            align="center" justify="space-between"
-                                                            bg="rgba(0,0,0,0.25)" px={3} py={1.5}
-                                                            borderTopRadius="md"
-                                                            borderBottom="1px solid rgba(255,255,255,0.06)"
-                                                        >
-                                                            <Text fontSize="10px" fontFamily="var(--font-mono)" color="var(--color-text-muted)">
-                                                                {submission.language || 'javascript'}
-                                                            </Text>
-                                                            <CopyButton text={submission.code} />
-                                                        </Flex>
-                                                        <Box
-                                                            h="220px"
-                                                            borderBottomRadius="md"
-                                                            overflow="hidden"
-                                                            border="1px solid rgba(255,255,255,0.06)"
-                                                            borderTop="none"
-                                                        >
-                                                            <CodeEditor
-                                                                code={submission.code || ''}
-                                                                language={submission.language || 'javascript'}
-                                                                readOnly
-                                                                height="100%"
-                                                                options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on', lineNumbers: 'on' }}
-                                                            />
-                                                        </Box>
-                                                        {submission.status === 'failed' && submission.errorMessage && (
-                                                            <Text mt={2} fontSize="xs" color="red.300">{submission.errorMessage}</Text>
-                                                        )}
-                                                    </Box>
-                                                </Collapse>
+                                                <Flex mt={3} align="center" wrap="wrap" gap={2}>
+                                                    {userRow.timeline.map((attempt, idx) => {
+                                                        const dotColor = attempt.status === 'success'
+                                                            ? 'var(--color-green-500)'
+                                                            : attempt.status === 'failed'
+                                                                ? 'var(--color-red-500)'
+                                                                : 'var(--color-text-muted)';
+                                                        const runtime = runtimeDisplay(attempt.executionTime);
+                                                        return (
+                                                            <Tooltip
+                                                                key={`${userRow.username}-${attempt.submittedAt || idx}`}
+                                                                label={`${formatRelative(attempt.submittedAt)} · ${runtime.label} · ${(attempt.language || 'N/A').toUpperCase()}`}
+                                                            >
+                                                                <Box boxSize="10px" borderRadius="full" bg={dotColor} border="1px solid var(--color-border)" />
+                                                            </Tooltip>
+                                                        );
+                                                    })}
+                                                </Flex>
                                             </Box>
-                                        );
-                                    })}
-                                    {(selectedChallengeOverview.recentSubmissions || []).length === 0 && (
-                                        <Flex direction="column" align="center" justify="center" py={12} gap={3}>
-                                            <Icon as={BarChart3} boxSize={8} color="var(--color-text-muted)" opacity={0.3} />
-                                            <Text color="var(--color-text-muted)" fontSize="sm">{t('admin.dashboard.noRecentSubmissions')}</Text>
-                                        </Flex>
-                                    )}
-                                </VStack>
+                                        ))}
+                                    </VStack>
+                                ) : (
+                                    <VStack align="stretch" spacing={2} maxH="360px" overflowY="auto" className="scrollbar-thin">
+                                        {filteredSubmissions.map((submission, index) => {
+                                            const rowKey = getSubmissionRowKey(selectedChallengeOverview.challengeId, submission, index);
+                                            const status = submission.status === 'success' ? t('admin.dashboard.passed') : submission.status === 'abandoned' ? t('admin.dashboard.abandoned') : t('admin.dashboard.failed');
+                                            const statusColor = submission.status === 'success' ? 'var(--color-green-500)' : submission.status === 'abandoned' ? 'var(--color-text-muted)' : 'var(--color-red-500)';
+                                            const statusBg = submission.status === 'success' ? 'var(--color-success-bg)' : submission.status === 'abandoned' ? 'var(--color-bg-secondary)' : 'var(--color-error-bg)';
+                                            const StatusIcon = submission.status === 'success' ? CheckCircle2 : submission.status === 'abandoned' ? PauseCircle : XCircle;
+                                            const isExpanded = expandedSubmissionKey === rowKey;
+                                            const runtime = runtimeDisplay(submission.executionTime);
+                                            const languageStyle = getLanguageVisual(submission.language);
+                                            const isFlagged = Boolean(flaggedSubmissionKeys[rowKey]);
+                                            return (
+                                                <Box
+                                                    key={rowKey}
+                                                    borderRadius="lg"
+                                                    border="1px solid var(--color-border)"
+                                                    bg="var(--color-bg-secondary)"
+                                                    overflow="hidden"
+                                                    transition="all .15s ease"
+                                                    _hover={{ borderColor: 'var(--color-border-hover)' }}
+                                                    role="group"
+                                                >
+                                                    <Flex
+                                                        px={4} py={3}
+                                                        align={{ base: 'flex-start', md: 'center' }}
+                                                        direction={{ base: 'column', md: 'row' }}
+                                                        gap={2}
+                                                    >
+                                                        <Flex align="center" gap={3} flex={1} minW={0}>
+                                                            <Flex
+                                                                align="center" justify="center"
+                                                                boxSize={8} borderRadius="full"
+                                                                bg="var(--color-info-bg)"
+                                                                border="1px solid var(--color-border)"
+                                                                flexShrink={0}
+                                                            >
+                                                                <Text fontSize="xs" fontWeight="700" color="var(--color-cyan-400)">
+                                                                    {(submission.username || '?')[0].toUpperCase()}
+                                                                </Text>
+                                                            </Flex>
+                                                            <Box minW={0}>
+                                                                <Flex align="center" gap={1}>
+                                                                    {isFlagged && <Icon as={Flag} boxSize={3.5} color="var(--color-red-500)" />}
+                                                                    <Text fontWeight="500" fontSize="sm" color="var(--color-text-primary)" noOfLines={1}>
+                                                                        {submission.username}
+                                                                    </Text>
+                                                                </Flex>
+                                                                <Text fontSize="xs" color="var(--color-text-muted)">
+                                                                    {formatRelative(submission.submittedAt)}
+                                                                </Text>
+                                                            </Box>
+                                                        </Flex>
+
+                                                        <Flex gap={2} align="center" flexWrap="wrap" flexShrink={0}>
+                                                            <Flex align="center" gap={1} px={2} py={1} borderRadius="full" bg={statusBg} border="1px solid var(--color-border)">
+                                                                <Icon as={StatusIcon} boxSize={3} color={statusColor} />
+                                                                <Text fontSize="10px" fontWeight="700" color={statusColor} textTransform="uppercase">
+                                                                    {status}
+                                                                </Text>
+                                                            </Flex>
+                                                            <Text fontSize="xs" color={runtime.color} fontFamily="var(--font-mono)">
+                                                                {runtime.label}
+                                                            </Text>
+                                                            <Text
+                                                                fontSize="10px"
+                                                                px={1.5}
+                                                                py={0.5}
+                                                                borderRadius="md"
+                                                                fontFamily="var(--font-mono)"
+                                                                bg={languageStyle.bg}
+                                                                border="1px solid var(--color-border)"
+                                                                color={languageStyle.text}
+                                                            >
+                                                                {languageStyle.label}
+                                                            </Text>
+                                                            <Flex
+                                                                as="button"
+                                                                align="center" gap={1}
+                                                                px={2} py={1} borderRadius="md"
+                                                                bg="transparent"
+                                                                border="1px solid var(--color-border)"
+                                                                cursor="pointer"
+                                                                transition="all .15s"
+                                                                _hover={{ bg: 'var(--color-hover-bg)', borderColor: 'var(--color-border-hover)' }}
+                                                                onClick={() => setExpandedSubmissionKey(isExpanded ? null : rowKey)}
+                                                            >
+                                                                <Icon as={isExpanded ? EyeOff : Eye} boxSize={3} color="var(--color-text-muted)" />
+                                                                <Text fontSize="10px" fontWeight="600" color="var(--color-text-muted)">
+                                                                    {isExpanded ? t('admin.dashboard.hide') : t('admin.dashboard.code')}
+                                                                </Text>
+                                                            </Flex>
+                                                            <Tooltip label={isFlagged ? 'Unflag submission' : 'Flag submission'}>
+                                                                <Box
+                                                                    as="button"
+                                                                    p={1.5}
+                                                                    borderRadius="md"
+                                                                    border="1px solid var(--color-border)"
+                                                                    color={isFlagged ? 'var(--color-red-500)' : 'var(--color-text-muted)'}
+                                                                    opacity={0}
+                                                                    _groupHover={{ opacity: 1 }}
+                                                                    transition="opacity .15s ease"
+                                                                    onClick={() => setFlaggedSubmissionKeys((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }))}
+                                                                >
+                                                                    <Icon as={Flag} boxSize={3.5} />
+                                                                </Box>
+                                                            </Tooltip>
+                                                        </Flex>
+                                                    </Flex>
+
+                                                    <Collapse in={isExpanded} animateOpacity>
+                                                        <Box px={4} pb={3}>
+                                                            <Flex
+                                                                align="center" justify="space-between"
+                                                                bg="var(--color-editor-toolbar)" px={3} py={1.5}
+                                                                borderTopRadius="md"
+                                                                borderBottom="1px solid var(--color-border)"
+                                                            >
+                                                                <Text fontSize="10px" fontFamily="var(--font-mono)" color="var(--color-text-muted)">
+                                                                    {submission.language || 'javascript'}
+                                                                </Text>
+                                                                <CopyButton text={submission.code} />
+                                                            </Flex>
+                                                            <Box
+                                                                h="220px"
+                                                                borderBottomRadius="md"
+                                                                overflow="hidden"
+                                                                border="1px solid var(--color-border)"
+                                                                borderTop="none"
+                                                            >
+                                                                <CodeEditor
+                                                                    code={submission.code || ''}
+                                                                    language={submission.language || 'javascript'}
+                                                                    readOnly
+                                                                    height="100%"
+                                                                    options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on', lineNumbers: 'on' }}
+                                                                />
+                                                            </Box>
+                                                            {submission.status === 'failed' && submission.errorMessage && (
+                                                                <Text mt={2} fontSize="xs" color="var(--color-red-500)">{submission.errorMessage}</Text>
+                                                            )}
+                                                        </Box>
+                                                    </Collapse>
+                                                </Box>
+                                            );
+                                        })}
+                                        {filteredSubmissions.length === 0 && (
+                                            <Flex direction="column" align="center" justify="center" py={12} gap={3}>
+                                                <Icon as={BarChart3} boxSize={8} color="var(--color-text-muted)" opacity={0.3} />
+                                                <Text color="var(--color-text-muted)" fontSize="sm">No submissions for this filter</Text>
+                                            </Flex>
+                                        )}
+                                    </VStack>
+                                )}
                             </VStack>
                         )}
                     </Box>

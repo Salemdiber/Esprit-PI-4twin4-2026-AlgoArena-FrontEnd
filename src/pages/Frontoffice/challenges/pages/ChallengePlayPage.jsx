@@ -58,6 +58,7 @@ const ChallengePlayPage = () => {
     const [saveState, setSaveState] = useState({ status: 'idle', savedAt: null });
     const [tabToken] = useState(() => `${crypto.randomUUID()}-${performance.now()}`);
     const tabTokenRef = useRef(tabToken);
+    
     const lastLockedToastRef = useRef(0);
     const saveInFlightRef = useRef(false);
     const resumeToastShownRef = useRef(false);

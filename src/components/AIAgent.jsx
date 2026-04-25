@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
+import { useChat } from '../features/chat/ChatProvider';
 
 let puterSdkPromise = null;
 
@@ -40,6 +42,8 @@ const getPuterClient = () => {
 const AIAgent = () => {
     const { t } = useTranslation();
     const { currentUser, isLoggedIn } = useAuth();
+  const { isChatOpen } = useChat();
+  const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
     const [mode, setMode] = useState('chat');
     const [input, setInput] = useState('');
@@ -61,6 +65,8 @@ const AIAgent = () => {
     const navigate = useNavigate();
 
     const activeMessages = mode === 'chat' ? chatMessages : navMessages;
+  const isCommunityPage = location.pathname.startsWith('/community');
+  const shouldMoveAwayFromChat = isCommunityPage && isChatOpen;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -303,7 +309,7 @@ Your primary responsibilities:
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className={`fixed bottom-6 z-50 ${shouldMoveAwayFromChat ? 'left-6 right-auto' : 'right-6 left-auto'}`}>
             {/* AI Toggle Button */}
             {!isOpen && (
                 <button
@@ -312,7 +318,7 @@ Your primary responsibilities:
                     style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 50%, #ec4899 100%)' }}
                     aria-label={t('aiAgent.openAssistant')}
                 >
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 via-purple-500/20 to-pink-500/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 bg-linear-to-br from-cyan-400/30 via-purple-500/20 to-pink-500/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="absolute inset-[-4px] rounded-full border border-dashed border-purple-400/40 animate-[spin_8s_linear_infinite] group-hover:border-purple-400/70 hidden md:block"></div>
                     <div className="relative z-10 flex items-center justify-center filter drop-shadow-[0_0_12px_rgba(255,255,255,0.6)] group-hover:scale-110 transition-transform duration-300">
                         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24">
@@ -326,11 +332,11 @@ Your primary responsibilities:
 
             {/* AI Assistant Interface */}
             {isOpen && (
-                <div className="w-[380px] h-[600px] flex flex-col rounded-2xl border border-(--color-border) bg-(--color-glass-bg-solid) backdrop-blur-2xl shadow-[var(--shadow-dropdown)] animate-fade-in-up overflow-hidden ring-1 ring-(--color-border)/50">
+                <div className="w-[380px] h-[600px] flex flex-col rounded-2xl border border-(--color-border) bg-(--color-glass-bg-solid) backdrop-blur-2xl shadow-(--shadow-dropdown) animate-fade-in-up overflow-hidden ring-1 ring-(--color-border)/50">
 
                     {/* Header */}
-                    <div className="relative flex flex-col bg-gradient-to-br from-(--color-bg-secondary) to-(--color-bg-primary) border-b border-(--color-border)">
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-purple-500 to-pink-500 opacity-70"></div>
+                    <div className="relative flex flex-col bg-linear-to-br from-(--color-bg-secondary) to-(--color-bg-primary) border-b border-(--color-border)">
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-sky-400 via-purple-500 to-pink-500 opacity-70"></div>
 
                         <div className="flex items-center justify-between p-5 pb-4">
                             <div className="flex items-center gap-4">
@@ -360,14 +366,14 @@ Your primary responsibilities:
                             <div className="flex w-full bg-(--color-bg-primary) rounded-xl p-1.5 border border-(--color-border) shadow-inner relative z-10">
                                 <button
                                     onClick={() => { setMode('chat'); if (isListening) stopListening(); }}
-                                    className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'chat' ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-[0_4px_12px_rgba(34,211,238,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'chat' ? 'bg-linear-to-r from-cyan-500 to-blue-500 text-white shadow-[0_4px_12px_rgba(34,211,238,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                                     {t('aiAgent.chatAI')}
                                 </button>
                                 <button
                                     onClick={() => setMode('nav')}
-                                    className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'nav' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-[0_4px_12px_rgba(168,85,247,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'nav' ? 'bg-linear-to-r from-purple-500 to-indigo-500 text-white shadow-[0_4px_12px_rgba(168,85,247,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                                     {t('aiAgent.audioNav')}
@@ -377,7 +383,7 @@ Your primary responsibilities:
                     </div>
 
                     {/* Chat Area Body */}
-                    <div className="flex-1 p-5 overflow-y-auto space-y-5 custom-scrollbar bg-gradient-to-b from-(--color-bg-secondary) to-(--color-bg-primary) relative">
+                    <div className="flex-1 p-5 overflow-y-auto space-y-5 custom-scrollbar bg-linear-to-b from-(--color-bg-secondary) to-(--color-bg-primary) relative">
                         <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
                             <svg className="w-48 h-48" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                         </div>
@@ -385,7 +391,7 @@ Your primary responsibilities:
                         {activeMessages.map((msg) => (
                             <div key={msg.id} className={`flex gap-3 relative z-10 ${msg.isUser ? 'justify-end' : ''}`}>
                                 {!msg.isUser && (
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-md ${mode === 'chat' ? 'bg-gradient-to-br from-cyan-400 to-blue-600' : 'bg-gradient-to-br from-purple-400 to-indigo-600'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-md ${mode === 'chat' ? 'bg-linear-to-br from-cyan-400 to-blue-600' : 'bg-linear-to-br from-purple-400 to-indigo-600'}`}>
                                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             {mode === 'chat' ? (
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -396,7 +402,7 @@ Your primary responsibilities:
                                     </div>
                                 )}
                                 <div className={`max-w-[75%] ${msg.isUser ? 'order-1' : 'order-2'} group`}>
-                                    <div className={`relative p-4 rounded-2xl ${msg.isUser ? 'bg-gradient-to-br from-cyan-500 to-blue-600 rounded-tr-sm text-white shadow-[0_4px_12px_rgba(34,211,238,0.2)]' : 'bg-(--color-bg-elevated) rounded-tl-sm border border-(--color-border) text-(--color-text-primary) shadow-sm'} transition-all`}>
+                                    <div className={`relative p-4 rounded-2xl ${msg.isUser ? 'bg-linear-to-br from-cyan-500 to-blue-600 rounded-tr-sm text-white shadow-[0_4px_12px_rgba(34,211,238,0.2)]' : 'bg-(--color-bg-elevated) rounded-tl-sm border border-(--color-border) text-(--color-text-primary) shadow-sm'} transition-all`}>
                                         <p className="text-[13px] leading-[1.6] whitespace-pre-wrap">{msg.text}</p>
 
                                         {/* Playback Button Overlay for AI Messages */}
@@ -428,7 +434,7 @@ Your primary responsibilities:
 
                         {(isLoading || isListening) && (
                             <div className="flex gap-3 relative z-10">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-md ${mode === 'chat' ? 'bg-gradient-to-br from-cyan-400 to-blue-600' : 'bg-gradient-to-br from-purple-400 to-indigo-600'}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-md ${mode === 'chat' ? 'bg-linear-to-br from-cyan-400 to-blue-600' : 'bg-linear-to-br from-purple-400 to-indigo-600'}`}>
                                     <svg className="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
@@ -464,12 +470,12 @@ Your primary responsibilities:
                                     onKeyPress={handleKeyPress}
                                     disabled={isLoading || isListening}
                                     placeholder={mode === 'chat' ? t('aiAgent.chatPlaceholder') : t('aiAgent.navPlaceholder')}
-                                    className="w-full h-12 bg-(--color-bg-input) border border-(--color-border) rounded-xl pl-4 pr-12 text-[13px] text-(--color-text-primary) placeholder:text-(--color-text-muted) hover:border-(--color-border-hover) focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-[var(--color-focus-glow)] transition-all duration-300 disabled:opacity-60 shadow-sm"
+                                    className="w-full h-12 bg-(--color-bg-input) border border-(--color-border) rounded-xl pl-4 pr-12 text-[13px] text-(--color-text-primary) placeholder:text-(--color-text-muted) hover:border-(--color-border-hover) focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-(--color-focus-glow) transition-all duration-300 disabled:opacity-60 shadow-sm"
                                 />
                                 <button
                                     onClick={handleSend}
                                     disabled={isLoading || isListening || !input.trim()}
-                                    className={`absolute right-1.5 top-1.5 h-9 w-9 flex items-center justify-center rounded-lg text-white transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${mode === 'nav' ? 'bg-gradient-to-br from-purple-500 to-indigo-600 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'bg-gradient-to-br from-cyan-500 to-blue-600 hover:shadow-[0_0_15px_rgba(34,211,238,0.5)]'}`}
+                                    className={`absolute right-1.5 top-1.5 h-9 w-9 flex items-center justify-center rounded-lg text-white transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${mode === 'nav' ? 'bg-linear-to-br from-purple-500 to-indigo-600 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'bg-linear-to-br from-cyan-500 to-blue-600 hover:shadow-[0_0_15px_rgba(34,211,238,0.5)]'}`}
                                 >
                                     <svg className="w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -482,7 +488,7 @@ Your primary responsibilities:
                                 <button
                                     onClick={toggleListening}
                                     disabled={isLoading}
-                                    className={`h-12 w-12 flex-shrink-0 flex flex-col items-center justify-center rounded-xl transition-all duration-300 border focus:outline-none disabled:opacity-50
+                                    className={`h-12 w-12 shrink-0 flex flex-col items-center justify-center rounded-xl transition-all duration-300 border focus:outline-none disabled:opacity-50
                                         ${isListening
                                             ? 'bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse'
                                             : 'bg-(--color-bg-primary) border-(--color-border) text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}
