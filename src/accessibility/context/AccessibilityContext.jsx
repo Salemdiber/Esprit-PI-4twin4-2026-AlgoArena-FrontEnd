@@ -12,8 +12,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AccessibilityContext, { defaultSettings } from './AccessibilityContextDef';
 import { applyAccessibilityOverrides } from '../utils/themeOverrides';
 import { startListening, stopListening } from '../utils/speechUtils';
+import { userService } from '../../services/userService';
+import { getToken } from '../../services/cookieUtils';
 
-const STORAGE_KEY = 'algoarena_a11y_settings';
 let dyslexiaFontPromise = null;
 
 const loadDyslexiaFont = () => {
@@ -26,50 +27,93 @@ const loadDyslexiaFont = () => {
     return dyslexiaFontPromise;
 };
 
-const loadSettings = () => {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            // Only keep keys that exist in defaultSettings (strip removed features)
-            const filtered = {};
-            for (const key of Object.keys(defaultSettings)) {
-                filtered[key] = key in parsed ? parsed[key] : defaultSettings[key];
-            }
-            return filtered;
-        }
-    } catch (e) {
-        console.warn('Failed to load a11y settings:', e);
-    }
-    return defaultSettings;
-};
-
 const AccessibilityProvider = ({ children }) => {
-    const [settings, setSettings] = useState(loadSettings);
+    const [settings, setSettings] = useState(defaultSettings);
     const navigateRef = useRef(null);
+    const hasHydratedRef = useRef(false);
 
     // Allow pages to register a navigate function for voice commands
     const registerNavigate = useCallback((nav) => {
         navigateRef.current = nav;
     }, []);
 
-    // Persist + apply overrides whenever settings change
+    const loadServerSettings = useCallback(async () => {
+        const token = getToken();
+        const storedAuth = localStorage.getItem('fo_auth');
+        if (!token && !storedAuth) {
+            hasHydratedRef.current = true;
+            return;
+        }
+
+        try {
+            hasHydratedRef.current = false;
+            const serverSettings = await userService.getAccessibilitySettings();
+            if (serverSettings && typeof serverSettings === 'object') {
+                setSettings({ ...defaultSettings, ...serverSettings });
+            }
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn('Could not load server accessibility settings:', err);
+        } finally {
+            hasHydratedRef.current = true;
+        }
+    }, []);
+
+    // Persist to DB + apply overrides whenever settings change
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         applyAccessibilityOverrides(settings);
         if (settings.dyslexiaFont) {
             loadDyslexiaFont().catch(() => {});
+        }
+
+        // If user appears logged in, persist settings to server (non-fatal)
+        try {
+            const token = getToken();
+            const stored = localStorage.getItem('fo_auth');
+            const loggedIn = Boolean(token || stored);
+            if (loggedIn && hasHydratedRef.current) {
+                userService.updateAccessibilitySettings(settings).catch((err) => {
+                    // Non-fatal: log and continue
+                    // eslint-disable-next-line no-console
+                    console.warn('Failed to persist accessibility settings to server:', err);
+                });
+            }
+        } catch (e) {
+            // ignore
         }
     }, [settings]);
 
-    // Apply on initial mount
+    // Load from server on initial mount
     useEffect(() => {
-        applyAccessibilityOverrides(settings);
-        if (settings.dyslexiaFont) {
-            loadDyslexiaFont().catch(() => {});
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        loadServerSettings();
     }, []);
+
+    // React immediately to login/logout in the same tab.
+    useEffect(() => {
+        const onStorage = (e) => {
+            if (e.key === 'fo_auth' || e.key === 'isAuthenticated') {
+                loadServerSettings();
+            }
+        };
+
+        window.addEventListener('storage', onStorage);
+        const onAuthChange = (event) => {
+            const nextUser = event?.detail?.user ?? null;
+            if (!nextUser) {
+                setSettings(defaultSettings);
+                return;
+            }
+
+            loadServerSettings();
+        };
+
+        window.addEventListener('auth-change', onAuthChange);
+
+        return () => {
+            window.removeEventListener('storage', onStorage);
+            window.removeEventListener('auth-change', onAuthChange);
+        };
+    }, [loadServerSettings]);
 
     // Voice commands listener
     useEffect(() => {
