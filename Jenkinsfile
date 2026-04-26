@@ -12,7 +12,7 @@ pipeline {
   environment {
     SONAR_PROJECT_KEY = 'algo-arena-frontend'
     SONAR_PROJECT_NAME = 'AlgoArena Frontend'
-    DOCKER_IMAGE_NAME = 'algo-arena-frontend'
+    DOCKER_IMAGE_NAME = 'salemdiber/algo-arena-frontend'
     DOCKER_REGISTRY = 'docker.io'
     DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
     CD_JOB_NAME = 'AlgoArena-Front-CD'
