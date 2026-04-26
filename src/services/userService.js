@@ -154,4 +154,18 @@ export const userService = {
             body: JSON.stringify({ xpDelta: Number(xpDelta) }),
         });
     },
+
+    // Accessibility settings (per-user)
+    getAccessibilitySettings: async () => {
+        return apiClient('/user/me/settings/accessibility', {
+            method: 'GET',
+        });
+    },
+
+    updateAccessibilitySettings: async (settings) => {
+        return apiClient('/user/me/settings/accessibility', {
+            method: 'PATCH',
+            body: JSON.stringify(settings),
+        });
+    },
 };
