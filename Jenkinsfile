@@ -64,14 +64,16 @@ pipeline {
 
     stage('Docker build and push') {
       steps {
-        script {
-          def imageTag = "${env.DOCKER_REGISTRY}/${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
-
-          docker.withRegistry("https://${env.DOCKER_REGISTRY}", env.DOCKER_CREDENTIALS_ID) {
-            def image = docker.build(imageTag)
-            image.push()
-            image.push('latest')
-          }
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh '''
+          echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+          
+          docker build -t docker.io/salemdiber/algo-arena-frontend:$BUILD_NUMBER .
+          docker tag docker.io/salemdiber/algo-arena-frontend:$BUILD_NUMBER docker.io/salemdiber/algo-arena-frontend:latest
+          
+          docker push docker.io/salemdiber/algo-arena-frontend:$BUILD_NUMBER
+          docker push docker.io/salemdiber/algo-arena-frontend:latest
+          '''
         }
       }
     }
