@@ -13,7 +13,8 @@
  *   maxW       – optional max width (default "md")
  */
 import React from 'react';
-import { Box, keyframes } from '@chakra-ui/react';
+import { Box } from '@chakra-ui/react';
+import { keyframes } from '@emotion/react';
 import { m, useReducedMotion } from 'framer-motion';
 
 const breathe = keyframes`
