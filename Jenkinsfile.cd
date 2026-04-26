@@ -1,0 +1,45 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+  }
+
+  parameters {
+    string(name: 'IMAGE_TAG', defaultValue: '', description: 'Full Docker image tag to deploy')
+    string(name: 'IMAGE_LATEST', defaultValue: '', description: 'Latest Docker image tag to deploy')
+  }
+
+  environment {
+    DOCKER_REGISTRY = 'docker.io'
+    DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
+    CONTAINER_NAME = 'algoarena-frontend'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        script {
+          def imageToDeploy = params.IMAGE_TAG?.trim() ? params.IMAGE_TAG.trim() : params.IMAGE_LATEST?.trim()
+
+          if (!imageToDeploy) {
+            error('IMAGE_TAG or IMAGE_LATEST must be provided to deploy the frontend image.')
+          }
+
+          docker.withRegistry("https://${env.DOCKER_REGISTRY}", env.DOCKER_CREDENTIALS_ID) {
+            sh "docker pull ${imageToDeploy}"
+            sh "docker stop ${env.CONTAINER_NAME} || true"
+            sh "docker rm ${env.CONTAINER_NAME} || true"
+            sh "docker run -d --name ${env.CONTAINER_NAME} -p 80:80 ${imageToDeploy}"
+          }
+        }
+      }
+    }
+  }
+}
