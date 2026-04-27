@@ -2,7 +2,9 @@ FROM node:22-slim AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+ # Prevent Puppeteer from downloading Chromium in CI/build environment
+ ENV PUPPETEER_SKIP_DOWNLOAD=true
+ RUN npm ci
 
 COPY . ./
 RUN npm run build
