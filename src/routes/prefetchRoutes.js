@@ -11,6 +11,8 @@ const routePrefetchers = [
     { match: (path) => path.startsWith('/battles/'), load: () => import('../pages/Frontoffice/battles/pages/ActiveBattlePage') },
     { match: (path) => path === '/leaderboard', load: () => import('../pages/Frontoffice/leaderboard/pages/LeaderboardPage') },
     { match: (path) => path === '/community', load: () => import('../pages/Frontoffice/community/pages/CommunityPage') },
+    { match: (path) => path.startsWith('/community/post/'), load: () => import('../pages/Frontoffice/community/pages/PostDetailPage') },
+    { match: (path) => path === '/community/legacy', load: () => import('../pages/Frontoffice/community/pages/CommunityPageLegacy') },
     { match: (path) => path === '/community/dashboard', load: () => import('../pages/Frontoffice/community/pages/CommunityDashboardPage') },
     { match: (path) => path === '/profile', load: () => import('../pages/Frontoffice/profile/pages/ProfilePage') },
     { match: (path) => path === '/speed-challenge', load: () => import('../pages/Frontoffice/speedchallenge/SpeedChallengePage') },

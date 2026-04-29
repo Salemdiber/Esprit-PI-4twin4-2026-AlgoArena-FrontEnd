@@ -27,6 +27,7 @@ import {
     Tooltip,
     List,
     ListItem,
+    keyframes,
 } from '@chakra-ui/react';
 import { TimeIcon, InfoIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
@@ -40,8 +41,259 @@ const StarIcon = (props) => (
     </Icon>
 );
 
+// ---------------------------------------------------------------------------
+// Complexity-source presentation
+// ---------------------------------------------------------------------------
+// Three sources can produce a Big-O label on a submission:
+//   'ml-model' = XGBoost CodeComplex prediction served by the Python service.
+//                We show a *premium* card treatment (gradient border, animated
+//                top-bar, SVG confidence ring) to reflect that this came from
+//                the trained model and not a generic LLM guess.
+//   'ai'       = LLM-derived estimate from the judge's AIAnalysisService.
+//   'unknown'  = neither path produced a value (e.g. syntax error).
+// ---------------------------------------------------------------------------
+
+// Subtle pulsing glow on the ML accent bar — runs forever but at 6s cycle so
+// it reads as "alive" without being distracting.
+const mlPulseAnim = keyframes`
+    0%   { background-position:   0% 50%; opacity: 0.85; }
+    50%  { background-position: 100% 50%; opacity: 1;    }
+    100% { background-position:   0% 50%; opacity: 0.85; }
+`;
+
+// Tiny "neural node" icon used as the ML attribution glyph. Three connected
+// circles -> evokes a neural net without screaming "AI".
+const NeuralIcon = (props) => (
+    <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+        <circle cx="5" cy="6" r="2" />
+        <circle cx="5" cy="18" r="2" />
+        <circle cx="19" cy="12" r="2" />
+        <line x1="7" y1="6" x2="17" y2="11" />
+        <line x1="7" y1="18" x2="17" y2="13" />
+    </Icon>
+);
+
+/**
+ * Circular confidence indicator. SVG ring whose stroke-dashoffset reflects
+ * the model's top-class probability, with the percentage rendered at the
+ * centre. Color shifts from amber (low) -> purple (high) so the user can
+ * eyeball confidence at a glance.
+ */
+const ConfidenceRing = ({ value, size = 44, stroke = 4 }) => {
+    const safe = Math.max(0, Math.min(1, Number(value) || 0));
+    const r = (size - stroke) / 2;
+    const c = 2 * Math.PI * r;
+    const offset = c * (1 - safe);
+    const color = safe >= 0.85 ? '#9F7AEA' : safe >= 0.6 ? '#B794F4' : '#F6AD55';
+    return (
+        <Box position="relative" w={`${size}px`} h={`${size}px`} flexShrink={0}>
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={r}
+                    stroke="rgba(159,122,234,0.18)"
+                    strokeWidth={stroke}
+                    fill="none"
+                />
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={r}
+                    stroke={color}
+                    strokeWidth={stroke}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={c}
+                    strokeDashoffset={offset}
+                    transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                    style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+                />
+            </svg>
+            <Box
+                position="absolute"
+                inset={0}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                flexDirection="column"
+                lineHeight={1}
+            >
+                <Text fontSize="0.7rem" fontWeight="bold" color={color}>
+                    {Math.round(safe * 100)}
+                </Text>
+                <Text fontSize="0.5rem" color="gray.500" fontWeight="semibold">
+                    %
+                </Text>
+            </Box>
+        </Box>
+    );
+};
+
+/**
+ * One stat card for a complexity dimension (time or space). Adapts its
+ * presentation based on `source`:
+ *   - ml-model: gradient frame + animated top-bar + confidence ring + footer
+ *   - ai      : flat card with a small "AI estimate" tag at the bottom
+ *   - unknown : flat card with a muted "No analysis" tag
+ *
+ * Solves the responsive overflow bug that the previous design had: the
+ * source attribution is no longer crammed into the StatLabel HStack — it
+ * lives in its own row, so narrow viewports stop wrapping the badge text
+ * across two lines and pushing the value off-card.
+ */
+const ComplexityStat = ({ label, value, icon, source, confidence, modelVersion, reasoning, t }) => {
+    const isMl = source === 'ml-model';
+    const isAi = source === 'ai';
+    const valueColor = useColorModeValue('gray.800', 'white');
+    const labelColor = useColorModeValue('gray.500', 'gray.400');
+    const footerColor = useColorModeValue('purple.600', 'purple.200');
+
+    const tooltip = isMl
+        ? t(
+              'challengePage.complexitySourceMlModelTooltip',
+              `Predicted by ${modelVersion || 'XGBoost CodeComplex'} model. Confidence reflects the probability assigned to the chosen Big-O class.`,
+          )
+        : isAi
+            ? t(
+                  'challengePage.complexitySourceAiTooltip',
+                  'Estimated by the LLM judge from the submitted code and test results.',
+              )
+            : '';
+
+    return (
+        <Box
+            position="relative"
+            bg={isMl ? 'var(--color-bg-card)' : 'var(--color-bg-secondary)'}
+            borderRadius="lg"
+            border="1px solid"
+            borderColor={isMl ? 'rgba(159,122,234,0.45)' : 'var(--color-border)'}
+            overflow="hidden"
+            p={3}
+            pt={isMl ? 4 : 3}
+            transition="transform 0.18s ease, box-shadow 0.18s ease"
+            boxShadow={isMl ? '0 0 0 1px rgba(159,122,234,0.15), 0 6px 18px -8px rgba(159,122,234,0.35)' : 'none'}
+            _hover={{
+                transform: 'translateY(-2px)',
+                boxShadow: isMl
+                    ? '0 0 0 1px rgba(159,122,234,0.35), 0 14px 28px -10px rgba(159,122,234,0.55)'
+                    : 'md',
+            }}
+        >
+            {isMl && (
+                <Box
+                    position="absolute"
+                    top={0}
+                    left={0}
+                    right={0}
+                    h="3px"
+                    backgroundImage="linear-gradient(90deg, #9F7AEA, #ED64A6, #4FD1C5, #9F7AEA)"
+                    backgroundSize="300% 100%"
+                    animation={`${mlPulseAnim} 6s ease-in-out infinite`}
+                />
+            )}
+
+            {/* Header row: label on the left, optional ML glyph on the right. */}
+            <HStack justify="space-between" align="flex-start" spacing={2} mb={1} minW={0}>
+                <HStack spacing={1.5} minW={0}>
+                    {icon}
+                    <Text
+                        fontSize="xs"
+                        fontWeight="semibold"
+                        color={labelColor}
+                        textTransform="uppercase"
+                        letterSpacing="0.05em"
+                        noOfLines={1}
+                    >
+                        {label}
+                    </Text>
+                </HStack>
+                {isMl && (
+                    <Tooltip label={tooltip} hasArrow placement="top">
+                        <Box>
+                            <NeuralIcon boxSize={4} color="purple.300" />
+                        </Box>
+                    </Tooltip>
+                )}
+            </HStack>
+
+            {/* Value + (for ML) confidence ring sit on the same row so the */}
+            {/* big-O number stays the visual anchor regardless of source.   */}
+            <HStack justify="space-between" align="center" spacing={3} minW={0}>
+                <Text
+                    fontFamily="mono"
+                    fontSize={{ base: 'xl', md: '2xl' }}
+                    fontWeight="bold"
+                    color={valueColor}
+                    noOfLines={1}
+                    minW={0}
+                    flex="1"
+                >
+                    {value}
+                </Text>
+                {isMl && Number.isFinite(confidence) && (
+                    <Tooltip
+                        label={t(
+                            'challengePage.complexitySourceMlModelConfidence',
+                            `${Math.round(confidence * 100)}% confidence in this prediction`,
+                        )}
+                        hasArrow
+                        placement="top"
+                    >
+                        <Box>
+                            <ConfidenceRing value={confidence} />
+                        </Box>
+                    </Tooltip>
+                )}
+            </HStack>
+
+            {/* Footer / attribution. Always rendered so cards stay the same */}
+            {/* height across the grid — easier on the eye than jagged rows.  */}
+            <Box mt={2}>
+                {isMl ? (
+                    <VStack spacing={1} align="stretch">
+                        <HStack spacing={1.5} fontSize="0.65rem" color={footerColor} fontWeight="semibold">
+                            <NeuralIcon boxSize={3} />
+                            <Text noOfLines={1} letterSpacing="0.03em">
+                                {t('challengePage.complexitySourceMlFooter', 'Predicted by AlgoArena · CodeAnalyser')}
+                            </Text>
+                        </HStack>
+                        {/* Inline justification when the deterministic
+                            pattern-rule layer of the analyser fired
+                            (e.g. expand-around-centers palindrome).
+                            Empty for plain XGBoost predictions, in
+                            which case the footer stands alone. */}
+                        {reasoning ? (
+                            <Tooltip label={reasoning} hasArrow placement="top">
+                                <Text
+                                    fontSize="0.6rem"
+                                    color={footerColor}
+                                    fontStyle="italic"
+                                    noOfLines={2}
+                                    lineHeight="1.25"
+                                >
+                                    {reasoning}
+                                </Text>
+                            </Tooltip>
+                        ) : null}
+                    </VStack>
+                ) : isAi ? (
+                    <Tag size="sm" colorScheme="blue" borderRadius="full" fontSize="0.65rem">
+                        {t('challengePage.complexitySourceAi', 'AI estimate')}
+                    </Tag>
+                ) : (
+                    <Tag size="sm" colorScheme="gray" borderRadius="full" fontSize="0.65rem" variant="subtle">
+                        {t('challengePage.complexitySourceUnknown', 'No analysis')}
+                    </Tag>
+                )}
+            </Box>
+        </Box>
+    );
+};
+
 const SubmissionMetrics = ({ submission, t }) => {
     const detectColor = submission.aiDetection === 'AI_SUSPECTED' ? 'orange' : 'green';
+    const complexitySource = submission.complexitySource || 'unknown';
     return (
         <VStack align="stretch" spacing={4}>
             <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={3}>
@@ -57,14 +309,24 @@ const SubmissionMetrics = ({ submission, t }) => {
                     <StatLabel><HStack spacing={1}><TimeIcon /><Text>{t('challengePage.loadTime')}</Text></HStack></StatLabel>
                     <StatNumber fontSize="lg">{submission.loadTime || '0ms'}</StatNumber>
                 </Stat>
-                <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel>{t('challengePage.timeComplexity')}</StatLabel>
-                    <StatNumber fontSize="lg">{submission.timeComplexity || t('challengePage.unknown')}</StatNumber>
-                </Stat>
-                <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
-                    <StatLabel>{t('challengePage.spaceComplexity')}</StatLabel>
-                    <StatNumber fontSize="lg">{submission.spaceComplexity || t('challengePage.unknown')}</StatNumber>
-                </Stat>
+                <ComplexityStat
+                    label={t('challengePage.timeComplexity')}
+                    value={submission.timeComplexity || t('challengePage.unknown')}
+                    source={complexitySource}
+                    confidence={submission.complexityConfidence}
+                    modelVersion={submission.complexityModelVersion}
+                    reasoning={submission.complexityReasoning}
+                    t={t}
+                />
+                <ComplexityStat
+                    label={t('challengePage.spaceComplexity')}
+                    value={submission.spaceComplexity || t('challengePage.unknown')}
+                    source={complexitySource}
+                    confidence={submission.complexityConfidence}
+                    modelVersion={submission.complexityModelVersion}
+                    reasoning={submission.complexityReasoning}
+                    t={t}
+                />
                 <Stat bg="var(--color-bg-secondary)" p={3} borderRadius="lg" border="1px solid" borderColor="var(--color-border)">
                     <StatLabel>{t('challengePage.solveTime')}</StatLabel>
                     <StatNumber fontSize="lg">{submission.solveTimeSeconds != null ? `${submission.solveTimeSeconds}s` : t('challengePage.na')}</StatNumber>

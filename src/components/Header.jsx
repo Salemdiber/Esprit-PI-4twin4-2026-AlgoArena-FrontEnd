@@ -37,7 +37,7 @@ import {
     useToast,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { MessageCircle, LifeBuoy } from 'lucide-react';
@@ -304,6 +304,7 @@ const WalletIcon = (props) => (
 
 const Header = () => {
     const [headerSpotlight, setHeaderSpotlight] = useState({ left: 0 });
+    const spotlightRafRef = useRef(0);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const { isOpen: isWalletOpen, onOpen: onWalletOpen, onClose: onWalletClose } = useDisclosure();
     const {
@@ -369,9 +370,17 @@ const Header = () => {
     const allNavItems = useMemo(() => [...primaryNav, ...secondaryNav], [primaryNav, secondaryNav]);
 
     const handleMouseMove = (e) => {
+        // rAF-throttle the spotlight update to avoid forced reflow warnings.
+        // Previously every mousemove synchronously read getBoundingClientRect
+        // and triggered a state change + re-layout in the same frame, which
+        // Lighthouse flagged as a ~429ms reflow hotspot.
+        if (spotlightRafRef.current) return;
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        setHeaderSpotlight({ left: x - 150 });
+        const clientX = e.clientX;
+        spotlightRafRef.current = requestAnimationFrame(() => {
+            spotlightRafRef.current = 0;
+            setHeaderSpotlight({ left: clientX - rect.left - 150 });
+        });
     };
 
     const warmRoute = useCallback((path) => {
@@ -440,7 +449,7 @@ const Header = () => {
                 <Flex h={16} alignItems="center" justifyContent="space-between">
                     {/* ──── LEFT: Logo ──── */}
                     <Box display="flex" alignItems="center" flexShrink={0}>
-                        <Image src={Logo} alt={t('header.logoAlt')} h="52px" objectFit="contain" />
+                        <Image src={Logo} alt={t('header.logoAlt')} h="52px" width="65px" height="52px" objectFit="contain" loading="eager" decoding="async" fetchpriority="high" />
                     </Box>
 
                     {/* ──── CENTER: Desktop Navigation ──── */}

@@ -14,6 +14,7 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
+import { Link as RouterLink } from 'react-router-dom';
 import { m } from 'framer-motion';
 
 // Fix for deprecated m() usage
@@ -41,45 +42,58 @@ const PixelGrid = () => {
 
     useEffect(() => {
         const container = containerRef.current;
-        if (!container) return;
+        if (!container) return undefined;
 
-        const handleMouseMove = (e) => {
-            const rect = container.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+        const section = container.closest('section');
+        if (!section) return undefined;
 
-            pixelsRef.current.forEach((pixel, index) => {
-                if (!pixel) return;
+        // rAF-throttle the per-pixel reveal sweep. Previously every mousemove
+        // event loop iterated 225 cells synchronously and mutated classList,
+        // which Lighthouse flagged as a hot main-thread task. We now coalesce
+        // multiple events into a single animation frame and cache rect/derived
+        // pixel-center coordinates so we don't recompute them per move.
+        let rafId = 0;
+        let lastClientX = 0;
+        let lastClientY = 0;
+        const revealRadius = 150;
+        const revealRadiusSq = revealRadius * revealRadius;
 
-                // Only process pixels that have a language (optimization)
-                if (!pixel.dataset.lang) return;
-
+        const flush = () => {
+            rafId = 0;
+            const rect = section.getBoundingClientRect();
+            const x = lastClientX - rect.left;
+            const y = lastClientY - rect.top;
+            const cellW = rect.width / gridSize;
+            const cellH = rect.height / gridSize;
+            const halfW = cellW / 2;
+            const halfH = cellH / 2;
+            const pixels = pixelsRef.current;
+            for (let index = 0; index < pixels.length; index += 1) {
+                const pixel = pixels[index];
+                if (!pixel || !pixel.dataset.lang) continue;
                 const row = Math.floor(index / gridSize);
-                const col = index % gridSize;
-
-                // Calculate center of pixel
-                // Using exact logic from HTML: (col / gridSize) * width + width / (gridSize * 2)
-                const pixelX = (col / gridSize) * rect.width + rect.width / (gridSize * 2);
-                const pixelY = (row / gridSize) * rect.height + rect.height / (gridSize * 2);
-
-                const distance = Math.sqrt(
-                    Math.pow(x - pixelX, 2) + Math.pow(y - pixelY, 2)
-                );
-
-                const revealRadius = 150;
-
-                if (distance < revealRadius) {
-                    pixel.classList.add('revealed');
-                } else {
-                    pixel.classList.remove('revealed');
-                }
-            });
+                const col = index - row * gridSize;
+                const dx = x - (col * cellW + halfW);
+                const dy = y - (row * cellH + halfH);
+                const isClose = dx * dx + dy * dy < revealRadiusSq;
+                // classList.toggle with the force flag avoids an unconditional
+                // attribute write when the desired state already matches.
+                pixel.classList.toggle('revealed', isClose);
+            }
         };
 
-        container.closest('section')?.addEventListener('mousemove', handleMouseMove);
+        const handleMouseMove = (e) => {
+            lastClientX = e.clientX;
+            lastClientY = e.clientY;
+            if (rafId) return;
+            rafId = requestAnimationFrame(flush);
+        };
+
+        section.addEventListener('mousemove', handleMouseMove, { passive: true });
 
         return () => {
-            container.closest('section')?.removeEventListener('mousemove', handleMouseMove);
+            section.removeEventListener('mousemove', handleMouseMove);
+            if (rafId) cancelAnimationFrame(rafId);
         };
     }, []);
 
@@ -132,11 +146,19 @@ const PixelGrid = () => {
     );
 };
 
+const TOTAL_CUBES = 8;
+
 const Hero = () => {
     const { t } = useTranslation();
+    const sectionRef = useRef(null);
     const spotlightRef = useRef(null);
     const [progress, setProgress] = useState(0);
-    const [gridCubes, setGridCubes] = useState([]);
+    // activeCubes is a Set of indices that are currently "lit". The grid
+    // always renders TOTAL_CUBES cells – activation only flips opacity, so
+    // the grid never changes size and the page below the hero never reflows
+    // (this previously caused the browser to scroll-anchor the user back
+    // into the hero when the cubes regenerated every 5 seconds).
+    const [activeCubes, setActiveCubes] = useState(() => new Set());
     const timeoutsRef = useRef([]);
 
     /* Theme-aware colors */
@@ -146,7 +168,9 @@ const Hero = () => {
     const cardBorder = useColorModeValue('gray.200', 'gray.700');
     const codeBg = useColorModeValue('gray.100', 'gray.900');
     const codeColor = useColorModeValue('gray.700', 'gray.300');
-    const mutedColor = useColorModeValue('gray.500', 'gray.400');
+    const mutedColor = useColorModeValue('gray.600', 'gray.300');
+    // green.400 on light bg is ~2.3:1 (fails WCAG). Bump to green.700 in light mode.
+    const accentGreen = useColorModeValue('green.700', 'green.300');
 
     const handleMouseMove = (e) => {
         // Optimize: Update the spotlight DOM directly instead of State
@@ -160,44 +184,71 @@ const Hero = () => {
         }
     };
 
-    // Animate hero grid
+    // Animate hero grid – pauses when the hero is offscreen so the periodic
+    // re-trigger doesn't waste main-thread time and (more importantly) can't
+    // cause re-layout while the user is scrolling further down the page.
     useEffect(() => {
-        const animateGrid = () => {
-            // Clear any existing timeouts for this cycle
+        let intervalId = 0;
+        const clearAllTimeouts = () => {
             timeoutsRef.current.forEach(clearTimeout);
             timeoutsRef.current = [];
-
-            setGridCubes([]); // Reset state
-            const totalCubes = 8;
-            const newCubes = Array(totalCubes).fill(0).map((_, i) => ({ id: i }));
-
-            newCubes.forEach((cube, i) => {
-                const timeoutId = setTimeout(() => {
-                    setGridCubes(prev => {
-                        // Prevent duplicates strictly
-                        if (prev.some(c => c.id === cube.id)) return prev;
-                        return [...prev, {
-                            ...cube,
-                            opacity: (i + 1) / totalCubes
-                        }];
-                    });
-                    setProgress(Math.round(((i + 1) / totalCubes) * 100));
-                }, i * 200);
-                timeoutsRef.current.push(timeoutId);
-            });
         };
 
-        animateGrid();
-        const interval = setInterval(animateGrid, 5000);
+        const animateGrid = () => {
+            clearAllTimeouts();
+            setActiveCubes(new Set());
+            for (let i = 0; i < TOTAL_CUBES; i += 1) {
+                const index = i;
+                const timeoutId = setTimeout(() => {
+                    setActiveCubes((prev) => {
+                        if (prev.has(index)) return prev;
+                        const next = new Set(prev);
+                        next.add(index);
+                        return next;
+                    });
+                    setProgress(Math.round(((index + 1) / TOTAL_CUBES) * 100));
+                }, i * 200);
+                timeoutsRef.current.push(timeoutId);
+            }
+        };
+
+        const start = () => {
+            if (intervalId) return;
+            animateGrid();
+            intervalId = window.setInterval(animateGrid, 5000);
+        };
+        const stop = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = 0;
+            }
+            clearAllTimeouts();
+        };
+
+        const node = sectionRef.current;
+        if (!node || typeof IntersectionObserver === 'undefined') {
+            start();
+            return () => stop();
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) start();
+                else stop();
+            },
+            { threshold: 0 },
+        );
+        observer.observe(node);
 
         return () => {
-            clearInterval(interval);
-            timeoutsRef.current.forEach(clearTimeout);
+            observer.disconnect();
+            stop();
         };
     }, []);
 
     return (
         <Box
+            ref={sectionRef}
             id="home"
             as="section"
             position="relative"
@@ -208,6 +259,9 @@ const Hero = () => {
             justifyContent="center"
             overflow="hidden"
             onMouseMove={handleMouseMove}
+            // Belt + suspenders: even if some descendant updates change layout,
+            // the browser must not re-anchor scroll to anything inside the hero.
+            sx={{ overflowAnchor: 'none' }}
         >
             {/* Spotlight Background */}
             <Box
@@ -276,13 +330,32 @@ const Hero = () => {
 
                     {/* CTA Buttons */}
                     <HStack spacing={4} flexWrap="wrap" justify="center">
-                        <Button variant="primary" size="lg" boxShadow="custom">
+                        <Button
+                            as={RouterLink}
+                            to="/battles"
+                            variant="primary"
+                            size="lg"
+                            boxShadow="custom"
+                            aria-label={t('landing.hero.ctaAi')}
+                        >
                             {t('landing.hero.ctaAi')}
                         </Button>
-                        <Button variant="secondary" size="lg">
+                        <Button
+                            as={RouterLink}
+                            to="/battles"
+                            variant="secondary"
+                            size="lg"
+                            aria-label={t('landing.hero.ctaPlayer')}
+                        >
                             {t('landing.hero.ctaPlayer')}
                         </Button>
-                        <Button variant="ghost" size="lg">
+                        <Button
+                            as="a"
+                            href="#try-challenge"
+                            variant="ghost"
+                            size="lg"
+                            aria-label={t('landing.hero.ctaDemo')}
+                        >
                             {t('landing.hero.ctaDemo')}
                         </Button>
                     </HStack>
@@ -307,7 +380,7 @@ const Hero = () => {
                                         <Text fontSize="xs" color={mutedColor} fontFamily="mono">
                                             {t('landing.hero.fileLabel')}
                                         </Text>
-                                        <Text fontSize="xs" color="green.400">
+                                        <Text fontSize="xs" color={accentGreen}>
                                             {t('landing.hero.running')}
                                         </Text>
                                     </HStack>
@@ -339,17 +412,23 @@ const Hero = () => {
                                         {t('landing.hero.gameSimulation')}
                                     </Text>
                                     <Grid templateColumns="repeat(4, 1fr)" gap={1} mb={4}>
-                                        {gridCubes.map((cube) => (
-                                            <MotionBox
-                                                key={cube.id}
-                                                aspectRatio={1}
-                                                bg="brand.500"
-                                                borderRadius="4px"
-                                                initial={{ opacity: 0, scale: 0.5, y: -20 }}
-                                                animate={{ opacity: cube.opacity, scale: 1, y: 0 }}
-                                                transition={{ duration: 0.5 }}
-                                            />
-                                        ))}
+                                        {Array.from({ length: TOTAL_CUBES }, (_, i) => {
+                                            const isActive = activeCubes.has(i);
+                                            return (
+                                                <MotionBox
+                                                    key={i}
+                                                    aspectRatio={1}
+                                                    bg="brand.500"
+                                                    borderRadius="4px"
+                                                    initial={false}
+                                                    animate={{
+                                                        opacity: isActive ? (i + 1) / TOTAL_CUBES : 0.08,
+                                                        scale: isActive ? 1 : 0.92,
+                                                    }}
+                                                    transition={{ duration: 0.4 }}
+                                                />
+                                            );
+                                        })}
                                     </Grid>
                                     <VStack spacing={2}>
                                         <HStack justify="space-between" width="100%" fontSize="xs" color={mutedColor}>
@@ -358,6 +437,7 @@ const Hero = () => {
                                         </HStack>
                                         <Progress
                                             value={progress}
+                                            aria-label={t('landing.hero.progress')}
                                             size="sm"
                                             colorScheme="cyan"
                                             borderRadius="full"

@@ -2,9 +2,32 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Text, VStack, HStack, Badge } from '@chakra-ui/react';
 
+/**
+ * Defensive scalar coercion for fields coming from the AI-generated problem
+ * pipeline (`/api/onboarding-test`). The generator occasionally returns
+ * structured objects in `sample.input` / `sample.output` (e.g. a graph
+ * problem with `{S: 0, T: 5}` source/target nodes). React refuses to render
+ * objects as children — without this guard the entire Speed Challenge page
+ * crashes with "Objects are not valid as a React child (found: object with
+ * keys {S, T})". JSON-stringifying gives the user a readable preview while
+ * keeping the test runner's contract intact.
+ */
+const toDisplay = (v) => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        return String(v);
+    }
+    try {
+        return JSON.stringify(v);
+    } catch {
+        return String(v);
+    }
+};
+
 /** Renders markdown-ish description (bold backtick words, newlines) */
 const RenderDescription = ({ text }) => {
-    const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    const safeText = toDisplay(text);
+    const parts = safeText.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
     return (
         <Text as="span" color="gray.300" fontSize="sm" lineHeight="1.8">
             {parts.map((part, i) => {
@@ -126,16 +149,16 @@ const SpeedProblemPanel = ({ problem }) => {
                         >
                             <Box px={4} py={3} borderBottom="1px solid rgba(255,255,255,0.04)">
                                 <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">{t('speedChallenge.input')}</Text>
-                                <Text fontSize="sm" fontFamily="mono" color="cyan.300">{ex.input}</Text>
+                                <Text fontSize="sm" fontFamily="mono" color="cyan.300">{toDisplay(ex.input)}</Text>
                             </Box>
                             <Box px={4} py={3} borderBottom={ex.explanation ? "1px solid rgba(255,255,255,0.04)" : "none"}>
                                 <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">{t('speedChallenge.output')}</Text>
-                                <Text fontSize="sm" fontFamily="mono" color="green.300">{ex.output}</Text>
+                                <Text fontSize="sm" fontFamily="mono" color="green.300">{toDisplay(ex.output)}</Text>
                             </Box>
                             {ex.explanation && (
                                 <Box px={4} py={3}>
                                     <Text fontSize="xs" color="gray.500" mb={1}>{t('speedChallenge.explanation')}</Text>
-                                    <Text fontSize="xs" color="gray.400" lineHeight="1.6">{ex.explanation}</Text>
+                                    <Text fontSize="xs" color="gray.400" lineHeight="1.6">{toDisplay(ex.explanation)}</Text>
                                 </Box>
                             )}
                         </Box>
@@ -187,10 +210,10 @@ const SpeedProblemPanel = ({ problem }) => {
                                 #{i + 1}
                             </Text>
                             <Text fontSize="xs" fontFamily="mono" color="gray.400" flex={1} isTruncated>
-                                {tc.input}
+                                {toDisplay(tc.input)}
                             </Text>
                             <Text fontSize="xs" fontFamily="mono" color="green.400">
-                                → {tc.expected}
+                                → {toDisplay(tc.expected)}
                             </Text>
                         </HStack>
                     ))}

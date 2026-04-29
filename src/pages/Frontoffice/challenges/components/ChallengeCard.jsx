@@ -22,7 +22,6 @@ import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiCheck, FiClock, FiEdit3, FiPauseCircle, FiPlay } from 'react-icons/fi';
-import { useChallengeContext } from '../context/ChallengeContext';
 import { DIFFICULTY_META, ChallengeUserStatus } from '../data/mockChallenges';
 
 const MotionBox = m.create(Box);
@@ -46,9 +45,25 @@ const CheckIcon = (props) => (
     </Icon>
 );
 
-const ChallengeCard = ({ challenge }) => {
+const ChallengeCard = React.memo(function ChallengeCard({ challenge, progress, recommended, onStart }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
+
+    // Hoist ALL useColorModeValue calls to top – they were previously called
+    // inside JSX .map() loops which both (a) violates rules-of-hooks and
+    // (b) re-runs on every render path. Hoisting makes each card cheap.
+    const titleColor = useColorModeValue('gray.800', 'gray.100');
+    // Bump muted text one step in each direction for WCAG AA compliance.
+    // Lighthouse flagged borderline contrast on gray.500/gray.500 pairings.
+    const descColor = useColorModeValue('gray.600', 'gray.300');
+    const tagColor = useColorModeValue('gray.700', 'gray.200');
+    const metaColor = useColorModeValue('gray.600', 'gray.300');
+    const acceptanceColor = useColorModeValue('gray.800', 'gray.100');
+    const solvedBtnBg = useColorModeValue('gray.100', 'gray.700');
+    const solvedBtnColor = useColorModeValue('gray.700', 'gray.200');
+    const solvedBtnHoverBg = useColorModeValue('gray.200', 'gray.600');
+    const solvedMetaColor = useColorModeValue('green.700', 'green.300');
+    const unsolvedMetaColor = useColorModeValue('gray.700', 'gray.300');
 
     const formatRelative = (isoValue) => {
         if (!isoValue) return t('challengePage.recently');
@@ -62,23 +77,15 @@ const ChallengeCard = ({ challenge }) => {
         const days = Math.floor(hours / 24);
         return days === 1 ? t('challengePage.dayAgo', { count: days }) : t('challengePage.daysAgo', { count: days });
     };
-    const { getUserProgress, isRecommended, selectChallenge } = useChallengeContext();
 
-    const progress = getUserProgress(challenge.id);
     const status = progress?.status || ChallengeUserStatus.UNSOLVED;
     const userStatus = progress?.userStatus || 'not_started';
     const isSolved = status === ChallengeUserStatus.SOLVED;
     const incompleteAttempts = Number(progress?.incompleteAttemptCount || 0);
-    const recommended = isRecommended(challenge);
     const diffMeta = DIFFICULTY_META[challenge.difficulty];
-    const solvedBtnBg = useColorModeValue('gray.100', 'gray.700');
-    const solvedBtnColor = useColorModeValue('gray.700', 'gray.300');
-    const solvedBtnHoverBg = useColorModeValue('gray.200', 'gray.600');
-    const solvedMetaColor = useColorModeValue('green.600', 'green.400');
-    const unsolvedMetaColor = useColorModeValue('gray.600', 'gray.500');
 
     const handleStart = () => {
-        selectChallenge(challenge.id);
+        if (onStart) onStart(challenge.id);
         navigate(`/challenges/${challenge.id}`);
     };
 
@@ -182,12 +189,12 @@ const ChallengeCard = ({ challenge }) => {
                     </HStack>
 
                     {/* Title */}
-                    <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color={useColorModeValue("gray.800", "gray.100")} mb={2}>
+                    <Text fontFamily="heading" fontSize="xl" fontWeight="bold" color={titleColor} mb={2}>
                         {challenge.title}
                     </Text>
 
                     {/* Description excerpt */}
-                    <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.400")} mb={3} noOfLines={2}>
+                    <Text fontSize="sm" color={descColor} mb={3} noOfLines={2}>
                         {challenge.description.split('\n')[0]}
                     </Text>
 
@@ -197,7 +204,7 @@ const ChallengeCard = ({ challenge }) => {
                             <Tag
                                 key={tag}
                                 bg="var(--color-tag-bg)"
-                                color={useColorModeValue("gray.600", "gray.300")}
+                                color={tagColor}
                                 size="sm"
                                 borderRadius="8px"
                                 fontSize="xs"
@@ -209,13 +216,13 @@ const ChallengeCard = ({ challenge }) => {
 
                     {/* Meta row */}
                     {isSolved && progress ? (
-                        <HStack spacing={6} fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
+                        <HStack spacing={6} fontSize="sm" color={metaColor}>
                             <Text>{t('challengePage.yourTime')} <Text as="strong" color="green.400">{progress.bestRuntime}ms</Text></Text>
                             <Text>{t('challengePage.scoreLabel')} <Text as="strong" color="green.400">{progress.earnedXp}/{challenge.xpReward}</Text></Text>
                             <Text>{t('challengePage.solvedIn')} <Text as="strong" color="green.400">{Math.max(1, Math.round(Number(progress?.solveTimeSeconds || 0) / 60))} {t('challengePage.min')}</Text></Text>
                         </HStack>
                     ) : (
-                        <HStack spacing={6} fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
+                        <HStack spacing={6} fontSize="sm" color={metaColor}>
                             <Flex align="center" gap={2}>
                                 <ClockIcon w={4} h={4} />
                                 <Text>{t('challengePage.estimatedTime', { time: challenge.estimatedTime })}</Text>
@@ -225,7 +232,7 @@ const ChallengeCard = ({ challenge }) => {
                                 <Text>{t('challengePage.xpReward', { xp: challenge.xpReward })}</Text>
                             </Flex>
                             <Text>
-                                {t('challengePage.acceptance')} <Text as="strong" color={useColorModeValue("gray.800", "gray.100")}>{challenge.acceptanceRate}%</Text>
+                                {t('challengePage.acceptance')} <Text as="strong" color={acceptanceColor}>{challenge.acceptanceRate}%</Text>
                             </Text>
                             {userStatus === 'in_progress' && (
                                 <Text color="orange.300" display="inline-flex" alignItems="center" gap={1.5}>
@@ -267,6 +274,8 @@ const ChallengeCard = ({ challenge }) => {
             </Flex>
         </MotionBox>
     );
-};
+});
+
+ChallengeCard.displayName = 'ChallengeCard';
 
 export default ChallengeCard;

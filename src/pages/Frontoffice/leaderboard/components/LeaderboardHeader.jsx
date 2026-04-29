@@ -9,10 +9,7 @@
  */
 import React from 'react';
 import { Box, Flex, Text } from '@chakra-ui/react';
-import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-
-const MotionBox = m.create(Box);
 
 const LeaderboardHeader = ({
     eyebrow: eyebrowProp,
@@ -25,12 +22,9 @@ const LeaderboardHeader = ({
     const subtitle = subtitleProp ?? t('leaderboardPage.defaultSubtitle');
 
     return (
-        <MotionBox
+        <Box
             textAlign="center"
-            mb={16}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            mb={{ base: 8, md: 10 }}
         >
             {/* Elite Championship pill */}
             <Flex justify="center" mb={4}>
@@ -73,7 +67,7 @@ const LeaderboardHeader = ({
             <Text fontFamily="body" fontSize={{ base: 'lg', sm: 'xl' }} color="gray.400" mb={8}>
                 {subtitle}
             </Text>
-        </MotionBox>
+        </Box>
     );
 };
 

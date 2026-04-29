@@ -177,6 +177,7 @@ const ChallengesFilters = ({
                     </Text>
                     <Input
                         placeholder={t('challengePage.searchPlaceholder')}
+                        aria-label={t('challengePage.searchFilter')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="input-normalized"

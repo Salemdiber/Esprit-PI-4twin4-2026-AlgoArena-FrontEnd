@@ -37,7 +37,22 @@ const ChallengesListPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const toast = useToast();
-    const { streakDetails, userProgress, challenges } = useChallengeContext();
+    const { streakDetails, userProgress, challenges, isRecommended, selectChallenge } = useChallengeContext();
+
+    // O(1) progress lookup – avoids O(N^2) linear scans inside each card.
+    const progressMap = React.useMemo(() => {
+        const map = new Map();
+        (Array.isArray(userProgress) ? userProgress : []).forEach((p) => {
+            if (p?.challengeId) map.set(p.challengeId, p);
+        });
+        return map;
+    }, [userProgress]);
+
+    // Stable handler passed to memoized cards so React.memo shallow-compare
+    // doesn't bail out on every parent render.
+    const handleStart = React.useCallback((id) => {
+        selectChallenge(id);
+    }, [selectChallenge]);
     const {
         filteredChallenges,
         filteredCount,
@@ -286,7 +301,13 @@ const ChallengesListPage = () => {
                                 ) : (
                                     <VStack align="stretch" spacing={4}>
                                         {filteredChallenges.map((challenge) => (
-                                            <ChallengeCard key={challenge.id} challenge={challenge} />
+                                            <ChallengeCard
+                                                key={challenge.id}
+                                                challenge={challenge}
+                                                progress={progressMap.get(challenge.id) || null}
+                                                recommended={isRecommended(challenge)}
+                                                onStart={handleStart}
+                                            />
                                         ))}
                                     </VStack>
                                 )}

@@ -206,17 +206,21 @@ const getLanguageVisual = (language) => {
 const GlassStatCard = ({ icon: IconComponent, iconColor, iconBg, label, children, delay = 0 }) => (
     <Box
         p={4}
+        minH="112px"
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
         borderRadius="14px"
-        bg="rgba(255,255,255,0.03)"
-        border="1px solid rgba(255,255,255,0.06)"
+        bg="var(--color-bg-card)"
+        border="1px solid var(--color-border)"
         transition="all .2s ease"
         _hover={{
-            borderColor: 'rgba(255,255,255,0.12)',
-            bg: 'rgba(255,255,255,0.05)',
+            borderColor: 'var(--color-border-hover)',
+            bg: 'var(--color-bg-secondary)',
         }}
         animation={`${fadeSlideIn} 0.4s ease ${delay}s both`}
         position="relative"
-        overflow="hidden"
+        overflow="visible"
     >
         {/* Shimmer hover effect */}
         <Box
@@ -233,11 +237,11 @@ const GlassStatCard = ({ icon: IconComponent, iconColor, iconBg, label, children
                 animation={`${shimmerSlide} 2s ease infinite`}
             />
         </Box>
-        <Flex align="center" gap={2} mb={2}>
-            <Flex boxSize={7} borderRadius="full" align="center" justify="center" bg={iconBg}>
+        <Flex align="center" gap={2} mb={2} minW={0}>
+            <Flex boxSize={7} flexShrink={0} borderRadius="full" align="center" justify="center" bg={iconBg}>
                 <Icon as={IconComponent} boxSize={3.5} color={iconColor} />
             </Flex>
-            <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.06em" color="var(--color-text-muted)" fontWeight="600">
+            <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.04em" color="var(--color-text-muted)" fontWeight="700" noOfLines={2} lineHeight="1.25">
                 {label}
             </Text>
         </Flex>
@@ -1389,6 +1393,11 @@ const Dashboard = () => {
                                         {challengeSummaryExtras.topLanguage ? (
                                             <Text
                                                 fontSize="11px"
+                                                display="inline-flex"
+                                                alignItems="center"
+                                                minH="28px"
+                                                maxW="100%"
+                                                noOfLines={1}
                                                 px={2}
                                                 py={1}
                                                 borderRadius="md"
@@ -1409,7 +1418,7 @@ const Dashboard = () => {
                                 {/* Divider */}
                                 <Box h="1px" bg="rgba(255,255,255,0.06)" />
 
-                                <Flex align="center" gap={2} borderBottom="1px solid var(--color-border)" pb={2}>
+                                <Flex align="center" gap={2} borderBottom="1px solid var(--color-border)" pb={2} overflowX="auto">
                                     <Box
                                         as="button"
                                         px={3}
@@ -1442,7 +1451,7 @@ const Dashboard = () => {
                                 </Flex>
 
                                 {activeSubmissionTab === 'byUser' ? (
-                                    <VStack align="stretch" spacing={3} maxH="360px" overflowY="auto" className="scrollbar-thin">
+                                    <VStack align="stretch" spacing={3} maxH="460px" overflowY="auto" className="scrollbar-thin" pr={1}>
                                         {submissionsByUser.length === 0 ? (
                                             <Flex direction="column" align="center" justify="center" py={10} gap={2}>
                                                 <Text color="var(--color-text-muted)" fontSize="sm">No submissions for this filter</Text>
@@ -1481,7 +1490,7 @@ const Dashboard = () => {
                                         ))}
                                     </VStack>
                                 ) : (
-                                    <VStack align="stretch" spacing={2} maxH="360px" overflowY="auto" className="scrollbar-thin">
+                                    <VStack align="stretch" spacing={2.5} maxH="520px" overflowY="auto" className="scrollbar-thin" pr={1} py={1}>
                                         {filteredSubmissions.map((submission, index) => {
                                             const rowKey = getSubmissionRowKey(selectedChallengeOverview.challengeId, submission, index);
                                             const status = submission.status === 'success' ? t('admin.dashboard.passed') : submission.status === 'abandoned' ? t('admin.dashboard.abandoned') : t('admin.dashboard.failed');
@@ -1498,18 +1507,19 @@ const Dashboard = () => {
                                                     borderRadius="lg"
                                                     border="1px solid var(--color-border)"
                                                     bg="var(--color-bg-secondary)"
-                                                    overflow="hidden"
+                                                    overflow="visible"
                                                     transition="all .15s ease"
                                                     _hover={{ borderColor: 'var(--color-border-hover)' }}
                                                     role="group"
                                                 >
                                                     <Flex
                                                         px={4} py={3}
-                                                        align={{ base: 'flex-start', md: 'center' }}
-                                                        direction={{ base: 'column', md: 'row' }}
-                                                        gap={2}
+                                                        align="center"
+                                                        gap={3}
+                                                        minH="68px"
+                                                        overflow="visible"
                                                     >
-                                                        <Flex align="center" gap={3} flex={1} minW={0}>
+                                                        <Flex align="center" gap={3} flex="1 1 16rem" minW="14rem">
                                                             <Flex
                                                                 align="center" justify="center"
                                                                 boxSize={8} borderRadius="full"
@@ -1534,22 +1544,26 @@ const Dashboard = () => {
                                                             </Box>
                                                         </Flex>
 
-                                                        <Flex gap={2} align="center" flexWrap="wrap" flexShrink={0}>
-                                                            <Flex align="center" gap={1} px={2} py={1} borderRadius="full" bg={statusBg} border="1px solid var(--color-border)">
+                                                        <Flex gap={2} align="center" justify="flex-end" flexWrap="nowrap" flexShrink={0} minW="27rem" overflow="visible">
+                                                            <Flex align="center" justify="center" gap={1} h="34px" minW="7.25rem" px={2.5} borderRadius="full" bg={statusBg} border="1px solid var(--color-border)">
                                                                 <Icon as={StatusIcon} boxSize={3} color={statusColor} />
                                                                 <Text fontSize="10px" fontWeight="700" color={statusColor} textTransform="uppercase">
                                                                     {status}
                                                                 </Text>
                                                             </Flex>
-                                                            <Text fontSize="xs" color={runtime.color} fontFamily="var(--font-mono)">
+                                                            <Text fontSize="xs" minW="5.25rem" h="34px" lineHeight="32px" textAlign="center" px={2} borderRadius="full" bg="var(--color-bg-card)" border="1px solid var(--color-border)" color={runtime.color} fontFamily="var(--font-mono)" fontWeight="700">
                                                                 {runtime.label}
                                                             </Text>
                                                             <Text
                                                                 fontSize="10px"
-                                                                px={1.5}
-                                                                py={0.5}
-                                                                borderRadius="md"
+                                                                minW="3.25rem"
+                                                                h="34px"
+                                                                lineHeight="32px"
+                                                                textAlign="center"
+                                                                px={2}
+                                                                borderRadius="full"
                                                                 fontFamily="var(--font-mono)"
+                                                                fontWeight="800"
                                                                 bg={languageStyle.bg}
                                                                 border="1px solid var(--color-border)"
                                                                 color={languageStyle.text}
@@ -1559,9 +1573,11 @@ const Dashboard = () => {
                                                             <Flex
                                                                 as="button"
                                                                 align="center" gap={1}
-                                                                px={2} py={1} borderRadius="md"
-                                                                bg="transparent"
+                                                                h="34px" px={2.5} borderRadius="full"
+                                                                bg="var(--color-bg-card)"
                                                                 border="1px solid var(--color-border)"
+                                                                minW="4.5rem"
+                                                                justify="center"
                                                                 cursor="pointer"
                                                                 transition="all .15s"
                                                                 _hover={{ bg: 'var(--color-hover-bg)', borderColor: 'var(--color-border-hover)' }}
@@ -1575,13 +1591,17 @@ const Dashboard = () => {
                                                             <Tooltip label={isFlagged ? 'Unflag submission' : 'Flag submission'}>
                                                                 <Box
                                                                     as="button"
-                                                                    p={1.5}
-                                                                    borderRadius="md"
+                                                                    w="34px"
+                                                                    h="34px"
+                                                                    display="inline-flex"
+                                                                    alignItems="center"
+                                                                    justifyContent="center"
+                                                                    borderRadius="full"
                                                                     border="1px solid var(--color-border)"
                                                                     color={isFlagged ? 'var(--color-red-500)' : 'var(--color-text-muted)'}
-                                                                    opacity={0}
-                                                                    _groupHover={{ opacity: 1 }}
-                                                                    transition="opacity .15s ease"
+                                                                    opacity={isFlagged ? 1 : 0.55}
+                                                                    transition="all .15s ease"
+                                                                    _hover={{ opacity: 1, bg: 'var(--color-hover-bg)' }}
                                                                     onClick={() => setFlaggedSubmissionKeys((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }))}
                                                                 >
                                                                     <Icon as={Flag} boxSize={3.5} />
