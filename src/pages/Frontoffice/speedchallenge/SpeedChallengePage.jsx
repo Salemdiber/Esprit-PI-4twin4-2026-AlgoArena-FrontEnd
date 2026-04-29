@@ -8,27 +8,23 @@
  *
  * Layout: Intro â†’ [Problem panel | Editor panel] â†’ Result
  */
-import React, { useState, useEffect, useRef, useCallback, useParams } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, redirectBasedOnRole } from '../auth/context/AuthContext';
-import { Toast, useToast } from '@chakra-ui/react';
+import { useToast } from '@chakra-ui/react';
 import {
     Box, Flex, Text, Button, VStack, HStack, Image, Icon, Heading,
-    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner,
+    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner, Skeleton,
 } from '@chakra-ui/react';
 import { MdOutlineEdit, MdTimer, MdSwapHoriz, MdEmojiEvents, MdKey, MdBolt } from 'react-icons/md';
 import { m, AnimatePresence } from 'framer-motion';
+import * as ReactWindow from 'react-window';
 
 import {
     SPEED_CHALLENGE_PROBLEMS,
     computePlacement,
     TOTAL_SECONDS,
 } from './data/speedChallengeProblems';
-import SpeedTimer from './components/SpeedTimer';
-import ProblemStepper from './components/ProblemStepper';
-import SpeedProblemPanel from './components/SpeedProblemPanel';
-import SpeedCodeEditor from './components/SpeedCodeEditor';
-import PlacementResult from './components/PlacementResult';
 import { userService } from '../../../services/userService';
 import { settingsService } from '../../../services/settingsService';
 import { apiClient } from '../../../services/apiClient';
@@ -57,6 +53,40 @@ const debounce = (fn, delay) => {
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
 
+const VirtualGrid = ReactWindow.Grid;
+const LazySpeedTimer = lazy(() => import('./components/SpeedTimer'));
+const LazyProblemStepper = lazy(() => import('./components/ProblemStepper'));
+const LazySpeedProblemPanel = lazy(() => import('./components/SpeedProblemPanel'));
+const LazySpeedCodeEditor = lazy(() => import('./components/SpeedCodeEditor'));
+const LazyPlacementResult = lazy(() => import('./components/PlacementResult'));
+
+const scheduleIdleWork = (cb) => {
+    if (typeof window === 'undefined') {
+        return setTimeout(cb, 0);
+    }
+    if ('requestIdleCallback' in window) {
+        return window.requestIdleCallback(cb, { timeout: 1500 });
+    }
+    return setTimeout(cb, 0);
+};
+
+const useElementSize = (ref) => {
+    const [size, setSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        if (!ref.current || typeof ResizeObserver === 'undefined') return undefined;
+        const observer = new ResizeObserver((entries) => {
+            const rect = entries[0]?.contentRect;
+            if (!rect) return;
+            setSize({ width: rect.width, height: rect.height });
+        });
+        observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, [ref]);
+
+    return size;
+};
+
 // â”€â”€â”€ Phase enum â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PHASE = {
     INTRO: 'INTRO',
@@ -65,8 +95,27 @@ const PHASE = {
 };
 
 // â”€â”€â”€ Intro screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const IntroScreen = ({ onStart, loading = false }) => {
+const IntroScreen = React.memo(({ onStart, loading = false }) => {
     const { t } = useTranslation();
+    const [enableFloat, setEnableFloat] = useState(false);
+    const rules = useMemo(
+        () => ([
+            { icon: MdOutlineEdit, text: t('speedChallenge.rule1') },
+            { icon: MdTimer, text: t('speedChallenge.rule2') },
+            { icon: MdSwapHoriz, text: t('speedChallenge.rule3') },
+            { icon: MdEmojiEvents, text: t('speedChallenge.rule4') },
+            { icon: MdKey, text: t('speedChallenge.rule5') },
+        ]),
+        [t]
+    );
+
+    useEffect(() => {
+        let rafId = null;
+        rafId = requestAnimationFrame(() => setEnableFloat(true));
+        return () => {
+            if (rafId) cancelAnimationFrame(rafId);
+        };
+    }, []);
     return (
     <Box
         minH="100vh"
@@ -121,7 +170,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
                 fontSize="xs"
                 color="brand.500"
                 opacity={0.2}
-                className="float-animation"
+                className={enableFloat ? 'float-animation' : undefined}
             >
                 O(n log n) â†’ Gold
             </Text>
@@ -133,7 +182,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
                 fontSize="xs"
                 color="green.400"
                 opacity={0.2}
-                className="float-animation"
+                className={enableFloat ? 'float-animation' : undefined}
                 style={{ animationDelay: '2s' }}
             >
                 {'// 15 minutes. 3 problems.'}
@@ -163,7 +212,15 @@ const IntroScreen = ({ onStart, loading = false }) => {
 
                     <VStack spacing={6} p={[4,6,8]} align="center">
                     {/* Logo */}
-                    <Image src={Logo} alt="AlgoArena" h={['48px','56px','64px']} objectFit="contain" />
+                    <Image
+                        src={Logo}
+                        alt="AlgoArena"
+                        h={['48px','56px','64px']}
+                        width={128}
+                        height={64}
+                        loading="lazy"
+                        objectFit="contain"
+                    />
 
                     {/* Badge */}
                     <HStack
@@ -218,13 +275,7 @@ const IntroScreen = ({ onStart, loading = false }) => {
                             {t('speedChallenge.rules')}
                         </Text>
                         <VStack spacing={3} align="stretch">
-                            {[
-                                    { icon: MdOutlineEdit, text: t('speedChallenge.rule1') },
-                                    { icon: MdTimer, text: t('speedChallenge.rule2') },
-                                    { icon: MdSwapHoriz, text: t('speedChallenge.rule3') },
-                                    { icon: MdEmojiEvents, text: t('speedChallenge.rule4') },
-                                    { icon: MdKey, text: t('speedChallenge.rule5') },
-                                ].map((rule, i) => (
+                            {rules.map((rule, i) => (
                                     <HStack key={i} spacing={3} align="flex-start">
                                         <Icon as={rule.icon} boxSize={6} color="brand.500" mt="2px" />
                                         <Text fontSize="sm" color="gray.300" lineHeight="1.6">
@@ -307,15 +358,133 @@ const IntroScreen = ({ onStart, loading = false }) => {
                             <Icon as={MdBolt} boxSize={6} color="#ffffff" />
                         </HStack>
                     </Button>
+                    {loading && (
+                        <VStack w="100%" spacing={3} pt={2} align="stretch">
+                            <Skeleton height="18px" borderRadius="8px" />
+                            <Skeleton height="18px" borderRadius="8px" />
+                            <Skeleton height="18px" borderRadius="8px" />
+                        </VStack>
+                    )}
                 </VStack>
             </Box>
         </MotionBox>
     </Box>
     );
-};
+});
+
+const SpeedChallengeSkeleton = React.memo(() => (
+    <Flex direction="column" minH="100vh" bg="#0f172a" overflow="hidden">
+        <Flex
+            align="center"
+            justify="space-between"
+            px={4}
+            py={2.5}
+            bg="#0b1220"
+            borderBottom="1px solid rgba(255,255,255,0.06)"
+            gap={2}
+        >
+            <HStack spacing={3}>
+                <Skeleton width="110px" height="24px" borderRadius="6px" />
+                <Skeleton width="140px" height="16px" borderRadius="6px" />
+            </HStack>
+            <Skeleton width="200px" height="20px" borderRadius="6px" />
+            <Skeleton width="120px" height="20px" borderRadius="6px" />
+        </Flex>
+        <Box px={3} py={2} bg="rgba(11,18,32,0.9)">
+            <Skeleton height="28px" borderRadius="8px" />
+        </Box>
+        <Flex flex={1} overflow="hidden" minH={0}>
+            <Box w={{ base: '100%', lg: '42%' }} display={{ base: 'none', lg: 'block' }} px={4} py={4}>
+                <Skeleton height="100%" borderRadius="14px" />
+            </Box>
+            <Box w={{ base: '100%', lg: '58%' }} px={4} py={4}>
+                <Skeleton height="70%" borderRadius="14px" mb={4} />
+                <Skeleton height="56px" borderRadius="12px" />
+            </Box>
+        </Flex>
+    </Flex>
+));
+
+const ProblemTabItem = React.memo(({ columnIndex, style, problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt }) => {
+    const p = problems[columnIndex];
+    if (!p) return null;
+    const active = columnIndex === currentIndex;
+    const solved = solvedIds.includes(p.id);
+    return (
+        <Box style={style} px={1}>
+            <Button
+                size="xs"
+                onClick={() => {
+                    onInterrupt();
+                    setCurrentIndex(columnIndex);
+                }}
+                px={3}
+                py={1}
+                h="auto"
+                borderRadius="6px"
+                bg={active ? `${p.difficultyColor}18` : 'transparent'}
+                border="1px solid"
+                borderColor={active ? `${p.difficultyColor}50` : 'transparent'}
+                color={solved ? '#22c55e' : active ? p.difficultyColor : 'gray.500'}
+                fontFamily="mono"
+                fontSize="xs"
+                fontWeight={active ? 'bold' : 'normal'}
+                _hover={{ bg: `${p.difficultyColor}10`, color: p.difficultyColor }}
+                transition="all 0.2s"
+                leftIcon={
+                    solved ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                    ) : undefined
+                }
+            >
+                {p.index}. {p.title}
+            </Button>
+        </Box>
+    );
+});
+
+const ProblemTabs = React.memo(({ problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt }) => {
+    const containerRef = useRef(null);
+    const { width } = useElementSize(containerRef);
+    const itemSize = useMemo(() => (width < 520 ? 200 : 240), [width]);
+    const cellProps = useMemo(
+        () => ({ problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt }),
+        [problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt]
+    );
+
+    return (
+        <Box
+            ref={containerRef}
+            px={3}
+            py={1.5}
+            bg="rgba(11,18,32,0.9)"
+            borderBottom="1px solid rgba(255,255,255,0.04)"
+            gap={1}
+            flexShrink={0}
+        >
+            {width > 0 && VirtualGrid ? (
+                <VirtualGrid
+                    rowCount={1}
+                    columnCount={problems.length}
+                    rowHeight={36}
+                    columnWidth={itemSize}
+                    defaultHeight={36}
+                    defaultWidth={width}
+                    cellComponent={ProblemTabItem}
+                    cellProps={cellProps}
+                    style={{ height: 36, width }}
+                />
+            ) : (
+                <Skeleton height="28px" borderRadius="8px" />
+            )}
+        </Box>
+    );
+});
 
 // â”€â”€â”€ Main Challenge Arena â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const ChallengeArena = ({
+const ChallengeArena = React.memo(({
     problems,
     currentIndex,
     setCurrentIndex,
@@ -367,7 +536,7 @@ const ChallengeArena = ({
         currentIndexRef.current = currentIndex;
     }, [currentIndex]);
 
-    const problem = problems[currentIndex];
+    const problem = useMemo(() => problems[currentIndex], [problems, currentIndex]);
     const [submitState, setSubmitState] = useState('idle'); // idle | running | success | error
     const [feedback, setFeedback] = useState('');
     const [hintOpen, setHintOpen] = useState(false);
@@ -473,7 +642,15 @@ const ChallengeArena = ({
             >
                 {/* Left: logo + challenge name */}
                 <HStack spacing={3}>
-                    <Image src={Logo} alt="AlgoArena" h="28px" objectFit="contain" />
+                    <Image
+                        src={Logo}
+                        alt="AlgoArena"
+                        h="28px"
+                        width={96}
+                        height={28}
+                        loading="lazy"
+                        objectFit="contain"
+                    />
                     <Box w="1px" h="20px" bg="rgba(255,255,255,0.08)" />
                     <HStack spacing={2}>
                         <Icon as={MdBolt} boxSize={4} color="brand.500" />
@@ -484,21 +661,25 @@ const ChallengeArena = ({
                 </HStack>
 
                 {/* Center: stepper */}
-                <ProblemStepper
-                    currentIndex={currentIndex + 1}
-                    solvedIds={solvedIds}
-                    problems={problems}
-                />
+                <Suspense fallback={<Skeleton width="220px" height="20px" borderRadius="6px" />}>
+                    <LazyProblemStepper
+                        currentIndex={currentIndex + 1}
+                        solvedIds={solvedIds}
+                        problems={problems}
+                    />
+                </Suspense>
 
                 {/* Right: timer + finish */}
                 <HStack spacing={3}>
-                    <SpeedTimer
-                        secondsLeft={secondsLeft}
-                        elapsedSeconds={elapsedSeconds}
-                        isExpired={isExpired}
-                        disableCopyPaste={disableCopyPaste}
-                        disableTabSwitch={disableTabSwitch}
-                    />
+                    <Suspense fallback={<Skeleton width="120px" height="20px" borderRadius="6px" />}>
+                        <LazySpeedTimer
+                            secondsLeft={secondsLeft}
+                            elapsedSeconds={elapsedSeconds}
+                            isExpired={isExpired}
+                            disableCopyPaste={disableCopyPaste}
+                            disableTabSwitch={disableTabSwitch}
+                        />
+                    </Suspense>
                     <Button
                         size="sm"
                         variant="outline"
@@ -516,51 +697,15 @@ const ChallengeArena = ({
             </Flex>
 
             {/* â”€â”€ Problem tabs (mobile: top, desktop: inside panel) â”€â”€ */}
-            <Flex
-                px={3}
-                py={1.5}
-                bg="rgba(11,18,32,0.9)"
-                borderBottom="1px solid rgba(255,255,255,0.04)"
-                gap={1}
-                flexShrink={0}
-            >
-                {problems.map((p, i) => {
-                    const active = i === currentIndex;
-                    const solved = solvedIds.includes(p.id);
-                    return (
-                        <Button
-                            key={p.id}
-                            size="xs"
-                            onClick={() => {
-                                activeSubmissionRef.current += 1;
-                                setCurrentIndex(i);
-                            }}
-                            px={3}
-                            py={1}
-                            h="auto"
-                            borderRadius="6px"
-                            bg={active ? `${p.difficultyColor}18` : 'transparent'}
-                            border="1px solid"
-                            borderColor={active ? `${p.difficultyColor}50` : 'transparent'}
-                            color={solved ? '#22c55e' : active ? p.difficultyColor : 'gray.500'}
-                            fontFamily="mono"
-                            fontSize="xs"
-                            fontWeight={active ? 'bold' : 'normal'}
-                            _hover={{ bg: `${p.difficultyColor}10`, color: p.difficultyColor }}
-                            transition="all 0.2s"
-                            leftIcon={
-                                solved ? (
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M20 6 9 17l-5-5" />
-                                    </svg>
-                                ) : undefined
-                            }
-                        >
-                            {p.index}. {p.title}
-                        </Button>
-                    );
-                })}
-            </Flex>
+            <ProblemTabs
+                problems={problems}
+                currentIndex={currentIndex}
+                setCurrentIndex={setCurrentIndex}
+                solvedIds={solvedIds}
+                onInterrupt={() => {
+                    activeSubmissionRef.current += 1;
+                }}
+            />
 
             {/* â”€â”€ Split layout â”€â”€ */}
             <Flex flex={1} overflow="hidden" minH={0}>
@@ -585,7 +730,9 @@ const ChallengeArena = ({
                             display="flex"
                             flexDirection="column"
                         >
-                            <SpeedProblemPanel problem={problem} />
+                            <Suspense fallback={<Skeleton height="100%" borderRadius="12px" />}>
+                                <LazySpeedProblemPanel problem={problem} />
+                            </Suspense>
                         </MotionBox>
                     </AnimatePresence>
                 </Box>
@@ -609,12 +756,14 @@ const ChallengeArena = ({
                             overflow="hidden"
                             minH={0}
                         >
-                            <SpeedCodeEditor
-                                code={codes[problem?.id] || ''}
-                                onChange={(val) => onCodeChange(problem?.id, val)}
-                                language={languages[problem?.id] || 'javascript'}
-                                onLanguageChange={(lang) => onLanguageChange(problem?.id, lang)}
-                            />
+                            <Suspense fallback={<Skeleton height="100%" borderRadius="12px" />}>
+                                <LazySpeedCodeEditor
+                                    code={codes[problem?.id] || ''}
+                                    onChange={(val) => onCodeChange(problem?.id, val)}
+                                    language={languages[problem?.id] || 'javascript'}
+                                    onLanguageChange={(lang) => onLanguageChange(problem?.id, lang)}
+                                />
+                            </Suspense>
                         </MotionFlex>
                     </AnimatePresence>
 
@@ -768,7 +917,7 @@ const ChallengeArena = ({
             </Flex>
         </Flex>
     );
-};
+});
 
 // â”€â”€â”€ SpeedChallengePage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SpeedChallengePage = () => {
@@ -806,7 +955,10 @@ const SpeedChallengePage = () => {
         Object.fromEntries(SPEED_CHALLENGE_PROBLEMS.map((p) => [p.id, 'javascript']))
     );
 
-    const activeProblems = generatedProblems || SPEED_CHALLENGE_PROBLEMS;
+    const activeProblems = useMemo(
+        () => generatedProblems || SPEED_CHALLENGE_PROBLEMS,
+        [generatedProblems]
+    );
 
     // When generated problems are loaded initialize codes/languages
     useEffect(() => {
@@ -1026,14 +1178,24 @@ const SpeedChallengePage = () => {
             console.debug('SpeedChallenge: currentUser placementProblems:', Array.isArray(userProblems) ? userProblems.length : userProblems);
             let mapped = [];
             if (userProblems && Array.isArray(userProblems) && userProblems.length) {
-                mapped = userProblems.slice(0, 3).map((it, i) => mapServerToProblem(it, i));
+                await new Promise((resolve) => {
+                    scheduleIdleWork(() => {
+                        mapped = userProblems.slice(0, 3).map((it, i) => mapServerToProblem(it, i));
+                        resolve();
+                    });
+                });
                 console.debug('Using placementProblems from user, mapped count=', mapped.length);
             } else {
                 const resp = await fetch('/api/onboarding-test');
                 const json = await resp.json();
                 const items = json?.problems || [];
                 console.debug('/api/onboarding-test returned', items.length, 'items, encoding=', json?.encoding);
-                mapped = items.slice(0, 3).map((it, i) => mapServerToProblem(it, i));
+                await new Promise((resolve) => {
+                    scheduleIdleWork(() => {
+                        mapped = items.slice(0, 3).map((it, i) => mapServerToProblem(it, i));
+                        resolve();
+                    });
+                });
                 console.debug('Mapped server problems count=', mapped.length);
             }
 
@@ -1105,71 +1267,73 @@ const SpeedChallengePage = () => {
             setPhase(PHASE.RESULT);
 
             // â”€â”€ AI classification (async, non-blocking) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            const solutions = activeProblems.map((p) => ({
-                problemId: p.id,
-                title: p.title,
-                difficulty: p.difficulty,
-                code: codes[p.id] || '',
-                language: languages[p.id] || 'javascript',
-                solved: finalSolvedIds.includes(p.id),
-            }));
+            scheduleIdleWork(() => {
+                const solutions = activeProblems.map((p) => ({
+                    problemId: p.id,
+                    title: p.title,
+                    difficulty: p.difficulty,
+                    code: codes[p.id] || '',
+                    language: languages[p.id] || 'javascript',
+                    solved: finalSolvedIds.includes(p.id),
+                }));
 
-            fetch('/api/classify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ solutions, totalSeconds: used }),
-            })
-                .then((r) => r.json())
-                .then((aiResult) => {
-                    setAiAnalysis(aiResult);
-                    const authoritative = fallback;
-                    setPlacement(authoritative);
-
-                    // Persist the solved-count-based rank to backend (completion already done above)
-                    userService.updatePlacement({
-                        rank: authoritative.rank,
-                        xp: authoritative.xp,
-                        level: authoritative.rank,
-                    }).then(() => {
-                        updateCurrentUser({ rank: authoritative.rank, xp: authoritative.xp, level: authoritative.rank });
-                    }).catch(() => { });
-
-                    try {
-                        localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify(authoritative));
-                    } catch (_) { }
+                fetch('/api/classify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ solutions, totalSeconds: used }),
                 })
-                .catch(() => {
-                    // AI failed â€” keep fallback placement, mark analysis as unavailable
-                    setAiAnalysis(null);
-                    const cappedFallbackRank = clampSpeedChallengeRank(fallback.rank);
-                    const cappedFallback = cappedFallbackRank === fallback.rank
-                        ? fallback
-                        : {
-                            ...fallback,
-                            rank: cappedFallbackRank,
-                            label: cappedFallbackRank === 'BRONZE' ? 'Bronze' : cappedFallbackRank === 'SILVER' ? 'Silver' : 'Gold',
-                            color: cappedFallbackRank === 'BRONZE' ? '#cd7f32' : cappedFallbackRank === 'SILVER' ? '#c0c0c0' : '#facc15',
-                            gradient: cappedFallbackRank === 'BRONZE'
-                                ? ['#cd7f32', '#a0522d']
-                                : cappedFallbackRank === 'SILVER'
-                                    ? ['#c0c0c0', '#a8a8a8']
-                                    : ['#facc15', '#f59e0b'],
-                        };
-                    // Speed challenge already marked as completed above, just update rank
-                    userService.updatePlacement({
-                        rank: cappedFallback.rank,
-                        xp: cappedFallback.xp,
-                        level: cappedFallback.rank,
-                    }).then(() => {
-                        updateCurrentUser({ rank: cappedFallback.rank, xp: cappedFallback.xp, level: cappedFallback.rank });
-                    }).catch(() => { });
-                    try {
-                        localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify({
-                            rank: cappedFallback.rank, label: cappedFallback.label,
-                            color: cappedFallback.color, xp: cappedFallback.xp, message: cappedFallback.message,
-                        }));
-                    } catch (_) { }
-                });
+                    .then((r) => r.json())
+                    .then((aiResult) => {
+                        setAiAnalysis(aiResult);
+                        const authoritative = fallback;
+                        setPlacement(authoritative);
+
+                        // Persist the solved-count-based rank to backend (completion already done above)
+                        userService.updatePlacement({
+                            rank: authoritative.rank,
+                            xp: authoritative.xp,
+                            level: authoritative.rank,
+                        }).then(() => {
+                            updateCurrentUser({ rank: authoritative.rank, xp: authoritative.xp, level: authoritative.rank });
+                        }).catch(() => { });
+
+                        try {
+                            localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify(authoritative));
+                        } catch (_) { }
+                    })
+                    .catch(() => {
+                        // AI failed â€” keep fallback placement, mark analysis as unavailable
+                        setAiAnalysis(null);
+                        const cappedFallbackRank = clampSpeedChallengeRank(fallback.rank);
+                        const cappedFallback = cappedFallbackRank === fallback.rank
+                            ? fallback
+                            : {
+                                ...fallback,
+                                rank: cappedFallbackRank,
+                                label: cappedFallbackRank === 'BRONZE' ? 'Bronze' : cappedFallbackRank === 'SILVER' ? 'Silver' : 'Gold',
+                                color: cappedFallbackRank === 'BRONZE' ? '#cd7f32' : cappedFallbackRank === 'SILVER' ? '#c0c0c0' : '#facc15',
+                                gradient: cappedFallbackRank === 'BRONZE'
+                                    ? ['#cd7f32', '#a0522d']
+                                    : cappedFallbackRank === 'SILVER'
+                                        ? ['#c0c0c0', '#a8a8a8']
+                                        : ['#facc15', '#f59e0b'],
+                            };
+                        // Speed challenge already marked as completed above, just update rank
+                        userService.updatePlacement({
+                            rank: cappedFallback.rank,
+                            xp: cappedFallback.xp,
+                            level: cappedFallback.rank,
+                        }).then(() => {
+                            updateCurrentUser({ rank: cappedFallback.rank, xp: cappedFallback.xp, level: cappedFallback.rank });
+                        }).catch(() => { });
+                        try {
+                            localStorage.setItem(PLACEMENT_STORAGE_KEY, JSON.stringify({
+                                rank: cappedFallback.rank, label: cappedFallback.label,
+                                color: cappedFallback.color, xp: cappedFallback.xp, message: cappedFallback.message,
+                            }));
+                        } catch (_) { }
+                    });
+            });
         },
         [secondsLeft, activeProblems, codes, languages, updateCurrentUser]
     );
@@ -1317,32 +1481,38 @@ const SpeedChallengePage = () => {
 
     if (phase === PHASE.RESULT) {
         return (
-            <PlacementResult
-                placement={placement}
-                solvedIds={solvedIds}
-                totalSeconds={elapsedSeconds}
-                problems={activeProblems}
-                aiAnalysis={aiAnalysis}
-                onDone={handleDone}
-            />
+            <Suspense fallback={<SpeedChallengeSkeleton />}>
+                <LazyPlacementResult
+                    placement={placement}
+                    solvedIds={solvedIds}
+                    totalSeconds={elapsedSeconds}
+                    problems={activeProblems}
+                    aiAnalysis={aiAnalysis}
+                    onDone={handleDone}
+                />
+            </Suspense>
         );
     }
 
     return (
-        <ChallengeArena
-            problems={activeProblems}
-            currentIndex={currentIndex}
-            setCurrentIndex={setCurrentIndex}
-            codes={codes}
-            onCodeChange={handleCodeChange}
-            languages={languages}
-            onLanguageChange={handleLanguageChange}
-            secondsLeft={secondsLeft}
-            elapsedSeconds={elapsedSeconds}
-            solvedIds={solvedIds}
-            onMarkSolved={handleMarkSolved}
-            onFinish={() => handleFinish(false)}
-        />
+        loadingProblems ? (
+            <SpeedChallengeSkeleton />
+        ) : (
+            <ChallengeArena
+                problems={activeProblems}
+                currentIndex={currentIndex}
+                setCurrentIndex={setCurrentIndex}
+                codes={codes}
+                onCodeChange={handleCodeChange}
+                languages={languages}
+                onLanguageChange={handleLanguageChange}
+                secondsLeft={secondsLeft}
+                elapsedSeconds={elapsedSeconds}
+                solvedIds={solvedIds}
+                onMarkSolved={handleMarkSolved}
+                onFinish={() => handleFinish(false)}
+            />
+        )
     );
 };
 

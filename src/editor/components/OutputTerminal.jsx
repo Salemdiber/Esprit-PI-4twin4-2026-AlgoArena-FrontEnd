@@ -6,7 +6,8 @@
  *   isRunning  – boolean (shows a pulsing cursor while running)
  */
 import React, { useRef, useEffect } from 'react';
-import { Box, Flex, Text, Icon, keyframes } from '@chakra-ui/react';
+import { Box, Flex, Text, Icon } from '@chakra-ui/react';
+import { keyframes } from '@emotion/react';
 import { useTranslation } from 'react-i18next';
 
 const blink = keyframes`

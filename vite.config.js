@@ -264,6 +264,14 @@ export default defineConfig({
       "/api": createProxyConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       }),
+      "/auth/login": createProxyConfig(),
+      "/auth/register": createProxyConfig(),
+      "/auth/refresh": createProxyConfig(),
+      "/auth/logout": createProxyConfig(),
+      "/auth/check-availability": createProxyConfig(),
+      "/auth/forgot-password": createProxyConfig(),
+      "/auth/verify-reset-code": createProxyConfig(),
+      "/auth/reset-password": createProxyConfig(),
       "/settings": createProxyConfig(),
       "/user": createProxyConfig(),
       "/challenges": createProxyConfig({
@@ -291,6 +299,14 @@ export default defineConfig({
       "/api": createProxyConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       }),
+      "/auth/login": createProxyConfig(),
+      "/auth/register": createProxyConfig(),
+      "/auth/refresh": createProxyConfig(),
+      "/auth/logout": createProxyConfig(),
+      "/auth/check-availability": createProxyConfig(),
+      "/auth/forgot-password": createProxyConfig(),
+      "/auth/verify-reset-code": createProxyConfig(),
+      "/auth/reset-password": createProxyConfig(),
       "/settings": createProxyConfig(),
       "/user": createProxyConfig(),
       "/challenges": createProxyConfig({

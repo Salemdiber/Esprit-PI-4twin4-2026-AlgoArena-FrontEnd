@@ -6,7 +6,10 @@ const routePrefetchers = [
     { match: (path) => path === '/signup', load: () => import('../pages/Frontoffice/SignUp') },
     { match: (path) => path === '/forgot-password', load: () => import('../pages/Frontoffice/auth/pages/ForgotPasswordPage') },
     { match: (path) => path === '/challenges', load: () => import('../pages/Frontoffice/challenges/pages/ChallengesListPage') },
-    { match: (path) => path.startsWith('/challenges/'), load: () => import('../pages/Frontoffice/challenges/pages/ChallengePlayPage') },
+    // NOTE: Challenge play is heavy (Monaco editor). Avoid prefetching the play
+    // page here to prevent Monaco and its workers from being downloaded during
+    // initial idle prefetch. The regular route lazy-loading will load it when
+    // the user actually navigates to a specific challenge.
     { match: (path) => path === '/battles', load: () => import('../pages/Frontoffice/battles/pages/BattleListPage') },
     { match: (path) => path.startsWith('/battles/'), load: () => import('../pages/Frontoffice/battles/pages/ActiveBattlePage') },
     { match: (path) => path === '/leaderboard', load: () => import('../pages/Frontoffice/leaderboard/pages/LeaderboardPage') },

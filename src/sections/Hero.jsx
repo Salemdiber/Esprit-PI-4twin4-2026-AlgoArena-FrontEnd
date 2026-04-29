@@ -22,25 +22,29 @@ const MotionBox = m.create(Box);
 
 const languages = ['C', 'C++', 'Java', 'Python', 'JS', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript', 'Scala', 'Perl', 'R'];
 
-const PixelGrid = () => {
+const PixelGrid = ({ enabled }) => {
     const containerRef = useRef(null);
     const pixelsRef = useRef([]);
     const gridSize = 15;
 
     // Generate static grid data once
     const pixels = useMemo(() => {
+        if (!enabled) return [];
+
         const newPixels = [];
         for (let i = 0; i < gridSize * gridSize; i++) {
-            const hasLang = Math.random() > 0.7;
+            const hasLang = i % 3 === 0;
             newPixels.push({
                 id: i,
-                lang: hasLang ? languages[Math.floor(Math.random() * languages.length)] : null,
+                lang: hasLang ? languages[(i * 7) % languages.length] : null,
             });
         }
         return newPixels;
-    }, []);
+    }, [enabled]);
 
     useEffect(() => {
+        if (!enabled) return undefined;
+
         const container = containerRef.current;
         if (!container) return undefined;
 
@@ -95,7 +99,11 @@ const PixelGrid = () => {
             section.removeEventListener('mousemove', handleMouseMove);
             if (rafId) cancelAnimationFrame(rafId);
         };
-    }, []);
+    }, [enabled]);
+
+    if (!enabled) {
+        return null;
+    }
 
     return (
         <Box
@@ -244,7 +252,7 @@ const Hero = () => {
             observer.disconnect();
             stop();
         };
-    }, []);
+    }, [showDecorations]);
 
     return (
         <Box
@@ -290,10 +298,10 @@ const Hero = () => {
             </Box>
 
             {/* Optimized Pixel Grid Layer */}
-            <PixelGrid />
+            <PixelGrid enabled={showDecorations} />
 
             {/* Floating Code Snippets */}
-            {['function solve() {', 'const result = [];', 'return optimized;', 'while (i < n) {'].map((code, index) => (
+            {showDecorations && ['function solve() {', 'const result = [];', 'return optimized;', 'while (i < n) {'].map((code, index) => (
                 <Text
                     key={index}
                     position="absolute"

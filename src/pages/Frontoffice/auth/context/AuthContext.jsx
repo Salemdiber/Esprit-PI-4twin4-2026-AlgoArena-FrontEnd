@@ -42,10 +42,12 @@ const writeStorage = (data) => {
         } else {
             localStorage.removeItem('isAuthenticated');
         }
+        window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: data.user } }));
     } else {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem('isAuthenticated');
         removeToken();
+        window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: null } }));
     }
 };
 
