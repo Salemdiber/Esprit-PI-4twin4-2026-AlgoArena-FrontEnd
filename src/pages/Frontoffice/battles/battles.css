@@ -21,7 +21,7 @@
     padding: 6rem 1rem 2rem;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     background-image:
         linear-gradient(var(--color-grid-line) 1px, transparent 1px),
         linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
@@ -34,7 +34,7 @@
 .battle-page h4,
 .battle-page h5,
 .battle-page h6 {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-heading);
 }
 
 .battle-container {
@@ -574,7 +574,7 @@
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
 }
 
 .battle-btn--primary {
@@ -1454,7 +1454,7 @@
     font-size: 0.875rem;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     appearance: auto;
 }
 
@@ -1522,7 +1522,7 @@
 .battle-score-value {
     font-size: 1.5rem;
     font-weight: 700;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-heading);
 }
 
 .battle-score-value--player {

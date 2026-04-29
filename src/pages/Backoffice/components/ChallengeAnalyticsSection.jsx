@@ -446,13 +446,13 @@ const ChallengeAnalyticsSection = ({ challengeSubmissionOverview = [], getDiffCo
                 <Flex px={3} py={2} borderRadius="md" border="1px solid var(--color-border)" bg="var(--color-bg-card)"><Text fontSize="xs">Top language: {(Object.entries(visibleSubmissions.reduce((acc, item) => { const key = String(item.language || 'n/a').toLowerCase(); acc[key] = (acc[key] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0]?.[0]) || '—'}</Text></Flex>
               </SimpleGrid>
 
-              <Flex gap={2}>
-                <Flex as="button" type="button" px={3} py={1.5} borderRadius="md" border="1px solid var(--color-border)" bg={submissionTab === 'all' ? 'var(--color-info-bg)' : 'transparent'} color={submissionTab === 'all' ? 'var(--color-cyan-400)' : 'var(--color-text-muted)'} onClick={() => setSubmissionTab('all')}>All submissions</Flex>
-                <Flex as="button" type="button" px={3} py={1.5} borderRadius="md" border="1px solid var(--color-border)" bg={submissionTab === 'byUser' ? 'var(--color-info-bg)' : 'transparent'} color={submissionTab === 'byUser' ? 'var(--color-cyan-400)' : 'var(--color-text-muted)'} onClick={() => setSubmissionTab('byUser')}>By user</Flex>
+              <Flex gap={2} p={1} w="fit-content" border="1px solid var(--color-border)" borderRadius="lg" bg="var(--color-bg-secondary)">
+                <Flex as="button" type="button" minH="38px" align="center" px={4} py={2} borderRadius="md" bg={submissionTab === 'all' ? 'var(--color-info-bg)' : 'transparent'} color={submissionTab === 'all' ? 'var(--color-cyan-400)' : 'var(--color-text-muted)'} fontWeight="700" fontSize="sm" onClick={() => setSubmissionTab('all')}>All submissions</Flex>
+                <Flex as="button" type="button" minH="38px" align="center" px={4} py={2} borderRadius="md" bg={submissionTab === 'byUser' ? 'var(--color-info-bg)' : 'transparent'} color={submissionTab === 'byUser' ? 'var(--color-cyan-400)' : 'var(--color-text-muted)'} fontWeight="700" fontSize="sm" onClick={() => setSubmissionTab('byUser')}>By user</Flex>
               </Flex>
 
               {submissionTab === 'all' ? (
-                <VStack align="stretch" spacing={2} maxH="360px" overflowY="auto" className="scrollbar-thin">
+                <VStack align="stretch" spacing={2.5} maxH="480px" overflowY="auto" className="scrollbar-thin" pr={1}>
                   {visibleSubmissions.map((submission, idx) => {
                     const rowKey = `${submission.userId || 'unknown'}-${submission.submittedAt || idx}-${submission.status || 'failed'}`;
                     const status = normalizeSubmissionStatus(submission.status);
@@ -462,10 +462,10 @@ const ChallengeAnalyticsSection = ({ challengeSubmissionOverview = [], getDiffCo
                     const flagged = Boolean(flaggedRows[rowKey] || submission.isFlagged);
                     const expanded = expandedSubmissionKey === rowKey;
                     return (
-                      <Box key={rowKey} borderRadius="lg" border="1px solid var(--color-table-divider)" bg="var(--color-bg-card)" role="group">
-                        <Flex px={4} py={3} align={{ base: 'flex-start', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={2}>
-                          <Flex align="center" gap={3} flex={1} minW={0}>
-                            <Flex align="center" justify="center" boxSize={8} borderRadius="full" bg="var(--color-info-bg)" border="1px solid var(--color-glass-border-strong)">
+                      <Box key={rowKey} borderRadius="xl" border="1px solid var(--color-table-divider)" bg="var(--color-bg-card)" role="group" overflow="hidden" _hover={{ borderColor: 'var(--color-glass-border-strong)', bg: 'var(--color-bg-card-hover)' }}>
+                        <Flex px={4} py={3.5} align="center" gap={4} minH="64px" overflowX="auto">
+                          <Flex align="center" gap={3} flex="1 1 18rem" minW="14rem">
+                            <Flex align="center" justify="center" boxSize={9} flexShrink={0} borderRadius="full" bg="var(--color-info-bg)" border="1px solid var(--color-glass-border-strong)">
                               <Text fontSize="xs" fontWeight="700" color="var(--color-cyan-400)">{(submission.username || '?')[0].toUpperCase()}</Text>
                             </Flex>
                             <Box minW={0}>
@@ -477,7 +477,7 @@ const ChallengeAnalyticsSection = ({ challengeSubmissionOverview = [], getDiffCo
                             </Box>
                           </Flex>
 
-                          <Flex gap={2} align="center" flexWrap="wrap" flexShrink={0}>
+                          <Flex gap={2} align="center" flexWrap="nowrap" flexShrink={0} minW="25rem">
                             <Flex align="center" gap={1} px={2} py={1} borderRadius="full" bg={statusUi.bg} border="1px solid var(--color-border)">
                               <Icon as={status === 'passed' ? CheckCircle2 : status === 'failed' ? XCircle : PauseCircle} boxSize={3} color={statusUi.color} />
                               <Text fontSize="10px" fontWeight="700" color={statusUi.color} textTransform="uppercase">{status}</Text>
@@ -488,7 +488,7 @@ const ChallengeAnalyticsSection = ({ challengeSubmissionOverview = [], getDiffCo
                               <Icon as={expanded ? EyeOff : Eye} boxSize={3} color="var(--color-text-muted)" />
                               <Text fontSize="10px" color="var(--color-text-muted)">{expanded ? 'Hide' : 'Code'}</Text>
                             </Flex>
-                            <Flex as="button" type="button" px={2} py={1} borderRadius="md" border="1px solid var(--color-border)" opacity={0.4} _groupHover={{ opacity: 1 }} onClick={() => toggleFlag(submission, rowKey)}>
+                            <Flex as="button" type="button" align="center" justify="center" boxSize={8} borderRadius="full" border="1px solid var(--color-border)" opacity={flagged ? 1 : 0.55} _groupHover={{ opacity: 1 }} _hover={{ bg: 'var(--color-hover-bg)' }} onClick={() => toggleFlag(submission, rowKey)}>
                               <Icon as={Flag} boxSize={3} color={flagged ? 'var(--color-red-500)' : 'var(--color-text-muted)'} />
                             </Flex>
                           </Flex>

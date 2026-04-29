@@ -4,7 +4,7 @@
  * Victory/Defeat banner, scoreboard, round breakdown,
  * and performance analytics — all dynamically derived.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
@@ -22,7 +22,7 @@ import {
     BattleStatus,
 } from '../types/battle.types';
 import RoundCard from '../components/RoundCard';
-import PerformanceAnalytics from '../components/PerformanceAnalytics';
+const PerformanceAnalytics = lazy(() => import('../components/PerformanceAnalytics'));
 import '../battles.css';
 
 const BattleSummaryPage = () => {
@@ -362,7 +362,9 @@ const BattleSummaryPage = () => {
                 {/* Performance Analytics */}
                 <div className="battle-mb-xl battle-summary-animate battle-summary-animate--6">
                     <h2 className="battle-text-xl battle-font-bold battle-mb-md">{t('battles.performanceAnalytics')}</h2>
-                    <PerformanceAnalytics battle={battle} />
+                    <Suspense fallback={<div style={{ minHeight: '320px' }} aria-busy="true" />}>
+                        <PerformanceAnalytics battle={battle} />
+                    </Suspense>
                 </div>
 
                 {/* Action Buttons */}

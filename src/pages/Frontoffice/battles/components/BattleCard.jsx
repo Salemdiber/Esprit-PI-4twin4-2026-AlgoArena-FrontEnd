@@ -97,6 +97,10 @@ const BattleCard = ({ battle, onEnter, onJoin, onViewSummary, onCancel, aiBattle
                     <img
                         src={opponentAvatar}
                         alt={battle.opponent?.name || t('battles.opponent')}
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                        decoding="async"
                         style={{
                             width: '3rem', height: '3rem', borderRadius: '50%',
                             border: isLive ? '2px solid var(--color-cyan-400)' : '2px solid var(--color-border-hover)',

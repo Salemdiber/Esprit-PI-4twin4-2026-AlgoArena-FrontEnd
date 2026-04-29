@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Flex, Text, Checkbox, Input, VStack } from '@chakra-ui/react';
+import { Box, Text, Checkbox, Input, VStack } from '@chakra-ui/react';
 import { BattleMode, BattleStatus } from '../types/battle.types';
 
 const FilterSection = ({ title, children }) => (
@@ -68,23 +68,17 @@ const BattleFilters = ({ onFilterChange }) => {
                 <FilterSection title={t('battles.mode')}>
                     <VStack spacing={2} align="stretch">
                         {modes.map(mode => (
-                            <Flex
+                            <Checkbox
                                 key={mode.key}
-                                as="label"
-                                align="center"
-                                gap={3}
-                                cursor="pointer"
-                                _hover={{ '& > span:first-of-type': { color: 'brand.500' } }}
+                                isChecked={filters.modes.includes(mode.key)}
+                                onChange={() => toggleFilter('modes', mode.key)}
+                                colorScheme="cyan"
+                                size="md"
+                                borderColor="var(--color-border)"
+                                sx={{ '.chakra-checkbox__label': { color: 'var(--color-text-primary)', fontSize: 'sm', fontWeight: 'medium' } }}
                             >
-                                <Checkbox
-                                    isChecked={filters.modes.includes(mode.key)}
-                                    onChange={() => toggleFilter('modes', mode.key)}
-                                    colorScheme="cyan"
-                                    size="md"
-                                    borderColor="var(--color-border)"
-                                />
-                                <Text color="var(--color-text-primary)" fontSize="sm" fontWeight="medium" transition="colors 0.2s">{mode.label}</Text>
-                            </Flex>
+                                {mode.label}
+                            </Checkbox>
                         ))}
                     </VStack>
                 </FilterSection>
@@ -93,33 +87,41 @@ const BattleFilters = ({ onFilterChange }) => {
                 <FilterSection title={t('battles.status')}>
                     <VStack spacing={2} align="stretch">
                         {statuses.map(status => (
-                            <Flex
+                            <Checkbox
                                 key={status.key}
-                                as="label"
-                                align="center"
-                                gap={3}
-                                cursor="pointer"
-                                _hover={{ '& > span:first-of-type': { color: 'brand.500' } }}
+                                isChecked={filters.statuses.includes(status.key)}
+                                onChange={() => toggleFilter('statuses', status.key)}
+                                colorScheme="cyan"
+                                size="md"
+                                borderColor="var(--color-border)"
+                                sx={{ '.chakra-checkbox__label': { color: 'var(--color-text-primary)', fontSize: 'sm', fontWeight: 'medium' } }}
                             >
-                                <Checkbox
-                                    isChecked={filters.statuses.includes(status.key)}
-                                    onChange={() => toggleFilter('statuses', status.key)}
-                                    colorScheme="cyan"
-                                    size="md"
-                                    borderColor="var(--color-border)"
-                                />
-                                <Text color="var(--color-text-primary)" fontSize="sm" fontWeight="medium" transition="colors 0.2s">{status.label}</Text>
-                            </Flex>
+                                {status.label}
+                            </Checkbox>
                         ))}
                     </VStack>
                 </FilterSection>
 
                 {/* Search */}
                 <Box bg="var(--color-bg-card)" border="1px solid var(--color-border)" boxShadow="var(--shadow-card)" borderRadius="12px" p={5}>
-                    <Text fontFamily="heading" fontSize="xs" fontWeight="bold" color="var(--color-text-secondary)" mb={3} textTransform="uppercase" letterSpacing="wider">
+                    <Text
+                        as="label"
+                        htmlFor="battle-search-input"
+                        fontFamily="heading"
+                        fontSize="xs"
+                        fontWeight="bold"
+                        color="var(--color-text-secondary)"
+                        mb={3}
+                        textTransform="uppercase"
+                        letterSpacing="wider"
+                        display="block"
+                    >
                         {t('battles.search')}
                     </Text>
                     <Input
+                        id="battle-search-input"
+                        type="search"
+                        aria-label={t('battles.search')}
                         placeholder={t('battles.opponentNamePlaceholder')}
                         value={filters.search}
                         onChange={handleSearch}

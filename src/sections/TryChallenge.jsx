@@ -658,20 +658,20 @@ bool solution(string s) {
                                             border="1px solid"
                                             borderColor="var(--color-editor-border)"
                                         >
-                                            <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={2}>
+                                            <Text fontSize="xs" fontWeight="bold" color="gray.600" _dark={{ color: 'gray.300' }} mb={2}>
                                                 {t('landing.tryChallenge.exampleN', { n: i + 1 })}
                                             </Text>
                                             <Box fontFamily="mono" fontSize="13px" lineHeight="1.8">
-                                                <Text color={useColorModeValue("gray.500", "gray.400")}>
+                                                <Text color={useColorModeValue("gray.700", "gray.300")}>
                                                     <Text as="span" color="var(--color-text-muted)" fontWeight="semibold">{t('landing.tryChallenge.inputLabel')} </Text>
                                                     {ex.input}
                                                 </Text>
-                                                <Text color="#22c55e">
+                                                <Text color={useColorModeValue("#15803d", "#4ade80")}>
                                                     <Text as="span" color="var(--color-text-muted)" fontWeight="semibold">{t('landing.tryChallenge.outputLabel')} </Text>
                                                     {ex.output}
                                                 </Text>
                                                 {ex.explanation && (
-                                                    <Text color="gray.500" fontStyle="italic" mt={1}>
+                                                    <Text color="gray.600" _dark={{ color: 'gray.300' }} fontStyle="italic" mt={1}>
                                                         {ex.explanation}
                                                     </Text>
                                                 )}

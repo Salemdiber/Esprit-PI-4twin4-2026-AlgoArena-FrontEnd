@@ -159,9 +159,12 @@ const Games = () => {
     const textColor = useColorModeValue('gray.600', 'gray.300');
     const codeBg = useColorModeValue('gray.100', 'gray.800');
     const codeColor = useColorModeValue('gray.700', 'gray.300');
-    const mutedColor = useColorModeValue('gray.500', 'gray.400');
+    const mutedColor = useColorModeValue('gray.600', 'gray.300');
     const inactiveGrid = useColorModeValue('gray.200', 'gray.700');
     const selectBg = useColorModeValue('gray.100', 'gray.800');
+    // Stat-number accents: green.400/yellow.400 fail WCAG on light bg.
+    const accentGreen = useColorModeValue('green.700', 'green.300');
+    const accentYellow = useColorModeValue('yellow.700', 'yellow.300');
 
     return (
         <Box id="games" as="section" py={20} bg={sectionBg}>
@@ -235,16 +238,36 @@ const Games = () => {
                                         <Box w={3} h={3} borderRadius="full" bg="yellow.500" />
                                         <Box w={3} h={3} borderRadius="full" bg="green.500" />
                                     </HStack>
-                                    <Select
-                                        bg={selectBg}
-                                        color={textColor}
-                                        size="sm"
-                                        borderColor={borderColor}
-                                        width="auto"
-                                    >
-                                        <option value="javascript">{t('landing.games.javascript')}</option>
-                                        <option value="python">{t('landing.games.python')}</option>
-                                    </Select>
+                                    <Box position="relative" width="auto">
+                                        <Box
+                                            as="label"
+                                            htmlFor="games-language-select"
+                                            position="absolute"
+                                            width="1px"
+                                            height="1px"
+                                            padding={0}
+                                            margin="-1px"
+                                            overflow="hidden"
+                                            clip="rect(0 0 0 0)"
+                                            whiteSpace="nowrap"
+                                            border={0}
+                                        >
+                                            {t('landing.games.languageLabel', 'Language')}
+                                        </Box>
+                                        <Select
+                                            id="games-language-select"
+                                            name="games-language"
+                                            aria-label={t('landing.games.languageLabel', 'Language')}
+                                            bg={selectBg}
+                                            color={textColor}
+                                            size="sm"
+                                            borderColor={borderColor}
+                                            width="auto"
+                                        >
+                                            <option value="javascript">{t('landing.games.javascript')}</option>
+                                            <option value="python">{t('landing.games.python')}</option>
+                                        </Select>
+                                    </Box>
                                 </HStack>
 
                                 <Code
@@ -320,7 +343,7 @@ const Games = () => {
                                         </Text>
                                     </Box>
                                     <Box bg={codeBg} borderRadius="8px" p={3} textAlign="center">
-                                        <Text fontSize="2xl" fontWeight="bold" color="green.400">
+                                        <Text fontSize="2xl" fontWeight="bold" color={accentGreen}>
                                             {stats.lines}
                                         </Text>
                                         <Text fontSize="xs" color={mutedColor}>
@@ -328,7 +351,7 @@ const Games = () => {
                                         </Text>
                                     </Box>
                                     <Box bg={codeBg} borderRadius="8px" p={3} textAlign="center">
-                                        <Text fontSize="2xl" fontWeight="bold" color="yellow.400">
+                                        <Text fontSize="2xl" fontWeight="bold" color={accentYellow}>
                                             {stats.level}
                                         </Text>
                                         <Text fontSize="xs" color={mutedColor}>

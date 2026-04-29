@@ -134,6 +134,24 @@ const normalizeSubmission = (submission) => ({
     loadTime: submission?.loadTime || '0ms',
     timeComplexity: submission?.timeComplexity || 'Unknown',
     spaceComplexity: submission?.spaceComplexity || 'Unknown',
+    // Source of the complexity estimate: 'ml-model' (XGBoost CodeComplex
+    // pipeline running in the Complexity-Model microservice), 'ai' (LLM
+    // estimate from the judge's AIAnalysisService) or 'unknown'.
+    complexitySource: submission?.complexitySource || (submission?.timeComplexity && submission.timeComplexity !== 'Unknown' ? 'ai' : 'unknown'),
+    complexityConfidence: Number.isFinite(Number(submission?.complexityConfidence))
+        ? Number(submission.complexityConfidence)
+        : null,
+    complexityModelVersion: submission?.complexityModelVersion || null,
+    // Short justification produced by the model's pattern-rule layer
+    // (e.g. "Expand-around-centers palindrome pattern: ..."). Empty
+    // string when the trained classifier was the decider, in which
+    // case the UI shows the generic AlgoArena CodeAnalyser branding
+    // without an inline explanation.
+    complexityReasoning:
+        typeof submission?.complexityReasoning === 'string'
+            ? submission.complexityReasoning
+            : '',
+    complexityMethod: submission?.complexityMethod || null,
     aiDetection: submission?.aiDetection || 'MANUAL',
     recommendations: Array.isArray(submission?.recommendations) ? submission.recommendations : [],
     aiAnalysis: submission?.aiAnalysis || null,
