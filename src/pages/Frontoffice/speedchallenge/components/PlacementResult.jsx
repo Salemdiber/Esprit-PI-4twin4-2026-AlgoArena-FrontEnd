@@ -72,6 +72,20 @@ const ScoreBar = ({ label, value, color }) => (
 const diffColor = (d) =>
     d === 'HARD' ? '#ef4444' : d === 'MEDIUM' ? '#facc15' : '#22c55e';
 
+const sourceLabel = (source) => {
+    if (source === 'ml-model') return 'ML';
+    if (source === 'ai') return 'AI';
+    if (source === 'groq') return 'GROQ';
+    return '—';
+};
+
+const sourceVisuals = {
+    'ml-model': { bg: 'rgba(34,211,238,0.14)', border: 'rgba(34,211,238,0.35)', color: '#22d3ee' },
+    ai: { bg: 'rgba(168,85,247,0.14)', border: 'rgba(168,85,247,0.35)', color: '#a855f7' },
+    groq: { bg: 'rgba(249,115,22,0.14)', border: 'rgba(249,115,22,0.35)', color: '#fb923c' },
+    unknown: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.10)', color: 'gray.400' },
+};
+
 /** AI analysis section */
 const AIAnalysisSection = ({ aiAnalysis }) => {
     const { t } = useTranslation();
@@ -113,6 +127,14 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
     }
 
     const { aiScores, breakdown, totalScore } = aiAnalysis;
+    const globalSource = breakdown?.some((b) => b.complexitySource === 'groq')
+        ? 'groq'
+        : breakdown?.some((b) => b.complexitySource === 'ml-model')
+        ? 'ml-model'
+        : breakdown?.some((b) => b.complexitySource === 'ai')
+            ? 'ai'
+            : 'unknown';
+    const globalSourceStyle = sourceVisuals[globalSource] || sourceVisuals.unknown;
 
     return (
         <Box w="100%">
@@ -129,6 +151,24 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                     <Text as="span" fontWeight="bold" color="white">{totalScore}</Text>
                     /100
                 </Text>
+                <Box
+                    px={2}
+                    py={0.5}
+                    borderRadius="full"
+                    bg={globalSourceStyle.bg}
+                    border="1px solid"
+                    borderColor={globalSourceStyle.border}
+                >
+                    <Text
+                        fontSize="9px"
+                        fontFamily="mono"
+                        fontWeight="bold"
+                        color={globalSourceStyle.color}
+                        letterSpacing="0.08em"
+                    >
+                        {sourceLabel(globalSource)}
+                    </Text>
+                </Box>
             </HStack>
 
             {/* Aggregate score bars */}
@@ -202,6 +242,29 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
                                             ));
                                         })()}
                                     </Flex>
+                                    <HStack spacing={2} mb={2} justify="flex-end">
+                                        <Text fontSize="9px" fontFamily="mono" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                                            Source
+                                        </Text>
+                                        <Box
+                                            px={2}
+                                            py={0.5}
+                                            borderRadius="full"
+                                            bg={b.complexitySource === 'ml-model' ? 'rgba(34,211,238,0.14)' : b.complexitySource === 'ai' ? 'rgba(168,85,247,0.14)' : b.complexitySource === 'groq' ? 'rgba(249,115,22,0.14)' : 'rgba(255,255,255,0.06)'}
+                                            border="1px solid"
+                                            borderColor={b.complexitySource === 'ml-model' ? 'rgba(34,211,238,0.35)' : b.complexitySource === 'ai' ? 'rgba(168,85,247,0.35)' : b.complexitySource === 'groq' ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.10)'}
+                                        >
+                                            <Text
+                                                fontSize="9px"
+                                                fontFamily="mono"
+                                                fontWeight="bold"
+                                                color={b.complexitySource === 'ml-model' ? '#22d3ee' : b.complexitySource === 'ai' ? '#a855f7' : b.complexitySource === 'groq' ? '#fb923c' : 'gray.400'}
+                                                letterSpacing="0.08em"
+                                            >
+                                                {sourceLabel(b.complexitySource)}
+                                            </Text>
+                                        </Box>
+                                    </HStack>
                                     {b.notes && (
                                         <Text fontSize="10px" color="gray.500" fontStyle="italic" lineHeight="1.5">
                                             {b.notes}
