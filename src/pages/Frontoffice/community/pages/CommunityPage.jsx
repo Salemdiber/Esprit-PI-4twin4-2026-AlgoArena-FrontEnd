@@ -63,7 +63,6 @@ const CommunityPage = () => {
         counts[key] = (counts[key] || 0) + 1;
       });
     });
-    return [...bag].sort((a, b) => String(a).localeCompare(String(b)));
     return Object.entries(counts)
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)

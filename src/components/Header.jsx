@@ -449,7 +449,7 @@ const Header = () => {
                 <Flex h={16} alignItems="center" justifyContent="space-between">
                     {/* ──── LEFT: Logo ──── */}
                     <Box display="flex" alignItems="center" flexShrink={0}>
-                        <Image src={Logo} alt={t('header.logoAlt')} h="52px" width="65px" height="52px" objectFit="contain" loading="eager" decoding="async" fetchpriority="high" />
+                        <Image src={Logo} alt={t('header.logoAlt')} h="52px" width="65px" height="52px" objectFit="contain" loading="eager" decoding="async" fetchPriority="high" />
                     </Box>
 
                     {/* ──── CENTER: Desktop Navigation ──── */}

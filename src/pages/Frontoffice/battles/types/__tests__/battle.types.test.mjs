@@ -133,4 +133,43 @@ describe('battle.types', () => {
         expect(getXPEarned(timeBattle)).toBe(300);
         expect(getRankProgress(timeBattle)).toBe(45);
     });
+
+    it('covers draw and opponent-win branches in winner helpers', () => {
+        const drawBattle = {
+            totalRounds: 1,
+            rounds: [
+                {
+                    status: RoundStatus.COMPLETED,
+                    result: RoundResult.PENDING,
+                    playerScore: 50,
+                    opponentScore: 50,
+                    efficiency: 50,
+                    timeSpent: '1:00',
+                    playerResult: { executionTimeMs: 150 },
+                    opponentResult: { executionTimeMs: 150 },
+                },
+            ],
+        };
+
+        const opponentBattle = {
+            totalRounds: 1,
+            rounds: [
+                {
+                    status: RoundStatus.COMPLETED,
+                    result: RoundResult.LOST,
+                    playerScore: 40,
+                    opponentScore: 60,
+                    efficiency: 60,
+                    timeSpent: '1:30',
+                    playerResult: { executionTimeMs: 240 },
+                    opponentResult: { executionTimeMs: 180 },
+                },
+            ],
+        };
+
+        expect(getWinner(drawBattle)).toBe('draw');
+        expect(getRankProgress(drawBattle)).toBe(10);
+        expect(getWinner(opponentBattle)).toBe('opponent');
+        expect(getRankProgress(opponentBattle)).toBe(-20);
+    });
 });

@@ -279,9 +279,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/docs": createProxyConfig(),
-      "/api": createProxyConfig({
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      }),
+      "/api": createProxyConfig(),
       "/auth/login": createProxyConfig(),
       "/auth/google": createProxyConfig(),
       "/auth/google/callback": createProxyConfig(),
@@ -318,9 +316,7 @@ export default defineConfig({
     },
     proxy: {
       "/api/docs": createProxyConfig(),
-      "/api": createProxyConfig({
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      }),
+      "/api": createProxyConfig(),
       "/auth/login": createProxyConfig(),
       "/auth/google": createProxyConfig(),
       "/auth/google/callback": createProxyConfig(),

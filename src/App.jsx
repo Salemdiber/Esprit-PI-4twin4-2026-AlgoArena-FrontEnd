@@ -363,6 +363,14 @@ const FeatureScopedProviders = ({ children }) => {
     return children;
   }
 
+  if (needsBattleState) {
+    return (
+      <BattleProvider>
+        <ChallengeProvider>{children}</ChallengeProvider>
+      </BattleProvider>
+    );
+  }
+
   return (
     <>
       {needsChallengeState ? (
