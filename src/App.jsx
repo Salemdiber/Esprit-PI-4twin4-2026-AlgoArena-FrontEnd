@@ -351,7 +351,9 @@ const FeatureScopedProviders = ({ children }) => {
       {needsChallengeState ? (
         <ChallengeProvider>{children}</ChallengeProvider>
       ) : needsBattleState ? (
-        <BattleProvider>{children}</BattleProvider>
+        <ChallengeProvider>
+          <BattleProvider>{children}</BattleProvider>
+        </ChallengeProvider>
       ) : (
         <ProfileProvider>{children}</ProfileProvider>
       )}

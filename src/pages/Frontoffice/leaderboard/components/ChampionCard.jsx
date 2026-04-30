@@ -9,13 +9,12 @@
  *  • Aura ring around avatar
  */
 import React from 'react';
-import { Box, Flex, Text, Grid } from '@chakra-ui/react';
+import { Box, Flex, Text, Image, Grid } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import RankBadge from './RankBadge';
 import EnergyBar from './EnergyBar';
 import StreakIndicator from './StreakIndicator';
-import AvatarMedia from './AvatarMedia';
 
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
@@ -128,11 +127,12 @@ const ChampionCard = ({ player }) => {
                             border="4px solid #22d3ee"
                             boxShadow="0 0 50px rgba(34, 211, 238, 0.6), 0 0 100px rgba(34, 211, 238, 0.3)"
                         >
-                            <AvatarMedia
+                            <Image
                                 src={player.avatar}
-                                username={player.username}
-                                size={128}
-                                eager
+                                alt={player.username}
+                                w="full"
+                                h="full"
+                                objectFit="cover"
                             />
                         </Box>
                         {/* Aura ring */}
