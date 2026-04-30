@@ -8,14 +8,13 @@
  * Current-user rows get a highlighted border + glow.
  */
 import React from 'react';
-import { Box, Flex, Text, Grid, Badge, useColorModeValue } from '@chakra-ui/react';
+import { Box, Flex, Text, Image, Grid, Badge, useColorModeValue } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import RankBadge from './RankBadge';
 import EnergyBar from './EnergyBar';
 import StreakIndicator from './StreakIndicator';
 import TrendIndicator from './TrendIndicator';
-import AvatarMedia from './AvatarMedia';
 
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
@@ -119,11 +118,7 @@ const StageCard = ({ player }) => {
                         border={`3px solid ${colors.solid}`}
                         boxShadow={useColorModeValue('sm', `0 0 30px ${colors.glow}`)}
                     >
-                        <AvatarMedia
-                            src={player.avatar}
-                            username={player.username}
-                            size={96}
-                        />
+                        <Image src={player.avatar} alt={player.username} w="full" h="full" objectFit="cover" />
                     </Box>
                 </Box>
 
@@ -258,11 +253,7 @@ const CompactCard = ({ player }) => {
                             : `2px solid ${tierBorderColors[player.tier] || 'rgba(113,113,122,0.5)'}`
                     }
                 >
-                    <AvatarMedia
-                        src={player.avatar}
-                        username={player.username}
-                        size={52}
-                    />
+                    <Image src={player.avatar} alt={player.username} w="full" h="full" objectFit="cover" />
                 </Box>
 
                 {/* Info */}

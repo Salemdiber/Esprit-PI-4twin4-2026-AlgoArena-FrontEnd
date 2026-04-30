@@ -161,6 +161,13 @@ const Hero = () => {
     const sectionRef = useRef(null);
     const spotlightRef = useRef(null);
     const [progress, setProgress] = useState(0);
+    const showDecorations = useMemo(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            return true;
+        }
+
+        return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }, []);
     // activeCubes is a Set of indices that are currently "lit". The grid
     // always renders TOTAL_CUBES cells – activation only flips opacity, so
     // the grid never changes size and the page below the hero never reflows

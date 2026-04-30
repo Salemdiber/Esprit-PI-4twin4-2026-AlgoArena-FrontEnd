@@ -8,7 +8,7 @@
  *  • contender list for the remaining ranks
  *  • graceful fallback when live data is unavailable
  */
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Badge,
     Box,
@@ -16,28 +16,150 @@ import {
     Icon,
     IconButton,
     SimpleGrid,
-    Skeleton,
     Text,
     Tooltip,
     useColorModeValue,
     VStack,
 } from '@chakra-ui/react';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 import LeaderboardHeader from '../components/LeaderboardHeader';
+import ArenaStage from '../components/ArenaStage';
+import RankCard from '../components/RankCard';
 import mockLeaderboard from '../data/mockLeaderboard';
 import useAccessibility from '../../../../accessibility/hooks/useAccessibility';
 import { readAloud, stopSpeaking, getPageText } from '../../../../accessibility/utils/speechUtils';
 import LeaderboardSkeleton from '../../../../shared/skeletons/LeaderboardSkeleton';
 import { userService } from '../../../../services/userService';
 import { useAuth } from '../../auth/context/AuthContext';
-import { buildLeaderboardRows } from '../utils/leaderboardUtils';
 
-// Heavy podium / rank components are split into their own chunks so the
-// initial /leaderboard payload stays small (better Lighthouse TBT / unused-JS).
-const ArenaStage = lazy(() => import('../components/ArenaStage'));
-const RankCard = lazy(() => import('../components/RankCard'));
+const MotionBox = m.create(Box);
 
+const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
+const RANK_THRESHOLDS = {
+    BRONZE: 500,
+    SILVER: 1500,
+    GOLD: 3000,
+    PLATINUM: 5000,
+    DIAMOND: 10000,
+};
+
+const normalizeString = (value) => String(value || '').trim().toLowerCase();
+
+const isAdminUser = (user) => normalizeString(user?.role) === 'admin';
+
+const isSameUser = (candidate, currentUser) => {
+    if (!candidate || !currentUser) return false;
+
+    const candidateId = String(candidate._id || candidate.id || '').trim();
+    const currentId = String(currentUser._id || currentUser.id || currentUser.userId || '').trim();
+    if (candidateId && currentId && candidateId === currentId) return true;
+
+    const candidateName = normalizeString(candidate.username);
+    const currentName = normalizeString(currentUser.username);
+    const candidateEmail = normalizeString(candidate.email);
+    const currentEmail = normalizeString(currentUser.email);
+
+    return Boolean(candidateName && currentName && candidateName === currentName)
+        || Boolean(candidateEmail && currentEmail && candidateEmail === currentEmail);
+};
+
+const getTierFromXp = (xp) => {
+    let tier = 'BRONZE';
+    const numericXp = Number(xp || 0);
+
+    RANK_ORDER.forEach((rank) => {
+        if (numericXp >= RANK_THRESHOLDS[rank]) {
+            tier = rank;
+        }
+    });
+
+    return tier;
+};
+
+const getAvatarUrl = (user) => {
+    if (user?.avatar) {
+        if (String(user.avatar).startsWith('http')) return user.avatar;
+        if (String(user.avatar).startsWith('/')) return user.avatar;
+        return `/${String(user.avatar).replace(/^\//, '')}`;
+    }
+
+    const label = encodeURIComponent(user?.username || 'Player');
+    return `https://ui-avatars.com/api/?name=${label}&background=0f172a&color=22d3ee&bold=true`;
+};
+
+const toDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const daysAgo = (date, days) => {
+    if (!date) return false;
+    const ms = Date.now() - date.getTime();
+    return ms <= days * 24 * 60 * 60 * 1000;
+};
+
+const getChallengeProgress = (user) => (Array.isArray(user?.challengeProgress) ? user.challengeProgress : []);
+
+const countSolved = (user) => getChallengeProgress(user).filter((entry) => String(entry?.status || '').toUpperCase() === 'SOLVED').length;
+
+const countAttempts = (user) => getChallengeProgress(user).length;
+
+const getRecentActivityDate = (user) => {
+    const candidates = [
+        toDate(user?.lastLoginDate),
+        toDate(user?.streakUpdatedAt),
+        ...getChallengeProgress(user).map((entry) => toDate(entry?.solvedAt)).filter(Boolean),
+    ].filter(Boolean);
+
+    if (!candidates.length) return null;
+    return candidates.reduce((latest, current) => (current > latest ? current : latest));
+};
+
+const getTrend = (user) => {
+    const recentActivity = getRecentActivityDate(user);
+    const streak = Number(user?.currentStreak ?? user?.streak ?? 0);
+
+    if (!recentActivity) return 'STABLE';
+    if (daysAgo(recentActivity, 1) && streak >= 3) return 'UP';
+    if (daysAgo(recentActivity, 7)) return streak >= 2 ? 'UP' : 'STABLE';
+    return 'DOWN';
+};
+
+const buildLeaderboardRow = (user, currentUser) => {
+    const xp = Number(user?.xp ?? 0);
+    const currentStreak = Number(user?.currentStreak ?? user?.streak ?? 0);
+    const longestStreak = Number(user?.longestStreak ?? currentStreak ?? 0);
+    const solvedChallenges = countSolved(user);
+    const attempts = countAttempts(user);
+    const lastActivity = getRecentActivityDate(user);
+    const tier = String(user?.rank || user?.level || getTierFromXp(xp)).toUpperCase();
+    const wins = solvedChallenges || Number(user?.wins ?? 0);
+    const winRate = attempts > 0 ? Math.round((solvedChallenges / attempts) * 100) : Math.min(99, Math.max(40, Math.round((xp / 120) + currentStreak)));
+    const score = (xp * 100) + (solvedChallenges * 420) + (currentStreak * 120) + (longestStreak * 24) + (lastActivity ? 180 : 0);
+    const isCurrentUser = isSameUser(user, currentUser);
+
+    return {
+        id: user?._id || user?.id || user?.username,
+        username: user?.username || 'Anonymous',
+        avatar: getAvatarUrl(user),
+        rankPosition: 0,
+        tier,
+        xp,
+        winRate,
+        wins,
+        streak: currentStreak,
+        trend: getTrend(user),
+        isCurrentUser,
+        tag: isCurrentUser ? 'YOU' : (currentStreak >= 10 ? 'HOT' : null),
+        solvedChallenges,
+        attempts,
+        lastActivity,
+        score,
+    };
+};
 
 const StatCard = ({ label, value, tone, hint }) => {
     const defaultTone = useColorModeValue('gray.800', 'white');
@@ -69,23 +191,6 @@ const StatCard = ({ label, value, tone, hint }) => {
     );
 };
 
-// Size-reserved skeletons keep CLS = 0 while the lazy chunks are fetched.
-const PodiumFallback = () => (
-    <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={8} mb={20} alignItems="end">
-        <Skeleton height="360px" borderRadius="12px" />
-        <Skeleton height="460px" borderRadius="12px" />
-        <Skeleton height="360px" borderRadius="12px" />
-    </SimpleGrid>
-);
-
-const CompactFallback = () => (
-    <VStack spacing={3} align="stretch">
-        {Array.from({ length: 7 }).map((_, idx) => (
-            <Skeleton key={idx} height="88px" borderRadius="12px" />
-        ))}
-    </VStack>
-);
-
 /* Inline speaker icon */
 const SpeakerIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
@@ -104,35 +209,27 @@ const LeaderboardPage = () => {
     const { currentUser } = useAuth();
     const { t } = useTranslation();
     const mode = useColorModeValue('light', 'dark');
-
-    const noMotion = settings.reducedMotion;
+    const cyanColor = useColorModeValue('cyan.600', '#22d3ee');
+    const amberColor = useColorModeValue('orange.600', '#fbbf24');
+    const blueColor = useColorModeValue('blue.600', '#60a5fa');
     const loadErrorBg = useColorModeValue('orange.50', 'rgba(245, 158, 11, 0.08)');
     const loadErrorColor = useColorModeValue('orange.800', 'orange.100');
-    const loadErrorHintColor = useColorModeValue('orange.700', 'rgba(255, 237, 213, 0.92)');
+    const loadErrorTextColor = useColorModeValue('orange.700', 'rgba(255, 237, 213, 0.92)');
     const currentUserBorderColor = useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.2)');
     const currentUserBg = useColorModeValue('cyan.50', 'rgba(15, 23, 42, 0.72)');
     const currentUserLabelColor = useColorModeValue('cyan.700', '#22d3ee');
     const currentUserTitleColor = useColorModeValue('gray.900', 'white');
-    const voiceButtonBg = useColorModeValue('cyan.100', 'rgba(34, 211, 238, 0.15)');
-    const voiceButtonColor = useColorModeValue('cyan.700', '#22d3ee');
-    const voiceButtonBorderColor = useColorModeValue('cyan.300', 'rgba(34, 211, 238, 0.4)');
-    const voiceButtonHoverBg = useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.3)');
-    const cyanColor = useColorModeValue('cyan.600', '#22d3ee');
-    const amberColor = useColorModeValue('orange.600', '#fbbf24');
-    const blueColor = useColorModeValue('blue.600', '#60a5fa');
+    const voiceBg = useColorModeValue('cyan.100', 'rgba(34, 211, 238, 0.15)');
+    const voiceColor = useColorModeValue('cyan.700', '#22d3ee');
+    const voiceBorderColor = useColorModeValue('cyan.300', 'rgba(34, 211, 238, 0.4)');
+    const voiceHoverBg = useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.3)');
+
+    const noMotion = settings.reducedMotion;
 
     useEffect(() => {
         let cancelled = false;
 
         const loadLeaderboard = async () => {
-            if (!currentUser) {
-                setUsers(mockLeaderboard);
-                setIsFallbackData(true);
-                setLoadError('');
-                setIsLoading(false);
-                return;
-            }
-
             setIsLoading(true);
             setLoadError('');
             setIsFallbackData(false);
@@ -158,12 +255,24 @@ const LeaderboardPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [currentUser, t]);
+    }, [t]);
 
-    const leaderboardRows = useMemo(
-        () => buildLeaderboardRows(users, currentUser),
-        [users, currentUser],
-    );
+    const leaderboardRows = useMemo(() => {
+        return users
+            .filter((user) => !isAdminUser(user))
+            .map((user) => buildLeaderboardRow(user, currentUser))
+            .sort((left, right) => {
+                if (right.score !== left.score) return right.score - left.score;
+                if (right.xp !== left.xp) return right.xp - left.xp;
+                if (right.streak !== left.streak) return right.streak - left.streak;
+                if (right.wins !== left.wins) return right.wins - left.wins;
+                return left.username.localeCompare(right.username);
+            })
+            .map((row, index) => ({
+                ...row,
+                rankPosition: index + 1,
+            }));
+    }, [users, currentUser]);
 
     if (isLoading) {
         return <LeaderboardSkeleton />;
@@ -185,7 +294,10 @@ const LeaderboardPage = () => {
     };
 
     return (
-        <Box
+        <MotionBox
+            initial={noMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={noMotion ? { duration: 0 } : { duration: 0.4 }}
             minH="100vh"
             pt={{ base: 24, md: 28 }}
             pb={{ base: 10, md: 16 }}
@@ -203,7 +315,12 @@ const LeaderboardPage = () => {
                     subtitle={t('leaderboardPage.subtitle')}
                 />
 
-                <Box mb={10}>
+                <MotionBox
+                    initial={noMotion ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={noMotion ? { duration: 0 } : { duration: 0.5, delay: 0.1 }}
+                    mb={10}
+                >
                     <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={4}>
                         <StatCard
                             label={t('leaderboardPage.competitors')}
@@ -230,7 +347,7 @@ const LeaderboardPage = () => {
                             hint={currentUserRow ? t('leaderboardPage.yourCurrentRank', { position: currentUserRow.rankPosition }) : t('leaderboardPage.signInHint')}
                         />
                     </SimpleGrid>
-                </Box>
+                </MotionBox>
 
                 {loadError ? (
                     <Box
@@ -243,21 +360,19 @@ const LeaderboardPage = () => {
                         color={loadErrorColor}
                     >
                         <Text fontWeight="700">{t('leaderboardPage.liveDataUnavailable')}</Text>
-                        <Text mt={1} fontSize="sm" color={loadErrorHintColor}>
+                        <Text mt={1} fontSize="sm" color={loadErrorTextColor}>
                             {loadError} {t('leaderboardPage.demoFallback')}
                         </Text>
                     </Box>
                 ) : null}
 
-                <Suspense fallback={<PodiumFallback />}>
-                    {top3.length >= 3 ? (
-                        <ArenaStage players={top3} />
-                    ) : (
-                        <PodiumFallback />
-                    )}
-                </Suspense>
+                <ArenaStage players={top3} />
 
-                <Box>
+                <MotionBox
+                    initial={noMotion ? false : { opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={noMotion ? { duration: 0 } : { duration: 0.6, delay: 0.35 }}
+                >
                     <Flex align="center" justify="space-between" mb={6} gap={3} flexWrap="wrap">
                         <Box>
                             <Text fontFamily="heading" fontSize="2xl" fontWeight="bold" color="var(--color-text-primary)">
@@ -281,13 +396,11 @@ const LeaderboardPage = () => {
                     </Flex>
 
                     {contenders.length > 0 ? (
-                        <Suspense fallback={<CompactFallback />}>
-                            <VStack spacing={3} align="stretch">
-                                {contenders.map((player) => (
-                                    <RankCard key={player.id} player={player} variant="compact" />
-                                ))}
-                            </VStack>
-                        </Suspense>
+                        <VStack spacing={4} align="stretch">
+                            {contenders.map((player) => (
+                                <RankCard key={player.id} player={player} variant="compact" />
+                            ))}
+                        </VStack>
                     ) : (
                         <Box
                             p={8}
@@ -305,7 +418,7 @@ const LeaderboardPage = () => {
                             </Text>
                         </Box>
                     )}
-                </Box>
+                </MotionBox>
 
                 {currentUserRow ? (
                     <Box
@@ -353,18 +466,18 @@ const LeaderboardPage = () => {
                         zIndex={100}
                         size="lg"
                         borderRadius="full"
-                        bg={voiceButtonBg}
-                        color={voiceButtonColor}
+                        bg={voiceBg}
+                        color={voiceColor}
                         border="1px solid"
-                        borderColor={voiceButtonBorderColor}
-                        _hover={{ bg: voiceButtonHoverBg, transform: 'scale(1.1)' }}
+                        borderColor={voiceBorderColor}
+                        _hover={{ bg: voiceHoverBg, transform: 'scale(1.1)' }}
                         _active={{ transform: 'scale(0.95)' }}
                         boxShadow="0 0 20px rgba(34, 211, 238, 0.3)"
                         onClick={handleReadPage}
                     />
                 </Tooltip>
             )}
-        </Box>
+        </MotionBox>
     );
 };
 
