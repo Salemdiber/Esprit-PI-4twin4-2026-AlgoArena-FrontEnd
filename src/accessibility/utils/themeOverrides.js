@@ -28,20 +28,20 @@ export const applyAccessibilityOverrides = (settings) => {
 
     // ── High contrast ──
     if (settings.highContrast) {
-        root.setAttribute('data-a11y-high-contrast', 'true');
+        root.dataset.a11yHighContrast = 'true';
     } else {
-        root.removeAttribute('data-a11y-high-contrast');
+        delete root.dataset.a11yHighContrast;
     }
 
     // ── Reduced motion ──
     if (settings.reducedMotion) {
-        root.setAttribute('data-a11y-reduced-motion', 'true');
+        root.dataset.a11yReducedMotion = 'true';
     } else {
-        root.removeAttribute('data-a11y-reduced-motion');
+        delete root.dataset.a11yReducedMotion;
     }
 
     // ── Cleanup stale attributes from removed features ──
-    root.removeAttribute('data-a11y-color-blind');
+    delete root.dataset.a11yColorBlind;
     root.style.removeProperty('--a11y-danger');
     root.style.removeProperty('--a11y-success');
     root.style.removeProperty('--a11y-warning');

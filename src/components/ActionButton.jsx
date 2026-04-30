@@ -200,7 +200,7 @@ const ActionButton = ({
 }) => {
     const btnRef = useRef(null);
     const resolvedTone = tone || colorToTone(color);
-    const isLightTheme = typeof document !== 'undefined' && document.documentElement?.getAttribute('data-theme') === 'light';
+    const isLightTheme = typeof document !== 'undefined' && document.documentElement?.dataset?.theme === 'light';
     const palette = isLightTheme ? LIGHT_PALETTE : PALETTE;
     const p = palette[resolvedTone] || palette.gray;
     const Icon = icon;

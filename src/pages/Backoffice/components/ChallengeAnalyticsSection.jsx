@@ -188,7 +188,7 @@ const ChallengeAnalyticsSection = ({ challengeSubmissionOverview = [], getDiffCo
         if (lang && lang !== 'n/a') values.add(lang);
       });
     });
-    return [...values].sort();
+    return [...values].sort((a, b) => String(a).localeCompare(String(b)));
   }, [challengeSubmissionOverview]);
 
   const visibleSubmissions = useMemo(() => {
@@ -443,7 +443,7 @@ const ChallengeAnalyticsSection = ({ challengeSubmissionOverview = [], getDiffCo
                 <Flex px={3} py={2} borderRadius="md" border="1px solid var(--color-border)" bg="var(--color-bg-card)"><Text fontSize="xs">Abandoned: {selectedChallenge.abandonedAttempts}</Text></Flex>
                 <Flex px={3} py={2} borderRadius="md" border="1px solid var(--color-border)" bg="var(--color-bg-card)"><Text fontSize="xs">Unique users: {new Set(visibleSubmissions.map((item) => item.username || 'Unknown')).size}</Text></Flex>
                 <Flex px={3} py={2} borderRadius="md" border="1px solid var(--color-border)" bg="var(--color-bg-card)"><Text fontSize="xs">Failed: {visibleSubmissions.length ? `${((visibleSubmissions.filter((item) => normalizeSubmissionStatus(item.status) === 'failed').length / visibleSubmissions.length) * 100).toFixed(1)}%` : '—'}</Text></Flex>
-                <Flex px={3} py={2} borderRadius="md" border="1px solid var(--color-border)" bg="var(--color-bg-card)"><Text fontSize="xs">Top language: {(Object.entries(visibleSubmissions.reduce((acc, item) => { const key = String(item.language || 'n/a').toLowerCase(); acc[key] = (acc[key] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0]?.[0]) || '—'}</Text></Flex>
+                <Flex px={3} py={2} borderRadius="md" border="1px solid var(--color-border)" bg="var(--color-bg-card)"><Text fontSize="xs">Top language: {(Object.entries(visibleSubmissions.reduce((acc, item) => { const key = String(item.language || 'n/a').toLowerCase(); acc[key] = (acc[key] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))[0]?.[0]) || '—'}</Text></Flex>
               </SimpleGrid>
 
               <Flex gap={2} p={1} w="fit-content" border="1px solid var(--color-border)" borderRadius="lg" bg="var(--color-bg-secondary)">
