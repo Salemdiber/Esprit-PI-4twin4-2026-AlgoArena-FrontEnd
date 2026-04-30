@@ -1102,20 +1102,44 @@ const SpeedChallengePage = () => {
         return null;
     }, [currentUser?.userId]);
 
+    // The AI generator (`/api/onboarding-test`) sometimes emits structured
+    // objects in places the renderer expects plain strings (e.g. graph
+    // problems with `{S: 0, T: 5}` source/target shapes). Coerce here so
+    // every downstream consumer — panel, editor, classifier — sees strings.
+    const safeStr = (v) => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+            return String(v);
+        }
+        try { return JSON.stringify(v); } catch { return String(v); }
+    };
+
     const mapServerToProblem = (item, idx) => {
         const id = `gen-${idx + 1}`;
         const samples = item.samples || item.tests || item.examples || [];
-        const examples = samples.map((s) => ({ input: s.input || '', output: s.output || '', explanation: s.explanation || '' }));
-        const testCases = samples.map((s) => ({ input: s.input || '', expected: s.output || '' }));
+        const examples = samples.map((s) => ({
+            input: safeStr(s?.input),
+            output: safeStr(s?.output),
+            explanation: safeStr(s?.explanation),
+        }));
+        const testCases = samples.map((s) => ({
+            input: safeStr(s?.input),
+            expected: safeStr(s?.output),
+        }));
+        const rawConstraints = Array.isArray(item.constraints)
+            ? item.constraints
+            : item.constraints
+                ? [item.constraints]
+                : [];
         return {
             id,
             index: idx + 1,
             difficulty: (item.difficulty || 'Easy').toUpperCase(),
             difficultyColor: item.difficulty === 'Hard' ? '#ef4444' : item.difficulty === 'Medium' ? '#facc15' : '#22c55e',
-            title: item.title || `Generated Problem ${idx + 1}`,
-            description: item.statement || item.description || '',
+            title: safeStr(item.title) || `Generated Problem ${idx + 1}`,
+            description: safeStr(item.statement || item.description),
             examples,
-            constraints: Array.isArray(item.constraints) ? item.constraints : (item.constraints ? [String(item.constraints)] : []),
+            constraints: rawConstraints.map(safeStr).filter(Boolean),
             starterCode: { javascript: '// write your solution here' },
             testCases,
             xpReward: item.difficulty === 'Hard' ? 250 : item.difficulty === 'Medium' ? 120 : 50,

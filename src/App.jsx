@@ -62,8 +62,10 @@ const SpeedChallengePage = lazy(() => import('./pages/Frontoffice/speedchallenge
 
 // Frontoffice Leaderboard
 const LeaderboardPage = lazy(() => import('./pages/Frontoffice/leaderboard/pages/LeaderboardPage'));
-const CommunityPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityPage'));
+import CommunityPage from './pages/Frontoffice/community/pages/CommunityPage';
+const CommunityPageLegacy = lazy(() => import('./pages/Frontoffice/community/pages/CommunityPageLegacy'));
 const CommunityDashboardPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityDashboardPage'));
+const PostDetailPage = lazy(() => import('./pages/Frontoffice/community/pages/PostDetailPage'));
 
 // Frontoffice Profile
 const ProfilePage = lazy(() => import('./pages/Frontoffice/profile/pages/ProfilePage'));
@@ -348,17 +350,29 @@ const IdleRoutePrefetcher = () => {
 
 const FeatureScopedProviders = ({ children }) => {
   const { isLoggedIn } = useAuth();
+  const { pathname } = useLocation();
 
   if (!isLoggedIn) return children;
 
+  const needsChallengeState =
+    pathname.startsWith('/challenges') || pathname.startsWith('/speed-challenge');
+  const needsBattleState = pathname.startsWith('/battles');
+  const needsProfileState = pathname.startsWith('/profile');
+
+  if (!needsChallengeState && !needsBattleState && !needsProfileState) {
+    return children;
+  }
+
   return (
-    <ChallengeProvider>
-      <BattleProvider>
-        <ProfileProvider>
-          {children}
-        </ProfileProvider>
-      </BattleProvider>
-    </ChallengeProvider>
+    <>
+      {needsChallengeState ? (
+        <ChallengeProvider>{children}</ChallengeProvider>
+      ) : needsBattleState ? (
+        <BattleProvider>{children}</BattleProvider>
+      ) : (
+        <ProfileProvider>{children}</ProfileProvider>
+      )}
+    </>
   );
 };
 
@@ -432,6 +446,8 @@ function App() {
                             <Route path="/challenges" element={<ChallengesAuthGuard><ChallengesListPage /></ChallengesAuthGuard>} />
                             <Route path="/leaderboard" element={<LeaderboardPage />} />
                             <Route path="/community" element={<CommunityPage />} />
+                            <Route path="/community/legacy" element={<CommunityPageLegacy />} />
+                            <Route path="/community/post/:id" element={<PostDetailPage />} />
                             <Route path="/community/dashboard" element={<CommunityDashboardPage />} />
                             <Route path="/discussion" element={<Navigate to="/community" replace />} />
                             <Route path="/discussion/dashboard" element={<Navigate to="/community/dashboard" replace />} />

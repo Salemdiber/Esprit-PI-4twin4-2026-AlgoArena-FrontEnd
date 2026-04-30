@@ -6,8 +6,8 @@ const theme = extendTheme({
         useSystemColorMode: false,
     },
     fonts: {
-        heading: `'Montserrat', sans-serif`,
-        body: `'Inter', sans-serif`,
+        heading: `Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+        body: `Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
     },
     colors: {
         brand: {

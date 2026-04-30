@@ -700,7 +700,7 @@ export function BattleProvider({ children }) {
             dispatch({ type: ActionTypes.SET_BATTLES, payload: [] });
             return;
         }
-        dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
         dispatch({ type: ActionTypes.SET_ERROR, payload: '' });
         try {
             if (!currentUserId) {

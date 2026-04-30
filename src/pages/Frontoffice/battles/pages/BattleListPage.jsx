@@ -5,19 +5,19 @@
  * Navigates to active battle or summary on card action.
  * Loading skeleton state
  */
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBattleState } from '../hooks/useBattleState';
 import { BattleStatus } from '../types/battle.types';
 import BattleCard from '../components/BattleCard';
-import BattleFilters from '../components/BattleFilters';
 import BattlesListSkeleton from '../../../../shared/skeletons/BattlesListSkeleton';
 import { settingsService } from '../../../../services/settingsService';
 import { useColorModeValue } from '@chakra-ui/react';
-import UserRankStatsBar from '../../challenges/components/UserRankStatsBar';
 import '../battles.css';
 
+const BattleFilters = React.lazy(() => import('../components/BattleFilters'));
+const UserRankStatsBar = React.lazy(() => import('../../challenges/components/UserRankStatsBar'));
 const CreateBattleModal = React.lazy(() => import('../components/CreateBattleModal'));
 
 const BattleListPage = () => {
@@ -36,12 +36,29 @@ const BattleListPage = () => {
 
     const [filters, setFilters] = useState({ modes: [], statuses: [], search: '' });
     const [aiBattlesEnabled, setAiBattlesEnabled] = useState(true);
+    const [showRankStats, setShowRankStats] = useState(false);
+    const titleColor = useColorModeValue('gray.800', 'var(--color-text-heading)');
+    const subtitleColor = useColorModeValue('gray.600', 'var(--color-text-secondary)');
+    const handleFilterChange = useCallback((next) => setFilters(next), []);
 
     // Fetch AI battles setting
     useEffect(() => {
         settingsService.getSettings()
             .then((data) => setAiBattlesEnabled(data?.aiBattles ?? true))
             .catch(() => setAiBattlesEnabled(true));
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        const mountStats = () => {
+            if (!cancelled) setShowRankStats(true);
+        };
+        const idleId = window.setTimeout(mountStats, 4000);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(idleId);
+        };
     }, []);
 
     // Filter battles
@@ -94,25 +111,26 @@ const BattleListPage = () => {
             <div className="battle-container">
                 {/* Header */}
                 <div className="battle-mb-xl">
-                    <h1 style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '0.75rem', color: useColorModeValue('gray.800', 'var(--color-text-heading)') }}>
+                    <h1 style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '0.75rem', color: titleColor }}>
                         {t('battles.arenaTitle')}
                     </h1>
-                    <p style={{ fontSize: '1.25rem', color: useColorModeValue('gray.600', 'var(--color-text-secondary)') }}>
+                    <p style={{ fontSize: '1.25rem', color: subtitleColor }}>
                         {t('battles.arenaSubtitle')}
                     </p>
-                    <div style={{ marginTop: '1.5rem' }}>
-                        <UserRankStatsBar />
+                    <div style={{ marginTop: '1.5rem', minHeight: '108px' }}>
+                        {showRankStats && (
+                            <Suspense fallback={<div style={{ height: '108px' }} aria-busy="true" />}>
+                                <UserRankStatsBar />
+                            </Suspense>
+                        )}
                     </div>
                 </div>
 
-                {isLoading ? (
-                    <div style={{ marginTop: '2rem' }}>
-                        <BattlesListSkeleton showHeader={false} />
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                         {/* Sidebar Filters */}
-                        <BattleFilters onFilterChange={setFilters} />
+                        <Suspense fallback={<div style={{ width: '256px', flexShrink: 0 }} aria-busy="true" />}>
+                            <BattleFilters onFilterChange={handleFilterChange} />
+                        </Suspense>
 
                         {/* Main Content */}
                         <main style={{ flex: 1, minWidth: 0 }}>
@@ -133,7 +151,10 @@ const BattleListPage = () => {
                             )}
 
                             {/* Battle Grid */}
-                            {filteredBattles.length === 0 ? (
+                            <div style={{ minHeight: '320px' }}>
+                            {isLoading ? (
+                                <BattlesListSkeleton showHeader={false} />
+                            ) : filteredBattles.length === 0 ? (
                                 <div className="battle-card" style={{ textAlign: 'center', padding: '3rem' }}>
                                     <p style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>⚔️</p>
                                     <p className="battle-text-muted">{t('battles.noBattlesFound')}</p>
@@ -160,9 +181,9 @@ const BattleListPage = () => {
                                     ))}
                                 </div>
                             )}
+                            </div>
                         </main>
                     </div>
-                )}
             </div>
 
             {/* Create Battle Modal */}

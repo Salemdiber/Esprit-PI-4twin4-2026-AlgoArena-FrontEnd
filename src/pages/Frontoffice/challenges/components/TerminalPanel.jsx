@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Box,
     Flex,
@@ -19,7 +19,9 @@ import { useTranslation } from 'react-i18next';
 import { m, AnimatePresence } from 'framer-motion';
 import { useChallengeContext } from '../context/ChallengeContext';
 import useChallengeExecution from '../hooks/useChallengeExecution';
+import useComplexityThinking from '../hooks/useComplexityThinking';
 import TestResultCard from './TestResultCard';
+import ThinkingTrace from './ThinkingTrace';
 
 const MotionBox = m.create(Box);
 
@@ -62,11 +64,54 @@ const TerminalPanel = () => {
         isPaused,
         code,
         currentSubmission,
+        // The thinking-trace effect needs the challenge tags + active
+        // language to forward into /predict_stream.
+        selectedChallenge,
+        language,
     } = useChallengeContext();
     const { runCode, submitCode } = useChallengeExecution();
+    const {
+        stages: thinkingStages,
+        result: thinkingResult,
+        error: thinkingError,
+        isStreaming: thinkingActive,
+        start: startThinking,
+        reset: resetThinking,
+    } = useComplexityThinking();
 
     const [terminalTab, setTerminalTab] = useState(0);
     const [showRemaining, setShowRemaining] = useState(false);
+
+    // Kick off the model's "thinking trace" as soon as a submission
+    // begins. The trace runs in parallel with the actual /judge/submit
+    // call so the user sees ChatGPT-style reasoning steps while waiting
+    // for the docker grader to finish. The persisted verdict on the
+    // Submission tab is still produced by the backend.
+    useEffect(() => {
+        if (isSubmitting && code && !thinkingActive && !thinkingResult) {
+            startThinking({
+                code,
+                language,
+                tags: selectedChallenge?.tags || [],
+            });
+        }
+        // We deliberately don't include startThinking / resetThinking
+        // in the dep array - they're stable callbacks and re-running
+        // this effect on every render would cancel an in-flight stream.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isSubmitting]);
+
+    // Clear the trace when a brand new submission completes (so it
+    // doesn't linger across attempts). We watch currentSubmission's
+    // submittedAt - it changes on every fresh submission.
+    useEffect(() => {
+        if (currentSubmission?.submittedAt) {
+            const timer = setTimeout(resetThinking, 4000);
+            return () => clearTimeout(timer);
+        }
+        return undefined;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentSubmission?.submittedAt]);
 
     const borderColor      = useColorModeValue('gray.200', 'gray.700');
     const runBtnColor      = useColorModeValue('gray.800', 'gray.100');
@@ -170,13 +215,30 @@ const TerminalPanel = () => {
             <Box p={4} overflowY="auto" maxH="350px" minH="120px" flex={1}>
                 {terminalTab === 0 ? (
                     <>
+                        {/* Live "thinking" trace from the model service. */}
+                        {/* Only shown for SUBMIT (not Run Code) - run is */}
+                        {/* unscored sandboxing, the analyser only fires  */}
+                        {/* on submit. Stays visible for a few seconds   */}
+                        {/* after the submission lands so users can read */}
+                        {/* the final summary line.                      */}
+                        {(isSubmitting || thinkingStages.length > 0) && (
+                            <ThinkingTrace
+                                stages={thinkingStages}
+                                isStreaming={thinkingActive}
+                                result={thinkingResult}
+                                error={thinkingError}
+                            />
+                        )}
+
                         {/* STATE 1 — Loading */}
                         {isExecuting && (
                             <Flex direction="column" align="center" justify="center" h="100px" gap={3}>
                                 <Flex align="center" gap={3}>
                                     <Spinner size="sm" color="brand.500" />
                                     <Text color="gray.400" fontSize="sm">
-                                        {t('challengePage.runningCode')}
+                                        {isSubmitting
+                                            ? t('challengePage.gradingTests', 'Grading test cases...')
+                                            : t('challengePage.runningCode')}
                                     </Text>
                                 </Flex>
                             </Flex>

@@ -8,7 +8,7 @@
  *  • contender list for the remaining ranks
  *  • graceful fallback when live data is unavailable
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
     Badge,
     Box,
@@ -16,17 +16,15 @@ import {
     Icon,
     IconButton,
     SimpleGrid,
+    Skeleton,
     Text,
     Tooltip,
     useColorModeValue,
     VStack,
 } from '@chakra-ui/react';
-import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 import LeaderboardHeader from '../components/LeaderboardHeader';
-import ArenaStage from '../components/ArenaStage';
-import RankCard from '../components/RankCard';
 import mockLeaderboard from '../data/mockLeaderboard';
 import useAccessibility from '../../../../accessibility/hooks/useAccessibility';
 import { readAloud, stopSpeaking, getPageText } from '../../../../accessibility/utils/speechUtils';
@@ -35,7 +33,10 @@ import { userService } from '../../../../services/userService';
 import { useAuth } from '../../auth/context/AuthContext';
 import { buildLeaderboardRows } from '../utils/leaderboardUtils';
 
-const MotionBox = m.create(Box);
+// Heavy podium / rank components are split into their own chunks so the
+// initial /leaderboard payload stays small (better Lighthouse TBT / unused-JS).
+const ArenaStage = lazy(() => import('../components/ArenaStage'));
+const RankCard = lazy(() => import('../components/RankCard'));
 
 
 const StatCard = ({ label, value, tone, hint }) => {
@@ -68,6 +69,23 @@ const StatCard = ({ label, value, tone, hint }) => {
     );
 };
 
+// Size-reserved skeletons keep CLS = 0 while the lazy chunks are fetched.
+const PodiumFallback = () => (
+    <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={8} mb={20} alignItems="end">
+        <Skeleton height="360px" borderRadius="12px" />
+        <Skeleton height="460px" borderRadius="12px" />
+        <Skeleton height="360px" borderRadius="12px" />
+    </SimpleGrid>
+);
+
+const CompactFallback = () => (
+    <VStack spacing={3} align="stretch">
+        {Array.from({ length: 7 }).map((_, idx) => (
+            <Skeleton key={idx} height="88px" borderRadius="12px" />
+        ))}
+    </VStack>
+);
+
 /* Inline speaker icon */
 const SpeakerIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
@@ -93,6 +111,14 @@ const LeaderboardPage = () => {
         let cancelled = false;
 
         const loadLeaderboard = async () => {
+            if (!currentUser) {
+                setUsers(mockLeaderboard);
+                setIsFallbackData(true);
+                setLoadError('');
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
             setLoadError('');
             setIsFallbackData(false);
@@ -118,7 +144,7 @@ const LeaderboardPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [t]);
+    }, [currentUser, t]);
 
     const leaderboardRows = useMemo(
         () => buildLeaderboardRows(users, currentUser),
@@ -149,10 +175,7 @@ const LeaderboardPage = () => {
     const blueColor = useColorModeValue('blue.600', '#60a5fa');
 
     return (
-        <MotionBox
-            initial={noMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={noMotion ? { duration: 0 } : { duration: 0.4 }}
+        <Box
             minH="100vh"
             pt={{ base: 24, md: 28 }}
             pb={{ base: 10, md: 16 }}
@@ -170,12 +193,7 @@ const LeaderboardPage = () => {
                     subtitle={t('leaderboardPage.subtitle')}
                 />
 
-                <MotionBox
-                    initial={noMotion ? false : { opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={noMotion ? { duration: 0 } : { duration: 0.5, delay: 0.1 }}
-                    mb={10}
-                >
+                <Box mb={10}>
                     <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={4}>
                         <StatCard
                             label={t('leaderboardPage.competitors')}
@@ -202,7 +220,7 @@ const LeaderboardPage = () => {
                             hint={currentUserRow ? t('leaderboardPage.yourCurrentRank', { position: currentUserRow.rankPosition }) : t('leaderboardPage.signInHint')}
                         />
                     </SimpleGrid>
-                </MotionBox>
+                </Box>
 
                 {loadError ? (
                     <Box
@@ -221,13 +239,15 @@ const LeaderboardPage = () => {
                     </Box>
                 ) : null}
 
-                <ArenaStage players={top3} />
+                <Suspense fallback={<PodiumFallback />}>
+                    {top3.length >= 3 ? (
+                        <ArenaStage players={top3} />
+                    ) : (
+                        <PodiumFallback />
+                    )}
+                </Suspense>
 
-                <MotionBox
-                    initial={noMotion ? false : { opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={noMotion ? { duration: 0 } : { duration: 0.6, delay: 0.35 }}
-                >
+                <Box>
                     <Flex align="center" justify="space-between" mb={6} gap={3} flexWrap="wrap">
                         <Box>
                             <Text fontFamily="heading" fontSize="2xl" fontWeight="bold" color="var(--color-text-primary)">
@@ -251,11 +271,13 @@ const LeaderboardPage = () => {
                     </Flex>
 
                     {contenders.length > 0 ? (
-                        <VStack spacing={4} align="stretch">
-                            {contenders.map((player) => (
-                                <RankCard key={player.id} player={player} variant="compact" />
-                            ))}
-                        </VStack>
+                        <Suspense fallback={<CompactFallback />}>
+                            <VStack spacing={3} align="stretch">
+                                {contenders.map((player) => (
+                                    <RankCard key={player.id} player={player} variant="compact" />
+                                ))}
+                            </VStack>
+                        </Suspense>
                     ) : (
                         <Box
                             p={8}
@@ -273,7 +295,7 @@ const LeaderboardPage = () => {
                             </Text>
                         </Box>
                     )}
-                </MotionBox>
+                </Box>
 
                 {currentUserRow ? (
                     <Box
@@ -332,7 +354,7 @@ const LeaderboardPage = () => {
                     />
                 </Tooltip>
             )}
-        </MotionBox>
+        </Box>
     );
 };
 

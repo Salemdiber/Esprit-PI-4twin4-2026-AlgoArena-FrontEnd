@@ -6,9 +6,9 @@ const JsonPreview = ({ data }) => (
   <pre
     className="mt-4 p-4 rounded-xl text-xs overflow-auto max-h-[320px]"
     style={{
-      background: 'rgba(15, 23, 42, 0.72)',
-      border: '1px solid rgba(148, 163, 184, 0.25)',
-      color: 'var(--color-text-primary)',
+      background: 'var(--color-bg-secondary)',
+      border: '1px solid var(--color-border)',
+      color: 'var(--color-text-secondary)',
     }}
   >
     {JSON.stringify(data, null, 2)}
@@ -17,11 +17,11 @@ const JsonPreview = ({ data }) => (
 
 const AgentCard = ({ title, subtitle, onRun, loading, error, data, actions }) => (
   <div
-    className="glass-panel rounded-2xl p-5 shadow-custom border bg-(--color-bg-card) backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(2,6,23,0.26)]"
+    className="glass-panel rounded-2xl p-5 shadow-custom border transition-all duration-300 hover:-translate-y-0.5"
     style={{
-      borderColor: 'rgba(148,163,184,0.28)',
-      boxShadow: '0 12px 34px rgba(2,6,23,0.2)',
-      backgroundImage: 'linear-gradient(145deg, rgba(15,23,42,0.66), rgba(15,23,42,0.5))',
+      borderColor: 'var(--color-border)',
+      background: 'var(--color-bg-card)',
+      boxShadow: 'var(--shadow-custom)',
     }}
   >
     <div className="flex items-start justify-between gap-3">
@@ -37,10 +37,9 @@ const AgentCard = ({ title, subtitle, onRun, loading, error, data, actions }) =>
         type="button"
         onClick={onRun}
         disabled={loading}
-        className="px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-60 hover:brightness-110 hover:scale-[1.02]"
+        className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-60"
         style={{
-          background: 'linear-gradient(90deg, #22d3ee, #3b82f6)',
-          color: '#06121c',
+          minHeight: '40px',
         }}
       >
         {loading ? 'Running...' : 'Run Agent'}
@@ -52,7 +51,7 @@ const AgentCard = ({ title, subtitle, onRun, loading, error, data, actions }) =>
     {error && (
       <div
         className="mt-4 p-3 rounded-lg text-sm"
-        style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.35)' }}
+        style={{ background: 'var(--color-error-bg)', color: 'var(--color-red-500)', border: '1px solid rgba(239,68,68,0.35)' }}
       >
         {error}
       </div>
@@ -71,10 +70,10 @@ const AgentCard = ({ title, subtitle, onRun, loading, error, data, actions }) =>
 
 const Badge = ({ text, tone = 'info' }) => {
   const map = {
-    info: { bg: 'rgba(34,211,238,0.16)', color: '#67e8f9', border: 'rgba(34,211,238,0.4)' },
-    low: { bg: 'rgba(34,197,94,0.14)', color: '#86efac', border: 'rgba(34,197,94,0.4)' },
-    medium: { bg: 'rgba(245,158,11,0.18)', color: '#fcd34d', border: 'rgba(245,158,11,0.4)' },
-    high: { bg: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: 'rgba(239,68,68,0.45)' },
+    info: { bg: 'var(--color-info-bg)', color: 'var(--color-cyan-400)', border: 'rgba(34,211,238,0.35)' },
+    low: { bg: 'var(--color-success-bg)', color: 'var(--color-green-500)', border: 'rgba(34,197,94,0.35)' },
+    medium: { bg: 'var(--color-warning-bg)', color: 'var(--color-yellow-500)', border: 'rgba(245,158,11,0.35)' },
+    high: { bg: 'var(--color-error-bg)', color: 'var(--color-red-500)', border: 'rgba(239,68,68,0.4)' },
   };
   const style = map[tone] || map.info;
   return (
@@ -159,22 +158,27 @@ const AIAgents = () => {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div
-        className="rounded-2xl p-6 md:p-7 border"
+        className="glass-panel rounded-2xl p-6 md:p-7 border shadow-custom"
         style={{
-          borderColor: 'rgba(148,163,184,0.26)',
-          background: 'linear-gradient(120deg, rgba(34,211,238,0.18), rgba(59,130,246,0.22), rgba(168,85,247,0.2))',
-          boxShadow: '0 18px 45px rgba(2,6,23,0.18)',
+          borderColor: 'var(--color-border)',
+          background: 'linear-gradient(135deg, var(--color-bg-card), var(--color-bg-secondary))',
         }}
       >
-        <h1 className="font-heading text-3xl font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>
-          {t('admin.aiAgents.title')}
-        </h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.aiAgents.subtitle')}</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Badge text="Real-time insights" tone="info" />
-          <Badge text="Security-first" tone="medium" />
-          <Badge text="i18n intelligence" tone="low" />
-          <Badge text="Copilot strategy" tone="info" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] font-bold mb-2" style={{ color: 'var(--color-cyan-400)' }}>
+              Backoffice automation
+            </p>
+            <h1 className="font-heading text-3xl font-bold mb-2" style={{ color: 'var(--color-text-heading)' }}>
+              {t('admin.aiAgents.title')}
+            </h1>
+            <p className="max-w-3xl" style={{ color: 'var(--color-text-muted)' }}>{t('admin.aiAgents.subtitle')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge text="Real-time insights" tone="info" />
+            <Badge text="Security-first" tone="medium" />
+            <Badge text="i18n intelligence" tone="low" />
+          </div>
         </div>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -186,7 +190,7 @@ const AIAgents = () => {
             <div
               key={item.label}
               className="rounded-xl px-3 py-2 border"
-              style={{ borderColor: 'var(--color-border)', background: 'rgba(2,6,23,0.28)' }}
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-secondary)' }}
             >
               <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{item.label}</p>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text-heading)' }}>{item.value}</p>
