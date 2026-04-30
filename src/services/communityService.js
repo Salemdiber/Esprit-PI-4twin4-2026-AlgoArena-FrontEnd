@@ -2,7 +2,7 @@ import { apiClient } from "./apiClient";
 import { getToken } from "./cookieUtils";
 import { getAcceptLanguageHeader } from "../i18n";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+const BASE_URL = import.meta?.env?.VITE_API_URL || "/api";
 const AI_CACHE_TTL_MS = 30 * 60 * 1000;
 const AI_CACHE_MAX_ENTRIES = 300;
 
