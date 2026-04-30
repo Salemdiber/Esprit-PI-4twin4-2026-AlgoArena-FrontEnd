@@ -167,10 +167,10 @@ describe('Leaderboard utils', () => {
         expect(rows[1].winRate).toBe(50);
         expect(rows[2]).toMatchObject({
             username: 'Charlie',
-            avatar: 'https://ui-avatars.com/api/?name=Charlie&background=0f172a&color=22d3ee&bold=true',
             trend: 'STABLE',
             rankPosition: 3,
         });
+        expect(rows[2].avatar).toMatch(/^data:image\/svg\+xml/);
 
         const tieRows = sortLeaderboardRows([
             { username: 'Zeta', score: 10, xp: 10, streak: 1, wins: 1 },

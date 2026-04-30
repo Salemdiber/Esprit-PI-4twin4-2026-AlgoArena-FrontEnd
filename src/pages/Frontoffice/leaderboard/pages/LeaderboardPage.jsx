@@ -106,6 +106,20 @@ const LeaderboardPage = () => {
     const mode = useColorModeValue('light', 'dark');
 
     const noMotion = settings.reducedMotion;
+    const loadErrorBg = useColorModeValue('orange.50', 'rgba(245, 158, 11, 0.08)');
+    const loadErrorColor = useColorModeValue('orange.800', 'orange.100');
+    const loadErrorHintColor = useColorModeValue('orange.700', 'rgba(255, 237, 213, 0.92)');
+    const currentUserBorderColor = useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.2)');
+    const currentUserBg = useColorModeValue('cyan.50', 'rgba(15, 23, 42, 0.72)');
+    const currentUserLabelColor = useColorModeValue('cyan.700', '#22d3ee');
+    const currentUserTitleColor = useColorModeValue('gray.900', 'white');
+    const voiceButtonBg = useColorModeValue('cyan.100', 'rgba(34, 211, 238, 0.15)');
+    const voiceButtonColor = useColorModeValue('cyan.700', '#22d3ee');
+    const voiceButtonBorderColor = useColorModeValue('cyan.300', 'rgba(34, 211, 238, 0.4)');
+    const voiceButtonHoverBg = useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.3)');
+    const cyanColor = useColorModeValue('cyan.600', '#22d3ee');
+    const amberColor = useColorModeValue('orange.600', '#fbbf24');
+    const blueColor = useColorModeValue('blue.600', '#60a5fa');
 
     useEffect(() => {
         let cancelled = false;
@@ -170,10 +184,6 @@ const LeaderboardPage = () => {
         else readAloud(t('leaderboardPage.noReadableContent'));
     };
 
-    const cyanColor = useColorModeValue('cyan.600', '#22d3ee');
-    const amberColor = useColorModeValue('orange.600', '#fbbf24');
-    const blueColor = useColorModeValue('blue.600', '#60a5fa');
-
     return (
         <Box
             minH="100vh"
@@ -229,11 +239,11 @@ const LeaderboardPage = () => {
                         borderRadius="18px"
                         border="1px solid"
                         borderColor="orange.200"
-                        bg={useColorModeValue('orange.50', 'rgba(245, 158, 11, 0.08)')}
-                        color={useColorModeValue('orange.800', 'orange.100')}
+                        bg={loadErrorBg}
+                        color={loadErrorColor}
                     >
                         <Text fontWeight="700">{t('leaderboardPage.liveDataUnavailable')}</Text>
-                        <Text mt={1} fontSize="sm" color={useColorModeValue('orange.700', 'rgba(255, 237, 213, 0.92)')}>
+                        <Text mt={1} fontSize="sm" color={loadErrorHintColor}>
                             {loadError} {t('leaderboardPage.demoFallback')}
                         </Text>
                     </Box>
@@ -303,16 +313,16 @@ const LeaderboardPage = () => {
                         p={5}
                         borderRadius="24px"
                         border="2px solid"
-                        borderColor={useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.2)')}
-                        bg={useColorModeValue('cyan.50', 'rgba(15, 23, 42, 0.72)')}
+                        borderColor={currentUserBorderColor}
+                        bg={currentUserBg}
                         boxShadow="var(--shadow-custom)"
                     >
                         <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
                             <Box>
-                                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.18em" color={useColorModeValue('cyan.700', '#22d3ee')} fontWeight="700">
+                                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.18em" color={currentUserLabelColor} fontWeight="700">
                                     {t('leaderboardPage.yourPosition')}
                                 </Text>
-                                <Text mt={1} fontFamily="heading" fontSize="2xl" fontWeight="800" color={useColorModeValue('gray.900', 'white')}>
+                                <Text mt={1} fontFamily="heading" fontSize="2xl" fontWeight="800" color={currentUserTitleColor}>
                                     #{currentUserRow.rankPosition} · {currentUserRow.username}
                                 </Text>
                             </Box>
@@ -343,11 +353,11 @@ const LeaderboardPage = () => {
                         zIndex={100}
                         size="lg"
                         borderRadius="full"
-                        bg={useColorModeValue('cyan.100', 'rgba(34, 211, 238, 0.15)')}
-                        color={useColorModeValue('cyan.700', '#22d3ee')}
+                        bg={voiceButtonBg}
+                        color={voiceButtonColor}
                         border="1px solid"
-                        borderColor={useColorModeValue('cyan.300', 'rgba(34, 211, 238, 0.4)')}
-                        _hover={{ bg: useColorModeValue('cyan.200', 'rgba(34, 211, 238, 0.3)'), transform: 'scale(1.1)' }}
+                        borderColor={voiceButtonBorderColor}
+                        _hover={{ bg: voiceButtonHoverBg, transform: 'scale(1.1)' }}
                         _active={{ transform: 'scale(0.95)' }}
                         boxShadow="0 0 20px rgba(34, 211, 238, 0.3)"
                         onClick={handleReadPage}

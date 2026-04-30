@@ -1,3 +1,5 @@
+import { getDiceBearUrl } from '../../../../services/dicebear';
+
 const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
 const RANK_THRESHOLDS = {
     BRONZE: 500,
@@ -47,8 +49,12 @@ const getAvatarUrl = (user) => {
         return `/${String(user.avatar).replace(/^\//, '')}`;
     }
 
-    const label = encodeURIComponent(user?.username || 'Player');
-    return `https://ui-avatars.com/api/?name=${label}&background=0f172a&color=22d3ee&bold=true`;
+    try {
+        return getDiceBearUrl(user?.username || 'Player', 'adventurer');
+    } catch {
+        const label = encodeURIComponent(user?.username || 'Player');
+        return `https://ui-avatars.com/api/?name=${label}&background=0f172a&color=22d3ee&bold=true`;
+    }
 };
 
 const toDate = (value) => {
