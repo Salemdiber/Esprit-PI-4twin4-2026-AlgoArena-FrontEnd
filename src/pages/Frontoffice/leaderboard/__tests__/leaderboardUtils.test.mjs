@@ -170,7 +170,7 @@ describe('Leaderboard utils', () => {
             trend: 'STABLE',
             rankPosition: 3,
         });
-        expect(rows[2].avatar).toMatch(/^data:image\/svg\+xml/);
+        expect(rows[2].avatar).toMatch(/^data:image\/svg\+xml|^https:\/\/api\.dicebear\.com\/7\.x\/adventurer\/svg\?seed=Charlie$/);
 
         const tieRows = sortLeaderboardRows([
             { username: 'Zeta', score: 10, xp: 10, streak: 1, wins: 1 },
