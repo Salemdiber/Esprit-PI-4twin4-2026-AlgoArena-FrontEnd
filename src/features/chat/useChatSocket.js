@@ -30,6 +30,118 @@ const dedupeById = (items) => {
   return next;
 };
 
+const replaceMessageById = (messages, messageId, updater) =>
+  messages.map((msg) => (String(msg._id) === String(messageId) ? updater(msg) : msg));
+
+const appendUniqueMessage = (messages, message) => {
+  const normalized = normalizeIncoming(message);
+  if (messages.some((msg) => String(msg._id) === String(normalized._id))) {
+    return messages;
+  }
+  return [...messages, normalized];
+};
+
+const parseSocketPacket = (rawData) => {
+  try {
+    return JSON.parse(rawData);
+  } catch {
+    return null;
+  }
+};
+
+const syncRoomJoinedMessages = (data, setMessages, setHasMore, hasMoreRef) => {
+  const incoming = dedupeById(data?.messages || []);
+  setMessages(incoming);
+  hasMoreRef.current = !!data?.hasMore;
+  setHasMore(!!data?.hasMore);
+};
+
+const handleChatPacket = ({
+  event,
+  data,
+  setMessages,
+  setConnectionError,
+  scheduleTypingRemoval,
+  clearTypingUser,
+}) => {
+  switch (event) {
+    case 'newMessage':
+      setMessages((prev) => appendUniqueMessage(prev, data));
+      return;
+    case 'reactionUpdated':
+      setMessages((prev) =>
+        replaceMessageById(prev, data.messageId, (msg) => ({ ...msg, reactions: data.reactions || [] })),
+      );
+      return;
+    case 'messageEdited':
+      setMessages((prev) =>
+        replaceMessageById(prev, data.messageId, (msg) => ({ ...msg, content: data.content, editedAt: data.editedAt })),
+      );
+      return;
+    case 'messageDeleted':
+      setMessages((prev) =>
+        replaceMessageById(prev, data.messageId, (msg) => ({ ...msg, isDeleted: true, content: '' })),
+      );
+      return;
+    case 'userTyping':
+      if (data?.username) {
+        scheduleTypingRemoval(data.username);
+      }
+      return;
+    case 'userStoppedTyping':
+      if (data?.username) clearTypingUser(data.username);
+      return;
+    case 'error':
+      setConnectionError(data?.message || 'Chat error');
+      return;
+    default:
+      return;
+  }
+};
+
+const handleSocketClose = async ({
+  event,
+  isAuthenticated,
+  setIsConnected,
+  setIsConnecting,
+  setConnectionError,
+  setReconnectAttempt,
+  reconnectAttemptsRef,
+  reconnectTimerRef,
+  connect,
+}) => {
+  setIsConnected(false);
+  setIsConnecting(false);
+  if (!isAuthenticated) return;
+
+  if (event.code === 4001) {
+    try {
+      const refreshed = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (refreshed.ok) {
+        const json = await refreshed.json();
+        if (json?.access_token) {
+          setToken(json.access_token);
+        }
+      }
+    } catch {
+      // best effort
+    }
+  }
+
+  if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+    setConnectionError('Reconnection attempts exhausted');
+    return;
+  }
+
+  reconnectAttemptsRef.current += 1;
+  const delay = Math.min(30000, 1000 * 2 ** (reconnectAttemptsRef.current - 1));
+  setReconnectAttempt(reconnectAttemptsRef.current);
+  reconnectTimerRef.current = setTimeout(connect, delay);
+};
+
 export const useChatSocket = ({ isAuthenticated, currentUser }) => {
   const socketRef = useRef(null);
   const reconnectTimerRef = useRef(null);
@@ -151,57 +263,27 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
 
     ws.onmessage = (evt) => {
       if (socketRef.current !== ws) return;
-      try {
-        const packet = JSON.parse(evt.data);
-        const { event, data } = packet || {};
-        if (event === 'roomJoined') {
-          const incoming = dedupeById(data?.messages || []);
-          setMessages(incoming);
-          hasMoreRef.current = !!data?.hasMore;
-          setHasMore(!!data?.hasMore);
-          roomPageRef.current = 1;
-        }
-        if (event === 'newMessage') {
-          setMessages((prev) => {
-            const incoming = normalizeIncoming(data);
-            if (prev.some((msg) => String(msg._id) === String(incoming._id))) {
-              return prev;
-            }
-            return [...prev, incoming];
-          });
-        }
-        if (event === 'reactionUpdated') {
-          setMessages((prev) =>
-            prev.map((msg) => (String(msg._id) === String(data.messageId) ? { ...msg, reactions: data.reactions || [] } : msg)),
-          );
-        }
-        if (event === 'messageEdited') {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              String(msg._id) === String(data.messageId)
-                ? { ...msg, content: data.content, editedAt: data.editedAt }
-                : msg,
-            ),
-          );
-        }
-        if (event === 'messageDeleted') {
-          setMessages((prev) =>
-            prev.map((msg) => (String(msg._id) === String(data.messageId) ? { ...msg, isDeleted: true, content: '' } : msg)),
-          );
-        }
-        if (event === 'userTyping' && data?.username) {
-          setTypingUsers((prev) => new Set(prev).add(data.username));
-          scheduleTypingRemoval(data.username);
-        }
-        if (event === 'userStoppedTyping' && data?.username) {
-          clearTypingUser(data.username);
-        }
-        if (event === 'error') {
-          setConnectionError(data?.message || 'Chat error');
-        }
-      } catch {
+      const packet = parseSocketPacket(evt.data);
+      if (!packet) {
         setConnectionError('Malformed chat packet');
+        return;
       }
+
+      const { event, data } = packet;
+      if (event === 'roomJoined') {
+        syncRoomJoinedMessages(data, setMessages, setHasMore, hasMoreRef);
+        roomPageRef.current = 1;
+        return;
+      }
+
+      handleChatPacket({
+        event,
+        data,
+        setMessages,
+        setConnectionError,
+        scheduleTypingRemoval,
+        clearTypingUser,
+      });
     };
 
     ws.onerror = () => {
@@ -213,35 +295,17 @@ export const useChatSocket = ({ isAuthenticated, currentUser }) => {
       if (socketRef.current === ws) {
         socketRef.current = null;
       }
-      setIsConnected(false);
-      setIsConnecting(false);
-      if (!isAuthenticated) return;
-
-      if (event.code === 4001) {
-        try {
-          const refreshed = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`, {
-            method: 'POST',
-            credentials: 'include',
-          });
-          if (refreshed.ok) {
-            const json = await refreshed.json();
-            if (json?.access_token) {
-              setToken(json.access_token);
-            }
-          }
-        } catch {
-          // best effort
-        }
-      }
-
-      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-        setConnectionError('Reconnection attempts exhausted');
-        return;
-      }
-      reconnectAttemptsRef.current += 1;
-      const delay = Math.min(30000, 1000 * 2 ** (reconnectAttemptsRef.current - 1));
-      setReconnectAttempt(reconnectAttemptsRef.current);
-      reconnectTimerRef.current = setTimeout(connect, delay);
+      await handleSocketClose({
+        event,
+        isAuthenticated,
+        setIsConnected,
+        setIsConnecting,
+        setConnectionError,
+        setReconnectAttempt,
+        reconnectAttemptsRef,
+        reconnectTimerRef,
+        connect,
+      });
     };
   }, [clearTypingUser, currentUser, emit, isAuthenticated, loadInitialHistory, scheduleTypingRemoval]);
 

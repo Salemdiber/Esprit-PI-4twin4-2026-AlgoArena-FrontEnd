@@ -101,6 +101,26 @@ const mapNotification = (log, readIds) => ({
     unread: !readIds.has(log?._id) && !(log?.read === true || log?.isRead === true),
 });
 
+const keepCurrentReadIds = (currentReadIds, feedIds) => {
+    const nextReadIds = new Set();
+    for (const id of currentReadIds) {
+        if (feedIds.has(id)) nextReadIds.add(id);
+    }
+    return nextReadIds;
+};
+
+const mergeBackendReadFlags = (rows, readIds) => {
+    const nextReadIds = new Set(readIds);
+    rows.forEach((log) => {
+        if ((log?.read === true || log?.isRead === true) && log?._id) {
+            nextReadIds.add(log._id);
+        }
+    });
+    return nextReadIds;
+};
+
+const mapNotifications = (rows, readIds) => rows.map((log) => mapNotification(log, readIds)).filter((item) => item.id);
+
 const TopNavbar = ({ onToggleSidebar }) => {
     const { t } = useTranslation();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -157,28 +177,15 @@ const TopNavbar = ({ onToggleSidebar }) => {
                 const result = await auditLogService.getLogs({ page: 1, limit: NOTIFICATION_LIMIT });
                 const rows = Array.isArray(result?.data) ? result.data : [];
 
-                const currentIds = rows.map((log) => log?._id).filter(Boolean);
-                const currentIdSet = new Set(currentIds);
-                const nextReadIds = new Set();
-
-                // Keep only reads for notifications that are still in the current feed.
-                for (const id of readIdsRef.current) {
-                    if (currentIdSet.has(id)) nextReadIds.add(id);
-                }
-
-                // Respect potential backend read flags when available.
-                rows.forEach((log) => {
-                    if ((log?.read === true || log?.isRead === true) && log?._id) {
-                        nextReadIds.add(log._id);
-                    }
-                });
+                const feedIds = new Set(rows.map((log) => log?._id).filter(Boolean));
+                const nextReadIds = mergeBackendReadFlags(rows, keepCurrentReadIds(readIdsRef.current, feedIds));
 
                 if (!setsEqual(nextReadIds, readIdsRef.current)) {
                     setReadNotificationIds(nextReadIds);
                     persistReadNotificationIds(nextReadIds);
                 }
 
-                setNotifications(rows.map((log) => mapNotification(log, nextReadIds)).filter((item) => item.id));
+                setNotifications(mapNotifications(rows, nextReadIds));
                 setNotifError('');
             } catch (error) {
                 console.error('Failed to load admin notifications', error);

@@ -406,7 +406,7 @@ const CommunityPage = () => {
         if (normalized) bag.add(normalized);
       });
     });
-    return [...bag].sort();
+    return [...bag].sort((a, b) => String(a).localeCompare(String(b)));
   }, [posts]);
 
   const getPostReaction = (postId) => postReactions[postId] || { likes: 0, dislikes: 0, userReaction: null };
