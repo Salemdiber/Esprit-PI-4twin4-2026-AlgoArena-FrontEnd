@@ -1,4 +1,4 @@
-function normalizeBackendOrigin(rawUrl) {
+function normalizeBackendBase(rawUrl) {
   const value = String(rawUrl || '').trim();
   if (!value) return '';
 
@@ -11,25 +11,20 @@ function normalizeBackendOrigin(rawUrl) {
       return '';
     }
 
-    if (parsed.pathname === '/api' || parsed.pathname === '/api/') {
-      return parsed.origin;
-    }
-    return parsed.origin + parsed.pathname.replace(/\/$/, '');
+    const pathname = parsed.pathname.replace(/\/$/, '');
+    const basePath = pathname.endsWith('/api') ? pathname : `${pathname}/api`;
+    return `${parsed.origin}${basePath}`.replace(/\/$/, '');
   } catch {
     return '';
   }
 }
 
 export function getOAuthUrl(provider) {
-  const backendBase =
-    normalizeBackendOrigin(import.meta?.env?.VITE_BACKEND_TARGET) ||
-    normalizeBackendOrigin(import.meta?.env?.VITE_API_URL) ||
-    '';
+  const apiBase =
+    normalizeBackendBase(import.meta?.env?.VITE_API_URL) ||
+    normalizeBackendBase(import.meta?.env?.VITE_BACKEND_TARGET) ||
+    '/api';
   const path = `/auth/${provider}`;
 
-  if (backendBase) {
-    return `${backendBase}${path}`;
-  }
-
-  return path;
+  return `${apiBase}${path}`;
 }
