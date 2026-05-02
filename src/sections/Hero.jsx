@@ -175,6 +175,7 @@ const Hero = () => {
     // into the hero when the cubes regenerated every 5 seconds).
     const [activeCubes, setActiveCubes] = useState(() => new Set());
     const timeoutsRef = useRef([]);
+    const showDecorations = true;
 
     /* Theme-aware colors */
     const headingColor = useColorModeValue('gray.800', 'gray.100');

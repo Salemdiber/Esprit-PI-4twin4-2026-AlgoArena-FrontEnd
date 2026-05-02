@@ -19,6 +19,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Image } from '@chakra-ui/react';
+import { getDiceBearUrl } from '../../../../services/dicebear';
 
 const computeInitials = (username) => {
     const labelText = String(username || 'Player').trim();
@@ -47,12 +48,20 @@ const AvatarMedia = ({
     // successfully loaded. This prevents Chrome from painting its broken-image
     // placeholder (the small grey icon with a coloured corner) inside the
     // avatar circle while the request is in flight or has failed.
-    const [resolvedSrc, setResolvedSrc] = useState(null);
     const initials = useMemo(() => computeInitials(username), [username]);
+    const fallbackSrc = useMemo(() => {
+        try {
+            return getDiceBearUrl(username || alt || 'Player', 'adventurer');
+        } catch {
+            return null;
+        }
+    }, [username, alt]);
+    const [resolvedSrc, setResolvedSrc] = useState(fallbackSrc);
 
     useEffect(() => {
+        setResolvedSrc(fallbackSrc);
+
         if (!src) {
-            setResolvedSrc(null);
             return undefined;
         }
 
@@ -62,7 +71,7 @@ const AvatarMedia = ({
             if (!cancelled) setResolvedSrc(src);
         };
         probe.onerror = () => {
-            if (!cancelled) setResolvedSrc(null);
+            if (!cancelled) setResolvedSrc(fallbackSrc);
         };
         probe.src = src;
 
@@ -71,7 +80,7 @@ const AvatarMedia = ({
             probe.onload = null;
             probe.onerror = null;
         };
-    }, [src]);
+    }, [src, fallbackSrc]);
 
     const computedFontSize = fontSize || `${Math.round(size * 0.42)}px`;
 
@@ -106,9 +115,10 @@ const AvatarMedia = ({
                     inset={0}
                     w="full"
                     h="full"
-                    objectFit="cover"
+                    objectFit="contain"
+                    objectPosition="center"
                     loading={eager ? 'eager' : 'lazy'}
-                    fetchpriority={eager ? 'high' : undefined}
+                    fetchPriority={eager ? 'high' : undefined}
                     decoding="async"
                     width={size}
                     height={size}

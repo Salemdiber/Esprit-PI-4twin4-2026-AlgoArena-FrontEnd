@@ -1,5 +1,4 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box } from '@chakra-ui/react';
 import { LazyMotion } from 'framer-motion';
@@ -94,6 +93,52 @@ const PlaceholderPage = lazy(() => import('./pages/Backoffice/PlaceholderPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
 
+const AUTH_ROUTE_PATHS = ['/signin', '/signup', '/login', '/auth/callback', '/forgot-password', '/email-sent', '/reset-password', '/reset-success', '/reset-expired'];
+
+const isPathOrChildPath = (pathname, path) => pathname === path || pathname.startsWith(`${path}/`);
+
+const isAuthRoute = (pathname) => AUTH_ROUTE_PATHS.some((path) => isPathOrChildPath(pathname, path));
+
+const LoggedInMaintenanceGate = ({ children }) => {
+  const { currentUser } = useAuth();
+  const location = useLocation();
+  const [maintenanceMode, setMaintenanceMode] = React.useState(false);
+  const [checked, setChecked] = React.useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    settingsService.getSettings()
+      .then((data) => {
+        if (cancelled) return;
+        setMaintenanceMode(!!data?.maintenanceMode);
+        setChecked(true);
+      })
+      .catch(() => {
+        if (!cancelled) setChecked(true); // on error, let app through
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Always allow auth routes
+  if (isAuthRoute(location.pathname)) return children;
+
+  if (!checked) return <RouteLoader />; // wait for settings check only for authenticated users
+
+  const role = String(currentUser?.role || '').toUpperCase();
+  const isAdmin = role === 'ADMIN';
+
+  // Admin bypasses maintenance
+  if (maintenanceMode && !isAdmin) {
+    return <MaintenancePage />;
+  }
+
+  return children;
+};
+
 
 
 // Protected Route Component - uses AuthContext
@@ -157,54 +202,12 @@ function BattlesAuthGuard({ children }) {
 // Maintenance Gate - only applies AFTER login
 // Admin → bypass, Player → show maintenance page, Not logged in → let through (auth routes handle themselves)
 const MaintenanceGate = ({ children }) => {
-  const { currentUser, isLoggedIn } = useAuth();
-  const location = useLocation();
-  const [maintenanceMode, setMaintenanceMode] = React.useState(false);
-  const [checked, setChecked] = React.useState(!isLoggedIn);
-
-  // Auth-related paths that should never be blocked
-  const authPaths = ['/signin', '/signup', '/login', '/auth/callback', '/forgot-password', '/email-sent', '/reset-password', '/reset-success', '/reset-expired'];
-  const isAuthRoute = authPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setChecked(true);
-      setMaintenanceMode(false);
-      return () => {};
-    }
-
-    let cancelled = false;
-    setChecked(false);
-    settingsService.getSettings()
-      .then((data) => {
-        if (!cancelled) {
-          setMaintenanceMode(!!data?.maintenanceMode);
-          setChecked(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setChecked(true); // on error, let app through
-      });
-    return () => { cancelled = true; };
-  }, [isLoggedIn]); // re-check after login/logout
-
-  // Always allow auth routes
-  if (isAuthRoute) return children;
+  const { isLoggedIn } = useAuth();
 
   // Not logged in → let through (they'll hit signin anyway)
   if (!isLoggedIn) return children;
 
-  if (!checked) return <RouteLoader />; // wait for settings check only for authenticated users
-
-  const role = String(currentUser?.role || '').toUpperCase();
-  const isAdmin = role === 'ADMIN';
-
-  // Admin bypasses maintenance
-  if (maintenanceMode && !isAdmin) {
-    return <MaintenancePage />;
-  }
-
-  return children;
+  return <LoggedInMaintenanceGate>{children}</LoggedInMaintenanceGate>;
 };
 
 // Speed Challenge Gate - enforces onboarding requirement for new users
@@ -213,8 +216,10 @@ const SpeedChallengeGate = ({ children }) => {
   const { currentUser, isLoggedIn } = useAuth();
   const location = useLocation();
   const [speedChallengesDisabled, setSpeedChallengesDisabled] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
 
   const userIdentifier = currentUser?.userId ?? currentUser?._id ?? currentUser?.id ?? null;
+  const justCompletedStr = localStorage.getItem('speedChallengeJustCompleted');
 
   // Check platform setting once on mount (unconditional hook)
   useEffect(() => {
@@ -223,12 +228,38 @@ const SpeedChallengeGate = ({ children }) => {
       try {
         const s = await settingsService.getSettings();
         if (!cancelled && s && s.disableSpeedChallenges) setSpeedChallengesDisabled(true);
-      } catch (e) {
+      } catch {
         // ignore
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+
+      if (!justCompletedStr) {
+        setJustCompleted(false);
+        return;
+      }
+
+      try {
+        const data = JSON.parse(justCompletedStr);
+        const ageMs = Date.now() - data.completedAt;
+        // Grace period = 3 seconds to prevent bouncing
+        setJustCompleted(ageMs < 3000 && data.userId === userIdentifier);
+      } catch {
+        setJustCompleted(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [justCompletedStr, userIdentifier]);
 
   // Paths where speed challenge is NOT required
   const exemptPaths = [
@@ -249,8 +280,7 @@ const SpeedChallengeGate = ({ children }) => {
   ];
 
   const isExemptPath = exemptPaths.some((p) => {
-    if (p === '/admin') return location.pathname.startsWith(p);
-    if (p === '/profile/2fa-setup') return location.pathname === p || location.pathname.startsWith(p);
+    if (p === '/admin' || p === '/profile/2fa-setup') return isPathOrChildPath(location.pathname, p);
     return location.pathname === p;
   });
 
@@ -266,25 +296,11 @@ const SpeedChallengeGate = ({ children }) => {
       const raw = localStorage.getItem('speedChallengeResultPending');
       if (!raw) return false;
       const data = JSON.parse(raw);
-      const userIdentifier = currentUser?.userId ?? currentUser?._id ?? currentUser?.id ?? null;
       return !!data?.pending && data?.userId === userIdentifier;
     } catch {
       return false;
     }
   })();
-
-  // Check if we just completed speed challenge (grace period to avoid redirect bouncing)
-  const justCompletedStr = localStorage.getItem('speedChallengeJustCompleted');
-  const justCompleted = justCompletedStr ? (() => {
-    try {
-      const data = JSON.parse(justCompletedStr);
-      const ageMs = Date.now() - data.completedAt;
-      // Grace period = 3 seconds to prevent bouncing
-      return ageMs < 3000 && data.userId === userIdentifier;
-    } catch {
-      return false;
-    }
-  })() : false;
 
   // Check if trying to access /speed-challenge
   const isSpeedChallengePath = location.pathname === '/speed-challenge' || location.pathname.startsWith('/speed-challenge');
@@ -293,7 +309,8 @@ const SpeedChallengeGate = ({ children }) => {
   if (completedSpeedChallenge && isSpeedChallengePath && !resultPending) {
     try {
       localStorage.removeItem('speedChallengeJustCompleted');
-    } catch (_) { }
+    } catch {
+    }
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
@@ -344,6 +361,14 @@ const FeatureScopedProviders = ({ children }) => {
 
   if (!needsChallengeState && !needsBattleState && !needsProfileState) {
     return children;
+  }
+
+  if (needsBattleState) {
+    return (
+      <BattleProvider>
+        <ChallengeProvider>{children}</ChallengeProvider>
+      </BattleProvider>
+    );
   }
 
   return (
@@ -405,8 +430,6 @@ const DeferredGlobalUi = () => {
 };
 
 function App() {
-  const { t } = useTranslation();
-
   const loadMotionFeatures = React.useCallback(
     () => import('./motionFeatures').then((res) => res.default),
     [],

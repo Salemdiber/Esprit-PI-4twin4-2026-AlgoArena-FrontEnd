@@ -15,6 +15,7 @@ import { userService } from '../../../../services/userService';
 import { setToken, removeToken, getToken } from '../../../../services/cookieUtils';
 import { useToast } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
+export { hasCompletedSpeedChallenge, redirectBasedOnRole } from './authContextUtils';
 
 const AuthContext = createContext(null);
 const AUTH_CHANNEL_NAME = 'auth_sync_channel';
@@ -49,26 +50,6 @@ const writeStorage = (data) => {
         removeToken();
         window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: null } }));
     }
-};
-
-/**
- * redirectBasedOnRole – determines the redirect path based on user role.
- *
- * ADMIN | ORGANIZER → /admin (Backoffice)
- * USER | COMPETITOR → / (Frontoffice Home)
- */
-export const redirectBasedOnRole = (user) => {
-    if (!user || !user.role) return '/signin';
-    const role = user.role.toUpperCase();
-    if (role === 'ADMIN' || role === 'ORGANIZER') {
-        return '/admin';
-    }
-    return '/';
-};
-
-export const hasCompletedSpeedChallenge = (user) => {
-    if (!user) return false;
-    return user.speedChallengeCompleted === true;
 };
 
 const DEFAULT_AVATAR =

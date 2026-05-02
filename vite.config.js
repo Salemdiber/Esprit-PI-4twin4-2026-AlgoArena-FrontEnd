@@ -3,7 +3,25 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 const BACKEND_TARGET =
-  process.env.VITE_BACKEND_TARGET || "http://127.0.0.1:3000";
+  (() => {
+    const configuredTarget = process.env.VITE_BACKEND_TARGET;
+
+    if (!configuredTarget) {
+      return "http://127.0.0.1:3000";
+    }
+
+    try {
+      const parsed = new URL(configuredTarget);
+      const isLocalHost =
+        parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+      if (isLocalHost && parsed.port && parsed.port !== "3000") {
+        return "http://127.0.0.1:3000";
+      }
+      return parsed.origin + parsed.pathname.replace(/\/$/, "");
+    } catch {
+      return configuredTarget;
+    }
+  })();
 let lastBackendNoticeAt = 0;
 
 const vendorChunk = (id) => {
@@ -302,10 +320,12 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/docs": createProxyConfig(),
-      "/api": createProxyConfig({
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      }),
+      "/api": createProxyConfig(),
       "/auth/login": createProxyConfig(),
+      "/auth/google": createProxyConfig(),
+      "/auth/google/callback": createProxyConfig(),
+      "/auth/github": createProxyConfig(),
+      "/auth/github/callback": createProxyConfig(),
       "/auth/register": createProxyConfig(),
       "/auth/refresh": createProxyConfig(),
       "/auth/logout": createProxyConfig(),
@@ -337,10 +357,12 @@ export default defineConfig({
     },
     proxy: {
       "/api/docs": createProxyConfig(),
-      "/api": createProxyConfig({
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      }),
+      "/api": createProxyConfig(),
       "/auth/login": createProxyConfig(),
+      "/auth/google": createProxyConfig(),
+      "/auth/google/callback": createProxyConfig(),
+      "/auth/github": createProxyConfig(),
+      "/auth/github/callback": createProxyConfig(),
       "/auth/register": createProxyConfig(),
       "/auth/refresh": createProxyConfig(),
       "/auth/logout": createProxyConfig(),

@@ -2,7 +2,7 @@ import { getToken, removeToken, setToken } from './cookieUtils';
 import i18n, { getAcceptLanguageHeader } from '../i18n';
 import { recordNetworkFailure } from './diagnosticsCollector';
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const BASE_URL = import.meta?.env?.VITE_API_URL || '/api';
 
 let isRefreshing = false;
 let refreshQueue = [];

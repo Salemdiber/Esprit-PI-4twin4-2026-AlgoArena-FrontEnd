@@ -209,21 +209,8 @@ const TopNavbar = ({ onToggleSidebar }) => {
                 const result = await auditLogService.getLogs({ page: 1, limit: NOTIFICATION_LIMIT });
                 const rows = Array.isArray(result?.data) ? result.data : [];
 
-                const currentIds = rows.map((log) => log?._id).filter(Boolean);
-                const currentIdSet = new Set(currentIds);
-                const nextReadIds = new Set();
-
-                // Keep only reads for notifications that are still in the current feed.
-                for (const id of readIdsRef.current) {
-                    if (currentIdSet.has(id)) nextReadIds.add(id);
-                }
-
-                // Respect potential backend read flags when available.
-                rows.forEach((log) => {
-                    if ((log?.read === true || log?.isRead === true) && log?._id) {
-                        nextReadIds.add(log._id);
-                    }
-                });
+                const feedIds = new Set(rows.map((log) => log?._id).filter(Boolean));
+                const nextReadIds = mergeBackendReadFlags(rows, keepCurrentReadIds(readIdsRef.current, feedIds));
 
                 if (!setsEqual(nextReadIds, readIdsRef.current)) {
                     setReadNotificationIds(nextReadIds);

@@ -126,6 +126,22 @@ const metricColors = {
     'Last Run': { bg: 'rgba(99,102,241,0.12)', color: '#6366f1' },
 };
 
+const STATUS_CONFIG = {
+    executing: { labelKey: 'sandbox.executing', color: '#f59e0b', pulse: true },
+    running: { labelKey: 'sandbox.running', color: '#22c55e', pulse: true },
+    starting: { labelKey: 'sandbox.starting', color: '#f59e0b', pulse: true },
+    idle: { labelKey: 'sandbox.idle', color: '#ef4444', pulse: false },
+};
+
+const getStatusConfig = (status, labels) => {
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
+    return {
+        label: labels[config.labelKey],
+        color: config.color,
+        pulse: config.pulse,
+    };
+};
+
 /* ─── Glassmorphism Metric Card ─── */
 const MetricCard = ({ metricKey, label, value, icon, tooltip, valueColor, index }) => {
     const palette = metricColors[metricKey] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)' };
@@ -210,19 +226,15 @@ const MetricCard = ({ metricKey, label, value, icon, tooltip, valueColor, index 
 /* ─── Main Component ─── */
 const SandboxMonitorCard = ({ status, loading, error }) => {
     const { t } = useTranslation();
-
-    const statusLabels = {
-        executing: t('sandbox.executing'),
-        running: t('sandbox.running'),
-        starting: t('sandbox.starting'),
-        idle: t('sandbox.idle'),
-    };
-    const statusConfig = (s) => {
-        if (s === 'executing') return { label: statusLabels.executing, color: '#f59e0b', pulse: true };
-        if (s === 'running') return { label: statusLabels.running, color: '#22c55e', pulse: true };
-        if (s === 'starting') return { label: statusLabels.starting, color: '#f59e0b', pulse: true };
-        return { label: statusLabels.idle, color: '#ef4444', pulse: false };
-    };
+    const statusLabels = useMemo(
+        () => ({
+            'sandbox.executing': t('sandbox.executing'),
+            'sandbox.running': t('sandbox.running'),
+            'sandbox.starting': t('sandbox.starting'),
+            'sandbox.idle': t('sandbox.idle'),
+        }),
+        [t],
+    );
 
     const tl = {
         noData: t('sandbox.noExecutionsYet'),
@@ -234,7 +246,7 @@ const SandboxMonitorCard = ({ status, loading, error }) => {
     };
     const noDataFallback = t('sandbox.noDataYet');
 
-    const tone = statusConfig(status?.status);
+    const tone = getStatusConfig(status?.status, statusLabels);
     const health = status?.health || 'no_data';
     const healthValue = useMemo(() => {
         if (health === 'healthy') return 100;
