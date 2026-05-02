@@ -12,15 +12,14 @@ import GlobalAccessibilityUI from './accessibility/components/GlobalAccessibilit
 // Loading System
 import { LoadingProvider } from './shared/context/LoadingContext';
 import RouteLoader from './shared/components/RouteLoader';
+import PageRouteSkeleton from './shared/components/PageRouteSkeleton';
 import NavigationProgress from './shared/components/NavigationProgress';
 import ErrorBoundary from './components/ErrorBoundary';
-
-// Public layout is always loaded; admin stays behind its protected route.
-import PublicLayout from './layout/PublicLayout';
 
 // ─── Lazy-loaded pages (code-split per route) ───
 
 // Public
+const PublicLayout = lazy(() => import('./layout/PublicLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage/LandingPage'));
 const AdminLayout = lazy(() => import('./layout/AdminLayout'));
 
@@ -423,7 +422,7 @@ function App() {
               <ChatProvider>
                 <SupportProvider>
                   <FeatureScopedProviders>
-                        <Suspense fallback={<RouteLoader />}>
+                        <Suspense fallback={<PageRouteSkeleton />}>
                           <MaintenanceGate>
                             <SpeedChallengeGate>
                               <Routes>
