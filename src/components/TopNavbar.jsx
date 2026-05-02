@@ -40,6 +40,24 @@ const setsEqual = (a, b) => {
     return true;
 };
 
+const keepCurrentReadIds = (currentIds, feedIds) => {
+    const next = new Set();
+    currentIds.forEach((id) => {
+        if (feedIds.has(id)) next.add(id);
+    });
+    return next;
+};
+
+const mergeBackendReadFlags = (rows, readIds) => {
+    const next = new Set(readIds);
+    rows.forEach((log) => {
+        if (log?._id && (log?.read === true || log?.isRead === true)) {
+            next.add(log._id);
+        }
+    });
+    return next;
+};
+
 const getRelativeTime = (dateValue) => {
     if (!dateValue) return 'Just now';
 
@@ -218,6 +236,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
                 }
 
                 const mappedNotifications = rows.map((log) => mapNotification(log, nextReadIds)).filter((item) => item.id);
+                const currentIds = mappedNotifications.map((item) => item.id);
                 const firstNewUnread = mappedNotifications.find((item) => item.unread && !seenNotificationIdsRef.current.has(item.id));
                 const hadPreviousNotifications = seenNotificationIdsRef.current.size > 0;
 
