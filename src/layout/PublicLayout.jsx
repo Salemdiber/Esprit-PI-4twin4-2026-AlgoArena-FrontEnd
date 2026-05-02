@@ -31,7 +31,7 @@ const useDeferredMount = (delayMs = 1500) => {
 
 const PublicLayout = () => {
     const bg = useColorModeValue('white', 'gray.900');
-    const showAgent = useDeferredMount(5000);
+    const showAgent = useDeferredMount(10000);
 
     return (
         <Box minH="100vh" bg={bg} transition="background-color 0.3s ease">

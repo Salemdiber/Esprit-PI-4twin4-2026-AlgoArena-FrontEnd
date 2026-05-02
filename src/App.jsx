@@ -15,14 +15,14 @@ import RouteLoader from './shared/components/RouteLoader';
 import NavigationProgress from './shared/components/NavigationProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Layouts (always loaded – they wrap everything)
+// Public layout is always loaded; admin stays behind its protected route.
 import PublicLayout from './layout/PublicLayout';
-import AdminLayout from './layout/AdminLayout';
 
 // ─── Lazy-loaded pages (code-split per route) ───
 
 // Public
 const LandingPage = lazy(() => import('./pages/LandingPage/LandingPage'));
+const AdminLayout = lazy(() => import('./layout/AdminLayout'));
 
 // Frontoffice Auth
 const SignIn = lazy(() => import('./pages/Frontoffice/SignIn'));
@@ -63,7 +63,7 @@ const SpeedChallengePage = lazy(() => import('./pages/Frontoffice/speedchallenge
 
 // Frontoffice Leaderboard
 const LeaderboardPage = lazy(() => import('./pages/Frontoffice/leaderboard/pages/LeaderboardPage'));
-import CommunityPage from './pages/Frontoffice/community/pages/CommunityPage';
+const CommunityPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityPage'));
 const CommunityPageLegacy = lazy(() => import('./pages/Frontoffice/community/pages/CommunityPageLegacy'));
 const CommunityDashboardPage = lazy(() => import('./pages/Frontoffice/community/pages/CommunityDashboardPage'));
 const PostDetailPage = lazy(() => import('./pages/Frontoffice/community/pages/PostDetailPage'));
@@ -340,7 +340,8 @@ const FeatureScopedProviders = ({ children }) => {
   const needsChallengeState =
     pathname.startsWith('/challenges') || pathname.startsWith('/speed-challenge');
   const needsBattleState = pathname.startsWith('/battles');
-  const needsProfileState = pathname.startsWith('/profile');
+  const needsProfileState =
+    pathname.startsWith('/profile') || pathname === '/admin/profile';
 
   if (!needsChallengeState && !needsBattleState && !needsProfileState) {
     return children;
@@ -378,13 +379,15 @@ const DeferredGlobalUi = () => {
   const [isMounted, setIsMounted] = React.useState(false);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setIsMounted(true);
-    });
+    const mount = () => setIsMounted(true);
 
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(mount, { timeout: 4000 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(mount, 2500);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   if (!isMounted) {

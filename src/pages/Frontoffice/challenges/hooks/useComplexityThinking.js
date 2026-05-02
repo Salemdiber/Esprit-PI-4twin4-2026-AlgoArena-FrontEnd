@@ -16,7 +16,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * submission still works because grading goes through the backend.
  */
 const MODEL_URL =
-    import.meta.env.VITE_COMPLEXITY_MODEL_URL || 'http://127.0.0.1:8088';
+    (
+        import.meta.env.VITE_COMPLEXITY_MODEL_URL ||
+        'https://codecomplexity-model.onrender.com'
+    ).replace(/\/+$/, '');
 
 export default function useComplexityThinking() {
     const [stages, setStages] = useState([]);
