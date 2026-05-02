@@ -1,30 +1,74 @@
-import React from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import Hero from '../../sections/Hero';
-import Games from '../../sections/Games';
-import Arena from '../../sections/Arena';
-import Features from '../../sections/Features';
-import Stats from '../../sections/Stats';
-import TryChallenge from '../../sections/TryChallenge';
-import CTA from '../../sections/CTA';
+const Games = lazy(() => import('../../sections/Games'));
+const Arena = lazy(() => import('../../sections/Arena'));
+const Features = lazy(() => import('../../sections/Features'));
+const Stats = lazy(() => import('../../sections/Stats'));
+const TryChallenge = lazy(() => import('../../sections/TryChallenge'));
+const CTA = lazy(() => import('../../sections/CTA'));
 
-// All landing sections are imported eagerly into a single chunk (~50 KB
-// gzipped). Earlier we lazy-loaded them, but every chunk that arrived
-// *after* the user started scrolling grew the page below the viewport and
-// caused the browser scroll anchor to jump the user back upward (visible
-// especially at desktop resolution where each section is shorter and
-// chunks finish at noticeably different times). Eager mounting means the
-// page reaches its final height in ONE synchronous pass before the user
-// can scroll, so layout is stable for the rest of the session.
+const SectionReserve = ({ minHeight }) => (
+    <div style={{ minHeight }} aria-hidden="true" />
+);
+
+const DeferredSection = ({ children, minHeight }) => {
+    const [isReady, setIsReady] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        if (isReady) return undefined;
+        const node = ref.current;
+        if (!node || typeof IntersectionObserver === 'undefined') {
+            const timeoutId = window.setTimeout(() => setIsReady(true), 1200);
+            return () => window.clearTimeout(timeoutId);
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry?.isIntersecting) return;
+                setIsReady(true);
+                observer.disconnect();
+            },
+            { rootMargin: '900px 0px' },
+        );
+
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [isReady]);
+
+    return (
+        <div ref={ref} style={{ minHeight }}>
+            {isReady ? (
+                <Suspense fallback={<SectionReserve minHeight={minHeight} />}>
+                    {children}
+                </Suspense>
+            ) : null}
+        </div>
+    );
+};
+
 const LandingPage = () => {
     return (
         <>
             <Hero />
-            <Games />
-            <Arena />
-            <Features />
-            <Stats />
-            <TryChallenge />
-            <CTA />
+            <DeferredSection minHeight={780}>
+                <Games />
+            </DeferredSection>
+            <DeferredSection minHeight={780}>
+                <Arena />
+            </DeferredSection>
+            <DeferredSection minHeight={720}>
+                <Features />
+            </DeferredSection>
+            <DeferredSection minHeight={360}>
+                <Stats />
+            </DeferredSection>
+            <DeferredSection minHeight={920}>
+                <TryChallenge />
+            </DeferredSection>
+            <DeferredSection minHeight={340}>
+                <CTA />
+            </DeferredSection>
         </>
     );
 };

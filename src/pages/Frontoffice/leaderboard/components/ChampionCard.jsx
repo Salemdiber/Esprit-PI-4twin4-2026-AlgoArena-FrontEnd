@@ -8,7 +8,7 @@
  *  • "Champion" floating badge above rank number
  *  • Aura ring around avatar
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Box, Flex, Text, Image, Grid } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -18,17 +18,6 @@ import StreakIndicator from './StreakIndicator';
 
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
-
-const useDeferredAnimation = (delayMs = 900) => {
-    const [ready, setReady] = useState(false);
-
-    useEffect(() => {
-        const timeoutId = window.setTimeout(() => setReady(true), delayMs);
-        return () => window.clearTimeout(timeoutId);
-    }, [delayMs]);
-
-    return ready;
-};
 
 const glowAnimation = {
     animate: {
@@ -45,9 +34,8 @@ const glowAnimation = {
     },
 };
 
-const ChampionCard = ({ player }) => {
+const ChampionCard = ({ player, animationsReady = false }) => {
     const { t } = useTranslation();
-    const animationsReady = useDeferredAnimation();
 
     return (
         <Box position="relative">
@@ -142,9 +130,14 @@ const ChampionCard = ({ player }) => {
                             <Image
                                 src={player.avatar}
                                 alt={player.username}
+                                htmlWidth="128"
+                                htmlHeight="128"
                                 w="full"
                                 h="full"
                                 objectFit="cover"
+                                loading="eager"
+                                decoding="async"
+                                fetchPriority="high"
                             />
                         </Box>
                         {/* Aura ring */}
@@ -254,4 +247,4 @@ const ChampionCard = ({ player }) => {
     );
 };
 
-export default ChampionCard;
+export default React.memo(ChampionCard);

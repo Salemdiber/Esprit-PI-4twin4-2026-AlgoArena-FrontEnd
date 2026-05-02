@@ -14,6 +14,7 @@ import {
     IconButton,
     Link,
     Divider,
+    useColorModeValue,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import AuthCard from '../components/AuthCard';
@@ -69,6 +70,15 @@ const ResetPasswordPage = () => {
     const [error, setError] = useState('');
 
     const { score, label, color, glowColor, percent, requirements } = usePasswordStrength(password);
+    const labelColor = useColorModeValue('gray.700', 'gray.300');
+    const inputBg = useColorModeValue('white', 'var(--color-bg-primary)');
+    const inputFocusBg = useColorModeValue('#f8fafc', 'var(--color-bg-primary)');
+    const inputBorder = useColorModeValue('gray.300', 'gray.600');
+    const inputHoverBorder = useColorModeValue('cyan.500', 'gray.500');
+    const inputText = useColorModeValue('gray.900', 'gray.100');
+    const inputPlaceholder = useColorModeValue('gray.500', 'gray.500');
+    const iconHoverColor = useColorModeValue('cyan.700', 'gray.300');
+    const linkColor = useColorModeValue('cyan.700', '#22d3ee');
 
     useEffect(() => {
         if (token === 'expired-token') navigate('/reset-expired');
@@ -119,16 +129,16 @@ const ResetPasswordPage = () => {
     };
 
     const inputStyles = {
-        bg: 'var(--color-bg-primary)',
+        bg: inputBg,
         border: '1px solid',
-        borderColor: 'gray.600',
+        borderColor: inputBorder,
         borderRadius: '8px',
-        color: 'gray.100',
+        color: inputText,
         h: '48px',
         fontSize: 'sm',
-        _placeholder: { color: 'gray.500' },
-        _focus: { borderColor: '#22d3ee', boxShadow: '0 0 0 2px rgba(34, 211, 238, 0.2)', outline: 'none' },
-        _hover: { borderColor: 'gray.500' },
+        _placeholder: { color: inputPlaceholder },
+        _focus: { borderColor: '#0891b2', boxShadow: '0 0 0 3px rgba(8, 145, 178, 0.16)', outline: 'none', bg: inputFocusBg },
+        _hover: { borderColor: inputHoverBorder },
         transition: 'all 0.2s',
     };
 
@@ -144,12 +154,12 @@ const ResetPasswordPage = () => {
 
                     <form onSubmit={handleCodeSubmit}>
                         <FormControl mb={4} isRequired>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.email')}</FormLabel>
+                            <FormLabel fontSize="sm" fontWeight="medium" color={labelColor}>{t('auth.reset.email')}</FormLabel>
                             <Input type="email" placeholder={t('auth.reset.emailPlaceholder')} value={email} onChange={(e) => setEmail(e.target.value)} {...inputStyles} />
                         </FormControl>
 
                         <FormControl mb={6} isRequired isInvalid={!!codeError}>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.codeLabel')}</FormLabel>
+                            <FormLabel fontSize="sm" fontWeight="medium" color={labelColor}>{t('auth.reset.codeLabel')}</FormLabel>
                             <Input type="text" placeholder={t('auth.reset.codePlaceholder')} value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} {...inputStyles} />
                             <FormErrorMessage fontSize="xs" mt={2}>{codeError}</FormErrorMessage>
                         </FormControl>
@@ -165,11 +175,11 @@ const ResetPasswordPage = () => {
 
                     <form onSubmit={handleSubmit}>
                         <FormControl mb={4} isInvalid={!!error && error.includes('weak')}>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.newPassword')}</FormLabel>
+                            <FormLabel fontSize="sm" fontWeight="medium" color={labelColor}>{t('auth.reset.newPassword')}</FormLabel>
                             <InputGroup>
                                 <Input type={showPassword ? 'text' : 'password'} placeholder={t('auth.reset.newPasswordPlaceholder')} value={password} onChange={(e) => setPassword(e.target.value)} {...inputStyles} />
                                 <InputRightElement h="100%">
-                                    <IconButton variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)} icon={showPassword ? <EyeOffIcon /> : <EyeIcon />} color="gray.500" _hover={{ bg: 'transparent', color: 'gray.300' }} aria-label={showPassword ? t('auth.reset.hidePassword') : t('auth.reset.showPassword')} />
+                                    <IconButton variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)} icon={showPassword ? <EyeOffIcon /> : <EyeIcon />} color="gray.500" _hover={{ bg: 'transparent', color: iconHoverColor }} aria-label={showPassword ? t('auth.reset.hidePassword') : t('auth.reset.showPassword')} />
                                 </InputRightElement>
                             </InputGroup>
                         </FormControl>
@@ -181,7 +191,7 @@ const ResetPasswordPage = () => {
                         </Box>
 
                         <FormControl mb={6} isInvalid={!!error}>
-                            <FormLabel fontSize="sm" fontWeight="medium" color="gray.300">{t('auth.reset.confirmPassword')}</FormLabel>
+                            <FormLabel fontSize="sm" fontWeight="medium" color={labelColor}>{t('auth.reset.confirmPassword')}</FormLabel>
                             <Input type="password" placeholder={t('auth.reset.confirmPlaceholder')} value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} {...inputStyles} />
                             <FormErrorMessage fontSize="xs" mt={2}>{error}</FormErrorMessage>
                         </FormControl>
@@ -196,7 +206,7 @@ const ResetPasswordPage = () => {
             <Divider borderColor="var(--color-border)" my={6} />
 
             <Box textAlign="center">
-                <Link as={RouterLink} to="/signin" color="#22d3ee" fontSize="sm" _hover={{ textDecoration: 'underline' }} display="inline-flex" alignItems="center" gap={1}>
+                <Link as={RouterLink} to="/signin" color={linkColor} fontSize="sm" _hover={{ textDecoration: 'underline' }} display="inline-flex" alignItems="center" gap={1}>
                     <ArrowLeftIcon w={4} h={4} />
                     {t('auth.reset.backToLogin')}
                 </Link>

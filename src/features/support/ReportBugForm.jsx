@@ -42,7 +42,7 @@ const ReportBugForm = ({ isOpen, onClose, onViewHistory }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="var(--color-bg-card)" color="var(--color-text-primary)" border="1px solid var(--color-border)" boxShadow="var(--shadow-custom)">
         <ModalHeader>{t('support.reportBug')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -60,7 +60,7 @@ const ReportBugForm = ({ isOpen, onClose, onViewHistory }) => {
               <FormControl><FormLabel>{t('support.includeDiagnostics')}</FormLabel><Switch isChecked={includeDiagnostics} onChange={(e) => setIncludeDiagnostics(e.target.checked)} /></FormControl>
               <FormControl><FormLabel>{t('support.additionalInfo')}</FormLabel><Textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value.slice(0, 3000) })} /></FormControl>
               <FormControl><FormLabel>{t('support.priority')}</FormLabel><Select value={f.priority} onChange={(e) => setF({ ...f, priority: e.target.value })}><option value="low">{t('support.priority_low')}</option><option value="medium">{t('support.priority_medium')}</option><option value="high">{t('support.priority_high')}</option></Select></FormControl>
-              <Box w="full" p={3} borderRadius="md" borderWidth="1px" borderColor="whiteAlpha.200">
+              <Box w="full" p={3} borderRadius="md" borderWidth="1px" borderColor="var(--color-border)" bg="var(--color-bg-secondary)">
                 <Text fontWeight="600">{t('support.systemInfo')}</Text>
                 <Text fontSize="sm">Browser: {f.browserInfo}</Text>
                 <Text fontSize="sm">OS: {f.operatingSystem}</Text>

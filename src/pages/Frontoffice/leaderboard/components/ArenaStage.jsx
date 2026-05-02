@@ -10,7 +10,7 @@ import { Box, Grid, GridItem } from '@chakra-ui/react';
 import ChampionCard from './ChampionCard';
 import RankCard from './RankCard';
 
-const ArenaStage = ({ players }) => {
+const ArenaStage = ({ players, animationsReady = false }) => {
     // Expect at least 3 players
     const champion = players[0]; // rank 1
     const second = players[1];   // rank 2
@@ -29,21 +29,21 @@ const ArenaStage = ({ players }) => {
             >
                 {/* 2nd place – left on desktop, second on mobile */}
                 <GridItem order={{ base: 2, lg: 1 }}>
-                    <RankCard player={second} variant="stage" />
+                    <RankCard player={second} variant="stage" animationsReady={animationsReady} />
                 </GridItem>
 
                 {/* 1st place – centre on desktop, first on mobile */}
                 <GridItem order={{ base: 1, lg: 2 }}>
-                    <ChampionCard player={champion} />
+                    <ChampionCard player={champion} animationsReady={animationsReady} />
                 </GridItem>
 
                 {/* 3rd place – right on desktop, third on mobile */}
                 <GridItem order={{ base: 3, lg: 3 }}>
-                    <RankCard player={third} variant="stage" />
+                    <RankCard player={third} variant="stage" animationsReady={animationsReady} />
                 </GridItem>
             </Grid>
         </Box>
     );
 };
 
-export default ArenaStage;
+export default React.memo(ArenaStage);

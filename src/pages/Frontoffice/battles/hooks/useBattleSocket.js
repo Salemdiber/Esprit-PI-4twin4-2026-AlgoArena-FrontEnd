@@ -112,8 +112,11 @@ export const useBattleSocket = ({
   }, [battleId, emit, isAuthenticated, onBattleJoined, onRoundResult]);
 
   useEffect(() => {
-    connect();
+    const startConnection = () => connect();
+    const timerId = window.setTimeout(startConnection, 3000);
+
     return () => {
+      window.clearTimeout(timerId);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       emit('unwatchBattle', { battleId });
       socketRef.current?.close();

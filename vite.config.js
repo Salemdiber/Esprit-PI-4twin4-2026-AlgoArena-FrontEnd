@@ -15,11 +15,16 @@ const vendorChunk = (id) => {
 
   if (
     id.includes("/node_modules/react/") ||
-    id.includes("/node_modules/react-dom/") ||
+    id.includes("/node_modules/react-dom/")
+  ) {
+    return "vendor-react";
+  }
+
+  if (
     id.includes("/node_modules/react-router/") ||
     id.includes("/node_modules/react-router-dom/")
   ) {
-    return "vendor-react";
+    return "vendor-router";
   }
 
   if (
@@ -31,11 +36,17 @@ const vendorChunk = (id) => {
   }
 
   if (
-    id.includes("/node_modules/@chakra-ui/") ||
-    id.includes("/node_modules/@emotion/") ||
-    id.includes("/node_modules/@zag-js/")
+    id.includes("/node_modules/@chakra-ui/")
   ) {
-    return "vendor-ui";
+    return "vendor-ui-chakra";
+  }
+
+  if (id.includes("/node_modules/@emotion/")) {
+    return "vendor-ui-emotion";
+  }
+
+  if (id.includes("/node_modules/@zag-js/")) {
+    return "vendor-ui-zag";
   }
 
   if (
@@ -64,21 +75,51 @@ const vendorChunk = (id) => {
   }
 
   if (
-    id.includes("/node_modules/exceljs/") ||
+    id.includes("/node_modules/exceljs/")
+  ) {
+    return "vendor-exceljs";
+  }
+
+  if (id.includes("/node_modules/xlsx/")) {
+    return "vendor-xlsx";
+  }
+
+  if (id.includes("/node_modules/jszip/")) {
+    return "vendor-zip";
+  }
+
+  if (
     id.includes("/node_modules/jspdf/") ||
-    id.includes("/node_modules/jspdf-autotable/") ||
-    id.includes("/node_modules/html2canvas/") ||
+    id.includes("/node_modules/jspdf-autotable/")
+  ) {
+    return "vendor-pdf-jspdf";
+  }
+
+  if (
     id.includes("/node_modules/canvg/") ||
+    id.includes("/node_modules/svg-pathdata/") ||
+    id.includes("/node_modules/rgbcolor/")
+  ) {
+    return "vendor-pdf-svg";
+  }
+
+  if (
+    id.includes("/node_modules/html2canvas/") ||
+    id.includes("/node_modules/stackblur-canvas/")
+  ) {
+    return "vendor-canvas-html";
+  }
+
+  if (
     id.includes("/node_modules/pako/") ||
     id.includes("/node_modules/fflate/") ||
     id.includes("/node_modules/fast-png/") ||
-    id.includes("/node_modules/iobuffer/") ||
-    id.includes("/node_modules/svg-pathdata/") ||
-    id.includes("/node_modules/rgbcolor/") ||
-    id.includes("/node_modules/stackblur-canvas/")
+    id.includes("/node_modules/iobuffer/")
   ) {
-    return "vendor-export";
+    return "vendor-compression";
   }
+
+  if (id.includes("/node_modules/terser/")) return "vendor-minifier";
 
   if (
     id.includes("/node_modules/lucide-react/") ||

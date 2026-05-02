@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { userService } from '../../services/userService';
+import { toMediaUrl } from '../../utils/mediaUrl';
 
 // ── Edit Modal ──────────────────────────────────────────────────────────
 const EditUserModal = ({ user, onClose, onSave }) => {
@@ -13,13 +14,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
     });
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(
-        user.avatar
-            ? user.avatar.startsWith('/uploads/')
-                ? user.avatar
-                : user.avatar.startsWith('uploads/')
-                    ? `/${user.avatar}`
-                    : user.avatar
-            : null
+        user.avatar ? toMediaUrl(user.avatar) : null
     );
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -196,7 +191,7 @@ const UserRow = ({ username, email, role, _id, status, avatar, bio, rank, xp, cr
                 <div className="flex items-center gap-3">
                     {avatar ? (
                         <img
-                            src={avatar.startsWith('/uploads/') ? avatar : avatar.startsWith('uploads/') ? `/${avatar}` : avatar}
+                            src={toMediaUrl(avatar)}
                             alt={username}
                             className="w-9 h-9 rounded-full object-cover border border-cyan-400/30"
                         />
@@ -660,7 +655,7 @@ const Users = () => {
                     <p style={{ color: 'var(--color-text-muted)' }} className="text-sm">
                         {filteredUsers.length === 0
                             ? t('admin.users.noResults')
-                            : t('admin.users.showingUsers', { start: startIndex, end: endIndex, total: filteredUsers.length })}
+                            : t('admin.users.showingUsers', { from: startIndex, to: endIndex, total: filteredUsers.length })}
                     </p>
                     <div className="flex items-center gap-2">
                         <button className="btn-secondary px-3 py-1.5 text-sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>

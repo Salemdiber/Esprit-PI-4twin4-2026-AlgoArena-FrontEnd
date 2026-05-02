@@ -20,6 +20,51 @@ const BattleFilters = React.lazy(() => import('../components/BattleFilters'));
 const UserRankStatsBar = React.lazy(() => import('../../challenges/components/UserRankStatsBar'));
 const CreateBattleModal = React.lazy(() => import('../components/CreateBattleModal'));
 
+const DeferredBattleCard = React.memo(({
+    battle,
+    shouldRenderImmediately,
+    ...cardProps
+}) => {
+    const [shouldRender, setShouldRender] = useState(shouldRenderImmediately);
+    const hostRef = React.useRef(null);
+
+    useEffect(() => {
+        if (shouldRender || shouldRenderImmediately) return undefined;
+        const node = hostRef.current;
+        if (!node) return undefined;
+
+        if (typeof IntersectionObserver === 'undefined') {
+            setShouldRender(true);
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry?.isIntersecting) return;
+                setShouldRender(true);
+                observer.disconnect();
+            },
+            { rootMargin: '420px 0px' },
+        );
+
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [shouldRender, shouldRenderImmediately]);
+
+    if (!shouldRender && !shouldRenderImmediately) {
+        return (
+            <div
+                ref={hostRef}
+                className="battle-card"
+                aria-hidden="true"
+                style={{ minHeight: 280, visibility: 'hidden' }}
+            />
+        );
+    }
+
+    return <BattleCard battle={battle} {...cardProps} />;
+});
+
 const BattleListPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -43,9 +88,30 @@ const BattleListPage = () => {
 
     // Fetch AI battles setting
     useEffect(() => {
-        settingsService.getSettings()
-            .then((data) => setAiBattlesEnabled(data?.aiBattles ?? true))
-            .catch(() => setAiBattlesEnabled(true));
+        let cancelled = false;
+        const loadSettings = () => {
+            settingsService.getSettings()
+                .then((data) => {
+                    if (!cancelled) setAiBattlesEnabled(data?.aiBattles ?? true);
+                })
+                .catch(() => {
+                    if (!cancelled) setAiBattlesEnabled(true);
+                });
+        };
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            const idleId = window.requestIdleCallback(loadSettings, { timeout: 2500 });
+            return () => {
+                cancelled = true;
+                window.cancelIdleCallback(idleId);
+            };
+        }
+
+        const timeoutId = window.setTimeout(loadSettings, 1200);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timeoutId);
+        };
     }, []);
 
     useEffect(() => {
@@ -85,26 +151,26 @@ const BattleListPage = () => {
         });
     }, [battles, filters]);
 
-    const handleEnterBattle = (id) => {
+    const handleEnterBattle = useCallback((id) => {
         selectBattle(id);
         navigate(`/battles/${id}`);
-    };
+    }, [navigate, selectBattle]);
 
-    const handleViewSummary = (id) => {
+    const handleViewSummary = useCallback((id) => {
         selectBattle(id);
         navigate(`/battles/${id}/summary`);
-    };
+    }, [navigate, selectBattle]);
 
-    const handleCancel = (id) => {
+    const handleCancel = useCallback((id) => {
         cancelBattle(id);
-    };
+    }, [cancelBattle]);
 
-    const handleJoin = async (id) => {
+    const handleJoin = useCallback(async (id) => {
         const ok = await joinBattle(id);
         if (!ok) return;
         selectBattle(id);
         navigate(`/battles/${id}`);
-    };
+    }, [joinBattle, navigate, selectBattle]);
 
     return (
         <div className="battle-page">
@@ -168,10 +234,11 @@ const BattleListPage = () => {
                                 </div>
                             ) : (
                                 <div className="battle-grid">
-                                    {filteredBattles.map(battle => (
-                                        <BattleCard
+                                    {filteredBattles.map((battle, index) => (
+                                        <DeferredBattleCard
                                             key={battle.id}
                                             battle={battle}
+                                            shouldRenderImmediately={index < 4}
                                             onEnter={handleEnterBattle}
                                             onJoin={handleJoin}
                                             onViewSummary={handleViewSummary}

@@ -8,7 +8,7 @@
  *  • contender list for the remaining ranks
  *  • graceful fallback when live data is unavailable
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Badge,
     Box,
@@ -33,135 +33,11 @@ import { readAloud, stopSpeaking, getPageText } from '../../../../accessibility/
 import LeaderboardSkeleton from '../../../../shared/skeletons/LeaderboardSkeleton';
 import { userService } from '../../../../services/userService';
 import { useAuth } from '../../auth/context/AuthContext';
+import { buildLeaderboardRows } from '../utils/leaderboardUtils';
 
 const MotionBox = m.create(Box);
 
-const RANK_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
-const RANK_THRESHOLDS = {
-    BRONZE: 500,
-    SILVER: 1500,
-    GOLD: 3000,
-    PLATINUM: 5000,
-    DIAMOND: 10000,
-};
-
-const normalizeString = (value) => String(value || '').trim().toLowerCase();
-
-const isAdminUser = (user) => normalizeString(user?.role) === 'admin';
-
-const isSameUser = (candidate, currentUser) => {
-    if (!candidate || !currentUser) return false;
-
-    const candidateId = String(candidate._id || candidate.id || '').trim();
-    const currentId = String(currentUser._id || currentUser.id || currentUser.userId || '').trim();
-    if (candidateId && currentId && candidateId === currentId) return true;
-
-    const candidateName = normalizeString(candidate.username);
-    const currentName = normalizeString(currentUser.username);
-    const candidateEmail = normalizeString(candidate.email);
-    const currentEmail = normalizeString(currentUser.email);
-
-    return Boolean(candidateName && currentName && candidateName === currentName)
-        || Boolean(candidateEmail && currentEmail && candidateEmail === currentEmail);
-};
-
-const getTierFromXp = (xp) => {
-    let tier = 'BRONZE';
-    const numericXp = Number(xp || 0);
-
-    RANK_ORDER.forEach((rank) => {
-        if (numericXp >= RANK_THRESHOLDS[rank]) {
-            tier = rank;
-        }
-    });
-
-    return tier;
-};
-
-const getAvatarUrl = (user) => {
-    if (user?.avatar) {
-        if (String(user.avatar).startsWith('http')) return user.avatar;
-        if (String(user.avatar).startsWith('/')) return user.avatar;
-        return `/${String(user.avatar).replace(/^\//, '')}`;
-    }
-
-    const label = encodeURIComponent(user?.username || 'Player');
-    return `https://ui-avatars.com/api/?name=${label}&background=0f172a&color=22d3ee&bold=true`;
-};
-
-const toDate = (value) => {
-    if (!value) return null;
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const daysAgo = (date, days) => {
-    if (!date) return false;
-    const ms = Date.now() - date.getTime();
-    return ms <= days * 24 * 60 * 60 * 1000;
-};
-
-const getChallengeProgress = (user) => (Array.isArray(user?.challengeProgress) ? user.challengeProgress : []);
-
-const countSolved = (user) => getChallengeProgress(user).filter((entry) => String(entry?.status || '').toUpperCase() === 'SOLVED').length;
-
-const countAttempts = (user) => getChallengeProgress(user).length;
-
-const getRecentActivityDate = (user) => {
-    const candidates = [
-        toDate(user?.lastLoginDate),
-        toDate(user?.streakUpdatedAt),
-        ...getChallengeProgress(user).map((entry) => toDate(entry?.solvedAt)).filter(Boolean),
-    ].filter(Boolean);
-
-    if (!candidates.length) return null;
-    return candidates.reduce((latest, current) => (current > latest ? current : latest));
-};
-
-const getTrend = (user) => {
-    const recentActivity = getRecentActivityDate(user);
-    const streak = Number(user?.currentStreak ?? user?.streak ?? 0);
-
-    if (!recentActivity) return 'STABLE';
-    if (daysAgo(recentActivity, 1) && streak >= 3) return 'UP';
-    if (daysAgo(recentActivity, 7)) return streak >= 2 ? 'UP' : 'STABLE';
-    return 'DOWN';
-};
-
-const buildLeaderboardRow = (user, currentUser) => {
-    const xp = Number(user?.xp ?? 0);
-    const currentStreak = Number(user?.currentStreak ?? user?.streak ?? 0);
-    const longestStreak = Number(user?.longestStreak ?? currentStreak ?? 0);
-    const solvedChallenges = countSolved(user);
-    const attempts = countAttempts(user);
-    const lastActivity = getRecentActivityDate(user);
-    const tier = String(user?.rank || user?.level || getTierFromXp(xp)).toUpperCase();
-    const wins = solvedChallenges || Number(user?.wins ?? 0);
-    const winRate = attempts > 0 ? Math.round((solvedChallenges / attempts) * 100) : Math.min(99, Math.max(40, Math.round((xp / 120) + currentStreak)));
-    const score = (xp * 100) + (solvedChallenges * 420) + (currentStreak * 120) + (longestStreak * 24) + (lastActivity ? 180 : 0);
-    const isCurrentUser = isSameUser(user, currentUser);
-
-    return {
-        id: user?._id || user?.id || user?.username,
-        username: user?.username || 'Anonymous',
-        avatar: getAvatarUrl(user),
-        rankPosition: 0,
-        tier,
-        xp,
-        winRate,
-        wins,
-        streak: currentStreak,
-        trend: getTrend(user),
-        isCurrentUser,
-        tag: isCurrentUser ? 'YOU' : (currentStreak >= 10 ? 'HOT' : null),
-        solvedChallenges,
-        attempts,
-        lastActivity,
-        score,
-    };
-};
-
-const StatCard = ({ label, value, tone, hint }) => {
+const StatCard = React.memo(({ label, value, tone, hint }) => {
     const defaultTone = useColorModeValue('gray.800', 'white');
     const actualTone = tone === 'var(--color-text-primary)' ? defaultTone : tone;
     
@@ -189,7 +65,7 @@ const StatCard = ({ label, value, tone, hint }) => {
             ) : null}
         </Box>
     );
-};
+});
 
 /* Inline speaker icon */
 const SpeakerIcon = (props) => (
@@ -203,8 +79,10 @@ const SpeakerIcon = (props) => (
 const LeaderboardPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [users, setUsers] = useState([]);
+    const [totalUsersCount, setTotalUsersCount] = useState(0);
     const [isFallbackData, setIsFallbackData] = useState(false);
     const [loadError, setLoadError] = useState('');
+    const [animationsReady, setAnimationsReady] = useState(false);
     const { settings } = useAccessibility();
     const { currentUser } = useAuth();
     const { t } = useTranslation();
@@ -226,6 +104,20 @@ const LeaderboardPage = () => {
 
     const noMotion = settings.reducedMotion;
 
+    const currentUserIdentity = useMemo(() => ({
+        _id: currentUser?._id,
+        id: currentUser?.id,
+        userId: currentUser?.userId,
+        username: currentUser?.username,
+        email: currentUser?.email,
+    }), [
+        currentUser?._id,
+        currentUser?.id,
+        currentUser?.userId,
+        currentUser?.username,
+        currentUser?.email,
+    ]);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -235,14 +127,26 @@ const LeaderboardPage = () => {
             setIsFallbackData(false);
 
             try {
-                const response = await userService.getUsers();
+                let response;
+                try {
+                    response = await userService.getLeaderboardUsers({ limit: 20 });
+                } catch (leaderboardError) {
+                    if (![400, 404].includes(Number(leaderboardError?.status))) {
+                        throw leaderboardError;
+                    }
+                    response = await userService.getUsers();
+                }
                 if (cancelled) return;
 
-                setUsers(Array.isArray(response) ? response : []);
+                const nextUsers = Array.isArray(response) ? response : response?.items;
+                const safeUsers = Array.isArray(nextUsers) ? nextUsers : [];
+                setUsers(safeUsers);
+                setTotalUsersCount(Number(response?.total || safeUsers.length));
             } catch (error) {
                 if (cancelled) return;
 
                 setUsers(mockLeaderboard);
+                setTotalUsersCount(mockLeaderboard.length);
                 setIsFallbackData(true);
                 setLoadError(error?.message || t('leaderboardPage.liveUnavailable'));
             } finally {
@@ -255,43 +159,56 @@ const LeaderboardPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [t]);
+    }, [currentUserIdentity, t]);
 
-    const leaderboardRows = useMemo(() => {
-        return users
-            .filter((user) => !isAdminUser(user))
-            .map((user) => buildLeaderboardRow(user, currentUser))
-            .sort((left, right) => {
-                if (right.score !== left.score) return right.score - left.score;
-                if (right.xp !== left.xp) return right.xp - left.xp;
-                if (right.streak !== left.streak) return right.streak - left.streak;
-                if (right.wins !== left.wins) return right.wins - left.wins;
-                return left.username.localeCompare(right.username);
-            })
-            .map((row, index) => ({
-                ...row,
-                rankPosition: index + 1,
-            }));
-    }, [users, currentUser]);
+    useEffect(() => {
+        if (noMotion) {
+            setAnimationsReady(false);
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => setAnimationsReady(true), 1000);
+        return () => window.clearTimeout(timeoutId);
+    }, [noMotion]);
+
+    const leaderboardRows = useMemo(
+        () => buildLeaderboardRows(users, currentUserIdentity),
+        [users, currentUserIdentity],
+    );
+
+    const leaderboardView = useMemo(() => {
+        const totalCompetitors = totalUsersCount || leaderboardRows.length;
+        const averageXp = leaderboardRows.length > 0
+            ? Math.round(leaderboardRows.reduce((sum, user) => sum + user.xp, 0) / leaderboardRows.length)
+            : 0;
+
+        return {
+            top3: leaderboardRows.slice(0, 3),
+            contenders: leaderboardRows.slice(3, 10),
+            totalCompetitors,
+            averageXp,
+            currentUserRow: leaderboardRows.find((row) => row.isCurrentUser) || null,
+        };
+    }, [leaderboardRows, totalUsersCount]);
+
+    const handleReadPage = useCallback(() => {
+        stopSpeaking();
+        const text = getPageText('#main-content');
+        if (text) readAloud(text);
+        else readAloud(t('leaderboardPage.noReadableContent'));
+    }, [t]);
 
     if (isLoading) {
         return <LeaderboardSkeleton />;
     }
 
-    const top3 = leaderboardRows.slice(0, 3);
-    const contenders = leaderboardRows.slice(3, 10);
-    const totalCompetitors = leaderboardRows.length;
-    const averageXp = totalCompetitors > 0
-        ? Math.round(leaderboardRows.reduce((sum, user) => sum + user.xp, 0) / totalCompetitors)
-        : 0;
-    const currentUserRow = leaderboardRows.find((row) => row.isCurrentUser) || null;
-
-    const handleReadPage = () => {
-        stopSpeaking();
-        const text = getPageText('#main-content');
-        if (text) readAloud(text);
-        else readAloud(t('leaderboardPage.noReadableContent'));
-    };
+    const {
+        top3,
+        contenders,
+        totalCompetitors,
+        averageXp,
+        currentUserRow,
+    } = leaderboardView;
 
     return (
         <MotionBox
@@ -366,7 +283,7 @@ const LeaderboardPage = () => {
                     </Box>
                 ) : null}
 
-                <ArenaStage players={top3} />
+                <ArenaStage players={top3} animationsReady={animationsReady} />
 
                 <MotionBox
                     initial={noMotion ? false : { opacity: 0, y: 30 }}
@@ -398,7 +315,12 @@ const LeaderboardPage = () => {
                     {contenders.length > 0 ? (
                         <VStack spacing={4} align="stretch">
                             {contenders.map((player) => (
-                                <RankCard key={player.id} player={player} variant="compact" />
+                                <RankCard
+                                    key={player.id}
+                                    player={player}
+                                    variant="compact"
+                                    animationsReady={animationsReady}
+                                />
                             ))}
                         </VStack>
                     ) : (

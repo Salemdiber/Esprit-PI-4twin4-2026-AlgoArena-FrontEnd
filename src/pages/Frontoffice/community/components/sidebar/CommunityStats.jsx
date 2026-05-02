@@ -35,10 +35,10 @@ const CommunityStats = ({
       {/* Background glow */}
       <div className="absolute top-0 left-0 w-32 h-32 bg-cyan-500/[0.04] rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
       
-      <h4 className="relative text-[11px] uppercase tracking-[0.15em] text-[var(--color-text-secondary)] font-bold mb-3 flex items-center gap-2">
+      <h2 className="relative text-[11px] uppercase tracking-[0.15em] text-[var(--color-text-secondary)] font-bold mb-3 flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400" />
         Community pulse
-      </h4>
+      </h2>
       <div className="relative divide-y divide-[var(--cmty-card-ring)]">
         <StatRow label="Total posts" value={totalPosts} />
         <StatRow label="Discussions" value={totalDiscussions} />
@@ -49,10 +49,10 @@ const CommunityStats = ({
 
       {topContributors.length > 0 && (
         <div className="relative mt-4 pt-4 border-t border-[var(--cmty-card-ring)]">
-          <h5 className="text-[10px] uppercase tracking-[0.12em] text-[var(--cmty-text-subtle)] font-bold mb-3 flex items-center gap-1.5">
+          <h3 className="text-[10px] uppercase tracking-[0.12em] text-[var(--cmty-text-subtle)] font-bold mb-3 flex items-center gap-1.5">
             <span className="text-cyan-500/70 dark:text-cyan-400/60">★</span>
             Top contributors
-          </h5>
+          </h3>
           <ul className="space-y-2.5">
             {topContributors.slice(0, 5).map((c, i) => (
               <li

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Flex, Text, VStack } from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, useColorModeValue } from '@chakra-ui/react';
 import { TOTAL_SECONDS } from '../data/speedChallengeProblems';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -29,6 +29,14 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
 
     const circumference = 2 * Math.PI * 11;
     const [tabHidden, setTabHidden] = useState(false);
+    const chipBg = useColorModeValue('rgba(255,255,255,0.78)', 'rgba(255,255,255,0.04)');
+    const chipBorder = useColorModeValue('rgba(14,116,144,0.16)', 'rgba(255,255,255,0.08)');
+    const mutedText = useColorModeValue('var(--color-text-muted)', 'gray.600');
+    const bodyText = useColorModeValue('var(--color-text-secondary)', 'gray.400');
+    const arcTrack = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.07)');
+    const floatingBg = useColorModeValue('rgba(255,255,255,0.92)', 'rgba(2,6,23,0.85)');
+    const floatingText = useColorModeValue('var(--color-text-secondary)', 'gray.300');
+    const floatingShadow = useColorModeValue('0 20px 45px -28px rgba(14,116,144,0.55)', '0 8px 30px rgba(0,0,0,0.6)');
 
     useEffect(() => {
         // If neither protection is enabled, do nothing
@@ -123,8 +131,9 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                 px={3}
                 py={1.5}
                 borderRadius="10px"
-                bg="rgba(255,255,255,0.04)"
-                border="1px solid rgba(255,255,255,0.08)"
+                bg={chipBg}
+                border="1px solid"
+                borderColor={chipBorder}
             >
                 {/* Stopwatch icon */}
                 <Box color="gray.500" flexShrink={0}>
@@ -135,14 +144,14 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                     </svg>
                 </Box>
                 <VStack spacing={0} align="flex-start">
-                    <Text fontSize="8px" fontFamily="mono" color="gray.600" letterSpacing="0.1em" lineHeight={1} textTransform="uppercase">
+                    <Text fontSize="8px" fontFamily="mono" color={mutedText} letterSpacing="0.1em" lineHeight={1} textTransform="uppercase">
                         {t('speedChallenge.elapsed')}
                     </Text>
                     <Text
                         fontFamily="mono"
                         fontSize="sm"
                         fontWeight="bold"
-                        color="gray.400"
+                        color={bodyText}
                         letterSpacing="0.1em"
                         lineHeight={1.2}
                     >
@@ -166,7 +175,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                 {/* Progress arc */}
                 <Box position="relative" w="26px" h="26px" flexShrink={0}>
                     <svg width="26" height="26" viewBox="0 0 26 26">
-                        <circle cx="13" cy="13" r="11" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="2.5" />
+                        <circle cx="13" cy="13" r="11" fill="none" stroke={arcTrack} strokeWidth="2.5" />
                         <circle
                             cx="13" cy="13" r="11"
                             fill="none"
@@ -209,12 +218,12 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                 top={{ base: 'auto', md: '12px' }}
                 bottom={{ base: '12px', md: 'auto' }}
                 zIndex={9999}
-                bg="rgba(2,6,23,0.85)"
-                color="white"
+                bg={floatingBg}
+                color="var(--color-text-primary)"
                 px={4}
                 py={3}
                 borderRadius="12px"
-                boxShadow="0 8px 30px rgba(0,0,0,0.6)"
+                boxShadow={floatingShadow}
                 display="flex"
                 alignItems="center"
                 gap={3}
@@ -228,7 +237,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                         const dash = c * (1 - Math.max(0, Math.min(1, ratio)));
                         return (
                             <svg width="36" height="36" viewBox="0 0 36 36">
-                                <circle cx="18" cy="18" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+                                <circle cx="18" cy="18" r={r} fill="none" stroke={arcTrack} strokeWidth="3" />
                                 <circle
                                     cx="18"
                                     cy="18"
@@ -260,7 +269,7 @@ const SpeedTimer = ({ secondsLeft = TOTAL_SECONDS, elapsedSeconds = 0, isExpired
                     >
                         {isExpired ? '00:00' : fmt(secondsLeft)}
                     </Text>
-                    <Text fontSize={{ base: '11px', md: '12px' }} fontFamily="mono" color="gray.300">
+                    <Text fontSize={{ base: '11px', md: '12px' }} fontFamily="mono" color={floatingText}>
                         {t('speedChallenge.elapsedLabel')} {fmt(elapsedSeconds)}
                     </Text>
                 </VStack>

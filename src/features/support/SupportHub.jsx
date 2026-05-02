@@ -11,11 +11,11 @@ const SupportHub = () => {
   return (
     <Modal isOpen={isHubOpen} onClose={closeHub} size="lg">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="var(--color-bg-card)" color="var(--color-text-primary)" border="1px solid var(--color-border)" boxShadow="var(--shadow-custom)">
         <ModalHeader>
           <VStack align="start" spacing={1}>
             <Text display="flex" gap={2} alignItems="center"><LifeBuoy size={18} /> {t('support.title')}</Text>
-            <Text fontSize="sm" color="gray.400">{t('support.subtitle')}</Text>
+            <Text fontSize="sm" color="var(--color-text-muted)">{t('support.subtitle')}</Text>
           </VStack>
         </ModalHeader>
         <ModalCloseButton />

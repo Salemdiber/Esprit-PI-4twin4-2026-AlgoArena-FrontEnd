@@ -25,7 +25,7 @@ const AgentCard = ({ title, subtitle, onRun, loading, error, data, actions }) =>
     }}
   >
     <div className="flex items-start justify-between gap-3">
-      <div>
+      <div className="min-w-0">
         <h2 className="font-heading text-lg font-bold" style={{ color: 'var(--color-text-heading)' }}>
           {title}
         </h2>
@@ -37,12 +37,14 @@ const AgentCard = ({ title, subtitle, onRun, loading, error, data, actions }) =>
         type="button"
         onClick={onRun}
         disabled={loading}
-        className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-60"
+        className="btn-primary inline-flex shrink-0 items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-60"
         style={{
-          minHeight: '40px',
+          minHeight: '36px',
+          minWidth: '92px',
         }}
       >
-        {loading ? 'Running...' : 'Run Agent'}
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: loading ? 'var(--color-yellow-500)' : 'currentColor' }} />
+        {loading ? 'Running' : 'Run'}
       </button>
     </div>
 

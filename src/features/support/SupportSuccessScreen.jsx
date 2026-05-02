@@ -21,9 +21,9 @@ const SupportSuccessScreen = ({ request, onDone, onViewHistory }) => {
       </MotionBox>
       <Text fontSize="xl" fontWeight="700">{t('support.successTitle')}</Text>
       <Text>{t('support.referenceIs')}</Text>
-      <Box px={3} py={2} borderRadius="md" bg="whiteAlpha.200" fontFamily="mono">{request?.referenceNumber}</Box>
-      <Text textAlign="center" color="gray.300">{t(msgKey)}</Text>
-      <Text color="gray.400">{t('support.emailSentTo', { email: request?.userEmail || '' })}</Text>
+      <Box px={3} py={2} borderRadius="md" bg="var(--color-bg-input)" border="1px solid var(--color-border)" color="var(--color-text-heading)" fontFamily="mono">{request?.referenceNumber}</Box>
+      <Text textAlign="center" color="var(--color-text-secondary)">{t(msgKey)}</Text>
+      <Text color="var(--color-text-muted)">{t('support.emailSentTo', { email: request?.userEmail || '' })}</Text>
       <HStack>
         <Button onClick={onDone} colorScheme="cyan">{t('support.done')}</Button>
         <Button variant="ghost" onClick={onViewHistory}>{t('support.viewMyRequests')}</Button>

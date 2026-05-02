@@ -7,7 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Text, Icon, Divider, VStack } from '@chakra-ui/react';
+import { Box, Button, Text, Icon, Divider, useColorModeValue } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import AuthCard from '../components/AuthCard';
 import AuthHeader from '../components/AuthHeader';
@@ -37,6 +37,8 @@ const ArrowLeftIcon = (props) => (
 const ResetExpiredPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const noticeColor = useColorModeValue('gray.600', 'gray.400');
+    const linkColor = useColorModeValue('cyan.700', '#22d3ee');
 
     return (
         <AuthCard>
@@ -59,7 +61,7 @@ const ResetExpiredPage = () => {
                 subtitle={t('auth.resetExpired.subtitle')}
             />
 
-            <Text textAlign="center" color="gray.400" fontSize="sm" mb={6} mt={-4}>
+            <Text textAlign="center" color={noticeColor} fontSize="sm" mb={6} mt={-4}>
                 {t('auth.resetExpired.validityNotice')}
             </Text>
 
@@ -91,7 +93,7 @@ const ResetExpiredPage = () => {
             <Button
                 variant="ghost"
                 w="100%"
-                color="#22d3ee"
+                color={linkColor}
                 fontSize="sm"
                 fontWeight="normal"
                 leftIcon={<ArrowLeftIcon w={4} h={4} />}

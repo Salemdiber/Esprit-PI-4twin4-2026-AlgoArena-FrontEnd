@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Flex, Text, VStack, Button, HStack, Icon } from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, Button, HStack, Icon, useColorModeValue } from '@chakra-ui/react';
 import { MdMilitaryTech, MdDiamond, MdSmartToy } from 'react-icons/md';
 import { m } from 'framer-motion';
 
@@ -19,10 +19,13 @@ const ScoreRing = ({ solved, total = 3, color }) => {
     const r = 54;
     const circ = 2 * Math.PI * r;
     const pct = solved / total;
+    const trackColor = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.06)');
+    const titleColor = useColorModeValue('var(--color-text-heading)', 'white');
+    const mutedColor = useColorModeValue('var(--color-text-muted)', 'gray.500');
     return (
         <Box position="relative" w="120px" h="120px">
             <svg width="120" height="120" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                <circle cx="60" cy="60" r={r} fill="none" stroke={trackColor} strokeWidth="8" />
                 <circle
                     cx="60" cy="60" r={r}
                     fill="none"
@@ -36,8 +39,8 @@ const ScoreRing = ({ solved, total = 3, color }) => {
                 />
             </svg>
             <Flex position="absolute" inset={0} align="center" justify="center" direction="column">
-                <Text fontSize="2xl" fontWeight="black" color="white" lineHeight={1}>{solved}</Text>
-                <Text fontSize="10px" color="gray.500" fontFamily="mono">/ {total}</Text>
+                <Text fontSize="2xl" fontWeight="black" color={titleColor} lineHeight={1}>{solved}</Text>
+                <Text fontSize="10px" color={mutedColor} fontFamily="mono">/ {total}</Text>
             </Flex>
         </Box>
     );
@@ -75,12 +78,16 @@ const diffColor = (d) =>
 /** AI analysis section */
 const AIAnalysisSection = ({ aiAnalysis }) => {
     const { t } = useTranslation();
+    const panelBg = useColorModeValue('rgba(236,254,255,0.72)', 'rgba(255,255,255,0.03)');
+    const panelBorder = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.07)');
+    const mutedColor = useColorModeValue('var(--color-text-muted)', 'gray.500');
+    const titleColor = useColorModeValue('var(--color-text-heading)', 'white');
     // aiAnalysis: false = loading, null = failed/unavailable, object = done
     if (aiAnalysis === null) return null;
 
     if (aiAnalysis === false) {
         return (
-            <Box w="100%" p={4} borderRadius="12px" bg="rgba(255,255,255,0.03)" border="1px solid rgba(255,255,255,0.07)">
+            <Box w="100%" p={4} borderRadius="12px" bg={panelBg} border="1px solid" borderColor={panelBorder}>
                 <HStack spacing={2} mb={3}>
                     <Box w="8px" h="8px" borderRadius="full" bg="cyan.400"
                         className="animate-pulse-glow" />
@@ -118,21 +125,21 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
         <Box w="100%">
             {/* Section header */}
             <HStack spacing={2} mb={3}>
-                <Icon as={MdSmartToy} w={4} h={4} color="gray.500" />
-                <Text fontSize="xs" fontFamily="mono" color="gray.500"
+                <Icon as={MdSmartToy} w={4} h={4} color={mutedColor} />
+                <Text fontSize="xs" fontFamily="mono" color={mutedColor}
                     textTransform="uppercase" letterSpacing="0.1em">
                     {t('speedChallenge.aiAnalysis')}
                 </Text>
-                <Box flex={1} h="1px" bg="rgba(255,255,255,0.06)" />
-                <Text fontSize="xs" fontFamily="mono" color="gray.500">
+                <Box flex={1} h="1px" bg={panelBorder} />
+                <Text fontSize="xs" fontFamily="mono" color={mutedColor}>
                     {t('speedChallenge.score')}{' '}
-                    <Text as="span" fontWeight="bold" color="white">{totalScore}</Text>
+                    <Text as="span" fontWeight="bold" color={titleColor}>{totalScore}</Text>
                     /100
                 </Text>
             </HStack>
 
             {/* Aggregate score bars */}
-            <Box p={4} borderRadius="12px" bg="rgba(255,255,255,0.03)" border="1px solid rgba(255,255,255,0.07)" mb={3}>
+            <Box p={4} borderRadius="12px" bg={panelBg} border="1px solid" borderColor={panelBorder} mb={3}>
                 <VStack spacing={3} align="stretch">
                     <ScoreBar label={t('speedChallenge.exactitude')} value={aiScores.exactitude} color="#22c55e" />
                     <ScoreBar label={t('speedChallenge.complexity')} value={aiScores.complexity} color="#22d3ee" />
@@ -220,6 +227,15 @@ const AIAnalysisSection = ({ aiAnalysis }) => {
 const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnalysis, onDone }) => {
     const { t } = useTranslation();
     const visual = RANK_VISUALS[placement.rank] || RANK_VISUALS.BRONZE;
+    const pageBg = useColorModeValue('linear-gradient(135deg, #f8fafc 0%, #ecfeff 48%, #eef2ff 100%)', '#0f172a');
+    const cardBg = useColorModeValue('rgba(255,255,255,0.9)', 'rgba(15,23,42,0.95)');
+    const cardShadow = useColorModeValue(`0 30px 75px -42px ${visual.glow}, 0 12px 40px -28px rgba(14,116,144,0.55)`, `0 0 60px ${visual.glow}, 0 24px 48px rgba(0,0,0,0.5)`);
+    const titleColor = useColorModeValue('var(--color-text-heading)', 'white');
+    const mutedColor = useColorModeValue('var(--color-text-muted)', 'gray.500');
+    const bodyColor = useColorModeValue('var(--color-text-secondary)', 'gray.300');
+    const panelBg = useColorModeValue('rgba(236,254,255,0.72)', 'rgba(255,255,255,0.03)');
+    const statBg = useColorModeValue('rgba(255,255,255,0.72)', 'rgba(255,255,255,0.04)');
+    const panelBorder = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.06)');
     const minutesUsed = Math.floor(totalSeconds / 60);
     const secsUsed = totalSeconds % 60;
     const pad = (n) => String(n).padStart(2, '0');
@@ -228,7 +244,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
     return (
         <Box
             minH="100vh"
-            bg="#0f172a"
+            bg={pageBg}
             display="flex"
             alignItems="center"
             justifyContent="center"
@@ -262,12 +278,12 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                 zIndex={10}
             >
                 <Box
-                    bg="rgba(15,23,42,0.95)"
+                    bg={cardBg}
                     backdropFilter="blur(20px)"
                     borderRadius="24px"
                     border="1px solid"
                     borderColor={`${visual.ring}40`}
-                    boxShadow={`0 0 60px ${visual.glow}, 0 24px 48px rgba(0,0,0,0.5)`}
+                    boxShadow={cardShadow}
                     overflow="hidden"
                 >
                     {/* Top gradient bar */}
@@ -282,7 +298,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                             <Text
                                 fontSize="xs"
                                 fontFamily="mono"
-                                color="gray.500"
+                                color={mutedColor}
                                 letterSpacing="0.15em"
                                 textTransform="uppercase"
                                 mb={1}
@@ -292,7 +308,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                             <Text
                                 fontSize="3xl"
                                 fontWeight="black"
-                                color="white"
+                                color={titleColor}
                                 fontFamily="heading"
                                 lineHeight={1.2}
                             >
@@ -340,7 +356,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                             {/* Problems solved */}
                             <VStack spacing={1} align="center">
                                 <ScoreRing solved={solvedIds.length} color={placement.color} />
-                                <Text fontSize="xs" color="gray.500" fontFamily="mono" mt={1}>
+                                <Text fontSize="xs" color={mutedColor} fontFamily="mono" mt={1}>
                                     {t('speedChallenge.problemsSolved')}
                                 </Text>
                             </VStack>
@@ -353,11 +369,12 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                     align="center"
                                     p={3}
                                     borderRadius="10px"
-                                    bg="rgba(255,255,255,0.04)"
-                                    border="1px solid rgba(255,255,255,0.06)"
+                                    bg={statBg}
+                                    border="1px solid"
+                                    borderColor={panelBorder}
                                 >
-                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">{t('speedChallenge.timeUsed')}</Text>
-                                    <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color="white">
+                                    <Text fontSize="xs" color={mutedColor} fontFamily="mono">{t('speedChallenge.timeUsed')}</Text>
+                                    <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color={titleColor}>
                                         {timeStr}
                                     </Text>
                                 </Flex>
@@ -367,10 +384,11 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                     align="center"
                                     p={3}
                                     borderRadius="10px"
-                                    bg="rgba(255,255,255,0.04)"
-                                    border="1px solid rgba(255,255,255,0.06)"
+                                    bg={statBg}
+                                    border="1px solid"
+                                    borderColor={panelBorder}
                                 >
-                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">{t('speedChallenge.xpEarned')}</Text>
+                                    <Text fontSize="xs" color={mutedColor} fontFamily="mono">{t('speedChallenge.xpEarned')}</Text>
                                     <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color="yellow.400">
                                         +{placement.xp} XP
                                     </Text>
@@ -381,10 +399,11 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                     align="center"
                                     p={3}
                                     borderRadius="10px"
-                                    bg="rgba(255,255,255,0.04)"
-                                    border="1px solid rgba(255,255,255,0.06)"
+                                    bg={statBg}
+                                    border="1px solid"
+                                    borderColor={panelBorder}
                                 >
-                                    <Text fontSize="xs" color="gray.500" fontFamily="mono">{t('speedChallenge.rankAssigned')}</Text>
+                                    <Text fontSize="xs" color={mutedColor} fontFamily="mono">{t('speedChallenge.rankAssigned')}</Text>
                                     <Text fontSize="sm" fontWeight="bold" fontFamily="mono" color={placement.color}>
                                         {placement.rank}
                                     </Text>
@@ -396,12 +415,13 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                         <Box
                             p={4}
                             borderRadius="12px"
-                            bg="rgba(255,255,255,0.03)"
-                            border="1px solid rgba(255,255,255,0.06)"
+                            bg={panelBg}
+                            border="1px solid"
+                            borderColor={panelBorder}
                             w="100%"
                             textAlign="center"
                         >
-                            <Text fontSize="sm" color="gray.300" lineHeight="1.7">
+                            <Text fontSize="sm" color={bodyColor} lineHeight="1.7">
                                 {placement.message}
                             </Text>
                         </Box>
@@ -412,7 +432,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                         {/* Solved problems */}
                         {solvedIds.length > 0 && (
                             <Box w="100%">
-                                <Text fontSize="xs" color="gray.500" fontFamily="mono" textTransform="uppercase" letterSpacing="0.1em" mb={2}>
+                                <Text fontSize="xs" color={mutedColor} fontFamily="mono" textTransform="uppercase" letterSpacing="0.1em" mb={2}>
                                     {t('speedChallenge.solvedLabel')}
                                 </Text>
                                 <VStack spacing={2} align="stretch">
@@ -431,7 +451,7 @@ const PlacementResult = ({ placement, solvedIds, totalSeconds, problems, aiAnaly
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round">
                                                     <path d="M20 6 9 17l-5-5" />
                                                 </svg>
-                                                <Text fontSize="sm" color="white" fontWeight="medium">{p.title}</Text>
+                                                <Text fontSize="sm" color={titleColor} fontWeight="medium">{p.title}</Text>
                                                 <Box ml="auto">
                                                     <Text fontSize="xs" color={p.difficultyColor} fontFamily="mono">
                                                         {p.difficulty}

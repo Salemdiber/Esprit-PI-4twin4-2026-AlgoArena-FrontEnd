@@ -726,6 +726,7 @@ bool solution(string s) {
                                     autoComplete="off"
                                     autoCorrect="off"
                                     autoCapitalize="off"
+                                    aria-label="Code editor"
                                     flex={1}
                                     p={4}
                                     bg="transparent"

@@ -48,7 +48,7 @@ const AuthHeader = ({ icon, title, subtitle }) => {
                     fontFamily="heading"
                     fontSize={{ base: '2xl', md: '3xl' }}
                     fontWeight="semibold"
-                    color="gray.100"
+                    color={headingColor}
                     letterSpacing="-0.02em"
                     textAlign={icon ? 'left' : 'center'}
                     mb={2}

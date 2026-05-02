@@ -19,6 +19,7 @@ import {
 import { m, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useProfile } from '../context/ProfileContext';
+import { toMediaUrl } from '../../../../utils/mediaUrl';
 
 const MotionBox = m.create(Box);
 
@@ -127,7 +128,7 @@ const AvatarSection = () => {
                             </Flex>
                         ) : (
                             <Avatar
-                                src={user.avatar}
+                                src={toMediaUrl(user.avatar)}
                                 name={user.username}
                                 w="100%"
                                 h="100%"

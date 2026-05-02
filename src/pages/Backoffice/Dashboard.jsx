@@ -316,6 +316,8 @@ const Dashboard = () => {
     }, [flaggedSubmissionKeys]);
 
     useEffect(() => {
+        let cancelled = false;
+
         const loadStats = async () => {
             try {
                 setLoading(true);
@@ -326,34 +328,54 @@ const Dashboard = () => {
                     challengesRes,
                     submissionsRes,
                     qualityRes,
-                    overviewByChallengeRes,
-                ] = await Promise.all([
+                ] = await Promise.allSettled([
                     adminStatsService.getOverview(),
                     adminStatsService.getUsers(),
                     adminStatsService.getChallenges(),
                     adminStatsService.getSubmissions(),
                     adminStatsService.getDashboardSubmissionStats(),
-                    adminStatsService.getChallengeSubmissionOverview(),
                 ]);
-                setOverview(overviewRes);
-                setUsersStats(usersRes);
-                setChallengeStats(challengesRes);
-                setSubmissionStats(submissionsRes);
-                setSubmissionQualityStats(qualityRes);
-                setChallengeSubmissionOverview(Array.isArray(overviewByChallengeRes) ? overviewByChallengeRes : []);
-                if (Array.isArray(overviewByChallengeRes) && overviewByChallengeRes.length > 0) {
-                    setSelectedChallengeId((prev) => prev || overviewByChallengeRes[0].challengeId);
+
+                if (cancelled) return;
+                const results = [overviewRes, usersRes, challengesRes, submissionsRes, qualityRes];
+                const firstError = results.find((item) => item.status === 'rejected');
+
+                if (overviewRes.status === 'fulfilled') setOverview(overviewRes.value);
+                if (usersRes.status === 'fulfilled') setUsersStats(usersRes.value);
+                if (challengesRes.status === 'fulfilled') setChallengeStats(challengesRes.value);
+                if (submissionsRes.status === 'fulfilled') setSubmissionStats(submissionsRes.value);
+                if (qualityRes.status === 'fulfilled') setSubmissionQualityStats(qualityRes.value);
+                if (firstError) {
+                    setError(firstError.reason?.message || t('admin.dashboard.loadError'));
                 }
             } catch (err) {
                 console.error('Failed to fetch dashboard stats:', err);
                 setError(err?.message || t('admin.dashboard.loadError'));
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        const loadChallengeOverview = async () => {
+            try {
+                const overviewByChallengeRes = await adminStatsService.getChallengeSubmissionOverview();
+                if (cancelled) return;
+                setChallengeSubmissionOverview(Array.isArray(overviewByChallengeRes) ? overviewByChallengeRes : []);
+                if (Array.isArray(overviewByChallengeRes) && overviewByChallengeRes.length > 0) {
+                    setSelectedChallengeId((prev) => prev || overviewByChallengeRes[0].challengeId);
+                }
+            } catch (err) {
+                if (!cancelled) console.warn('Challenge submission overview failed:', err);
             }
         };
 
         loadStats();
-    }, []);
+        loadChallengeOverview();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [t]);
 
     useEffect(() => {
         let cancelled = false;
@@ -645,11 +667,7 @@ const Dashboard = () => {
         return { total: totalSub, successful: totalSuccess, rate };
     }, [qualityRows]);
 
-    if (loading) {
-        return <div className="p-6" style={{ color: 'var(--color-text-heading)' }}>{t('admin.dashboard.loading')}</div>;
-    }
-
-    if (error) {
+    if (error && !overview && !usersStats && !challengeStats && !submissionStats) {
         return <div className="p-6 text-red-400">{error}</div>;
     }
 
@@ -659,6 +677,12 @@ const Dashboard = () => {
                 <h1 className="font-heading text-3xl font-bold mb-2 truncate" style={{ color: 'var(--color-text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{t('admin.dashboard.title')}</h1>
                 <p style={{ color: 'var(--color-text-muted)' }}>{t('admin.dashboard.subtitle')}</p>
             </div>
+
+            {loading ? (
+                <div className="rounded-xl px-4 py-3 text-sm" style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                    {t('admin.dashboard.loading')}
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <StatCard

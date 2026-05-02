@@ -7,7 +7,7 @@
  *
  * Current-user rows get a highlighted border + glow.
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Box, Flex, Text, Image, Grid, Badge, useColorModeValue } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -18,17 +18,6 @@ import TrendIndicator from './TrendIndicator';
 
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
-
-const useDeferredAnimation = (delayMs = 900) => {
-    const [ready, setReady] = useState(false);
-
-    useEffect(() => {
-        const timeoutId = window.setTimeout(() => setReady(true), delayMs);
-        return () => window.clearTimeout(timeoutId);
-    }, [delayMs]);
-
-    return ready;
-};
 
 /* ──────── colour maps for border accents per rank / tier ──────── */
 const useRankColors = () => {
@@ -69,14 +58,12 @@ const useStageBoxShadow = () => {
 };
 
 /* ──────── STAGE variant (vertical card for #2 & #3) ──────── */
-const StageCard = ({ player }) => {
+const StageCard = ({ player, animationsReady = false }) => {
     const { t } = useTranslation();
     const { cyan } = useRankColors();
     const stageBoxShadow = useStageBoxShadow();
     const rank = player.rankPosition;
     const colors = rankBorderColors[rank] || rankBorderColors[2];
-    const animationsReady = useDeferredAnimation();
-
     return (
         <MotionBox
             position="relative"
@@ -130,7 +117,17 @@ const StageCard = ({ player }) => {
                         border={`3px solid ${colors.solid}`}
                         boxShadow={useColorModeValue('sm', `0 0 30px ${colors.glow}`)}
                     >
-                        <Image src={player.avatar} alt={player.username} w="full" h="full" objectFit="cover" />
+                        <Image
+                            src={player.avatar}
+                            alt={player.username}
+                            htmlWidth="96"
+                            htmlHeight="96"
+                            w="full"
+                            h="full"
+                            objectFit="cover"
+                            loading="eager"
+                            decoding="async"
+                        />
                     </Box>
                 </Box>
 
@@ -202,13 +199,11 @@ const StageCard = ({ player }) => {
 };
 
 /* ──────── COMPACT variant (horizontal row for ranks 4–10) ──────── */
-const CompactCard = ({ player }) => {
+const CompactCard = ({ player, animationsReady = false }) => {
     const { t } = useTranslation();
     const { cyan, emerald } = useRankColors();
     const mode = useColorModeValue('light', 'dark');
     const isUser = player.isCurrentUser;
-    const animationsReady = useDeferredAnimation(1200);
-
     return (
         <MotionBox
             borderRadius="12px"
@@ -266,7 +261,17 @@ const CompactCard = ({ player }) => {
                             : `2px solid ${tierBorderColors[player.tier] || 'rgba(113,113,122,0.5)'}`
                     }
                 >
-                    <Image src={player.avatar} alt={player.username} w="full" h="full" objectFit="cover" />
+                    <Image
+                        src={player.avatar}
+                        alt={player.username}
+                        htmlWidth="52"
+                        htmlHeight="52"
+                        w="full"
+                        h="full"
+                        objectFit="cover"
+                        loading="lazy"
+                        decoding="async"
+                    />
                 </Box>
 
                 {/* Info */}
@@ -369,11 +374,11 @@ const CompactCard = ({ player }) => {
 };
 
 /* ──────── Master export ──────── */
-const RankCard = ({ player, variant = 'compact' }) => {
+const RankCard = ({ player, variant = 'compact', animationsReady = false }) => {
     if (variant === 'stage') {
-        return <StageCard player={player} />;
+        return <StageCard player={player} animationsReady={animationsReady} />;
     }
-    return <CompactCard player={player} />;
+    return <CompactCard player={player} animationsReady={animationsReady} />;
 };
 
-export default RankCard;
+export default React.memo(RankCard);

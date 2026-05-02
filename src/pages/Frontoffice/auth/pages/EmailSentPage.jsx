@@ -15,6 +15,7 @@ import {
     Link,
     Divider,
     VStack,
+    useColorModeValue,
 } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import AuthCard from '../components/AuthCard';
@@ -59,6 +60,14 @@ const EmailSentPage = () => {
     const location = useLocation();
     const email = location.state?.email || t('auth.emailSent.fallbackEmail');
     const [countdown, setCountdown] = useState(60);
+    const noticeBg = useColorModeValue('rgba(8, 145, 178, 0.08)', 'rgba(34, 211, 238, 0.08)');
+    const noticeBorder = useColorModeValue('rgba(8, 145, 178, 0.24)', 'rgba(34, 211, 238, 0.2)');
+    const noticeText = useColorModeValue('gray.700', 'gray.300');
+    const accentColor = useColorModeValue('cyan.700', '#22d3ee');
+    const buttonText = useColorModeValue('gray.700', 'gray.400');
+    const buttonDisabledText = useColorModeValue('gray.600', 'gray.400');
+    const buttonHoverBg = useColorModeValue('rgba(8, 145, 178, 0.08)', 'rgba(34, 211, 238, 0.1)');
+    const disabledBorderHover = useColorModeValue('gray.300', 'gray.600');
 
     useEffect(() => {
         if (countdown > 0) {
@@ -95,17 +104,17 @@ const EmailSentPage = () => {
 
             {/* Security Notice */}
             <Box
-                bg="rgba(34, 211, 238, 0.08)"
+                bg={noticeBg}
                 border="1px solid"
-                borderColor="rgba(34, 211, 238, 0.2)"
+                borderColor={noticeBorder}
                 borderRadius="8px"
                 p={4}
                 mb={6}
             >
                 <VStack align="start" spacing={1}>
                     <Box display="flex" gap={3}>
-                        <InfoIcon w={4} h={4} color="#22d3ee" mt={0.5} flexShrink={0} />
-                        <Text color="gray.300" fontSize="xs" lineHeight="relaxed">
+                        <InfoIcon w={4} h={4} color={accentColor} mt={0.5} flexShrink={0} />
+                        <Text color={noticeText} fontSize="xs" lineHeight="relaxed">
                             {t('auth.emailSent.securityNotice')}
                         </Text>
                     </Box>
@@ -119,15 +128,15 @@ const EmailSentPage = () => {
                 bg="transparent"
                 border="1px solid"
                 borderColor="var(--color-border)"
-                color="gray.400"
+                color={countdown > 0 ? buttonDisabledText : buttonText}
                 fontSize="sm"
                 borderRadius="8px"
                 disabled={countdown > 0}
-                _disabled={{ opacity: 0.6, cursor: 'not-allowed', _hover: { borderColor: 'gray.600' } }}
+                _disabled={{ opacity: 0.9, cursor: 'not-allowed', color: buttonDisabledText, _hover: { borderColor: disabledBorderHover } }}
                 _hover={{
-                    borderColor: '#22d3ee',
-                    color: '#22d3ee',
-                    bg: 'rgba(34, 211, 238, 0.1)',
+                    borderColor: accentColor,
+                    color: accentColor,
+                    bg: buttonHoverBg,
                 }}
                 transition="all 0.2s"
                 onClick={handleResend}
@@ -143,7 +152,7 @@ const EmailSentPage = () => {
                 <Link
                     as={RouterLink}
                     to="/signin"
-                    color="#22d3ee"
+                    color={accentColor}
                     fontSize="sm"
                     _hover={{ textDecoration: 'underline' }}
                     display="inline-flex"

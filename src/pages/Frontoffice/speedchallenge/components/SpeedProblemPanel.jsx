@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Text, VStack, HStack, Badge } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, useColorModeValue } from '@chakra-ui/react';
 
 /**
  * Defensive scalar coercion for fields coming from the AI-generated problem
@@ -28,8 +28,13 @@ const toDisplay = (v) => {
 const RenderDescription = ({ text }) => {
     const safeText = toDisplay(text);
     const parts = safeText.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    const bodyColor = useColorModeValue('var(--color-text-secondary)', 'gray.300');
+    const strongColor = useColorModeValue('var(--color-text-heading)', 'white');
+    const codeBg = useColorModeValue('rgba(14,116,144,0.09)', 'rgba(34,211,238,0.1)');
+    const codeBorder = useColorModeValue('rgba(14,116,144,0.2)', 'rgba(34,211,238,0.2)');
+    const codeColor = useColorModeValue('#0e7490', '#22d3ee');
     return (
-        <Text as="span" color="gray.300" fontSize="sm" lineHeight="1.8">
+        <Text as="span" color={bodyColor} fontSize="sm" lineHeight="1.8">
             {parts.map((part, i) => {
                 if (part.startsWith('`') && part.endsWith('`')) {
                     return (
@@ -39,12 +44,13 @@ const RenderDescription = ({ text }) => {
                             px="5px"
                             py="1px"
                             mx="2px"
-                            bg="rgba(34,211,238,0.1)"
-                            border="1px solid rgba(34,211,238,0.2)"
+                            bg={codeBg}
+                            border="1px solid"
+                            borderColor={codeBorder}
                             borderRadius="4px"
                             fontFamily="mono"
                             fontSize="xs"
-                            color="#22d3ee"
+                            color={codeColor}
                         >
                             {part.slice(1, -1)}
                         </Box>
@@ -52,7 +58,7 @@ const RenderDescription = ({ text }) => {
                 }
                 if (part.startsWith('**') && part.endsWith('**')) {
                     return (
-                        <Text key={i} as="strong" fontWeight="bold" color="white">
+                        <Text key={i} as="strong" fontWeight="bold" color={strongColor}>
                             {part.slice(2, -2)}
                         </Text>
                     );
@@ -70,6 +76,17 @@ const RenderDescription = ({ text }) => {
 
 const SpeedProblemPanel = ({ problem }) => {
     const { t } = useTranslation();
+    const titleColor = useColorModeValue('var(--color-text-heading)', 'white');
+    const mutedColor = useColorModeValue('var(--color-text-muted)', 'gray.500');
+    const labelColor = useColorModeValue('var(--color-text-secondary)', 'gray.400');
+    const cardBg = useColorModeValue('rgba(255,255,255,0.82)', 'rgba(15,23,42,0.7)');
+    const softCardBg = useColorModeValue('rgba(236,254,255,0.6)', 'rgba(15,23,42,0.5)');
+    const cardBorder = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.06)');
+    const subtleBorder = useColorModeValue('rgba(14,116,144,0.1)', 'rgba(255,255,255,0.04)');
+    const monoText = useColorModeValue('var(--color-text-secondary)', 'gray.400');
+    const inputColor = useColorModeValue('#0e7490', 'cyan.300');
+    const outputColor = useColorModeValue('#047857', 'green.300');
+    const scrollbarThumb = useColorModeValue('#94a3b8', '#334155');
     if (!problem) return null;
 
     return (
@@ -82,7 +99,7 @@ const SpeedProblemPanel = ({ problem }) => {
             sx={{
                 '&::-webkit-scrollbar': { width: '5px' },
                 '&::-webkit-scrollbar-track': { bg: 'transparent' },
-                '&::-webkit-scrollbar-thumb': { bg: '#334155', borderRadius: '3px' },
+                '&::-webkit-scrollbar-thumb': { bg: scrollbarThumb, borderRadius: '3px' },
             }}
         >
             {/* Header */}
@@ -103,7 +120,7 @@ const SpeedProblemPanel = ({ problem }) => {
                     >
                         {problem.difficulty}
                     </Box>
-                    <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                    <Text fontSize="xs" color={mutedColor} fontFamily="mono">
                         {t('speedChallenge.problemIndex', { index: problem.index })}
                     </Text>
                     <Box ml="auto">
@@ -120,7 +137,7 @@ const SpeedProblemPanel = ({ problem }) => {
                 <Text
                     fontSize="xl"
                     fontWeight="bold"
-                    color="white"
+                    color={titleColor}
                     fontFamily="heading"
                     lineHeight="1.3"
                 >
@@ -135,7 +152,7 @@ const SpeedProblemPanel = ({ problem }) => {
 
             {/* Examples */}
             <Box>
-                <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="0.1em" mb={3}>
+                <Text fontSize="xs" fontWeight="bold" color={labelColor} textTransform="uppercase" letterSpacing="0.1em" mb={3}>
                     {t('speedChallenge.examples')}
                 </Text>
                 <VStack align="stretch" spacing={3}>
@@ -143,22 +160,23 @@ const SpeedProblemPanel = ({ problem }) => {
                         <Box
                             key={i}
                             borderRadius="10px"
-                            border="1px solid rgba(255,255,255,0.06)"
-                            bg="rgba(15,23,42,0.7)"
+                            border="1px solid"
+                            borderColor={cardBorder}
+                            bg={cardBg}
                             overflow="hidden"
                         >
-                            <Box px={4} py={3} borderBottom="1px solid rgba(255,255,255,0.04)">
-                                <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">{t('speedChallenge.input')}</Text>
-                                <Text fontSize="sm" fontFamily="mono" color="cyan.300">{toDisplay(ex.input)}</Text>
+                            <Box px={4} py={3} borderBottom="1px solid" borderColor={subtleBorder}>
+                                <Text fontSize="xs" color={mutedColor} mb={1} fontFamily="mono">{t('speedChallenge.input')}</Text>
+                                <Text fontSize="sm" fontFamily="mono" color={inputColor}>{toDisplay(ex.input)}</Text>
                             </Box>
-                            <Box px={4} py={3} borderBottom={ex.explanation ? "1px solid rgba(255,255,255,0.04)" : "none"}>
-                                <Text fontSize="xs" color="gray.500" mb={1} fontFamily="mono">{t('speedChallenge.output')}</Text>
-                                <Text fontSize="sm" fontFamily="mono" color="green.300">{toDisplay(ex.output)}</Text>
+                            <Box px={4} py={3} borderBottom={ex.explanation ? "1px solid" : "none"} borderColor={subtleBorder}>
+                                <Text fontSize="xs" color={mutedColor} mb={1} fontFamily="mono">{t('speedChallenge.output')}</Text>
+                                <Text fontSize="sm" fontFamily="mono" color={outputColor}>{toDisplay(ex.output)}</Text>
                             </Box>
                             {ex.explanation && (
                                 <Box px={4} py={3}>
-                                    <Text fontSize="xs" color="gray.500" mb={1}>{t('speedChallenge.explanation')}</Text>
-                                    <Text fontSize="xs" color="gray.400" lineHeight="1.6">{toDisplay(ex.explanation)}</Text>
+                                    <Text fontSize="xs" color={mutedColor} mb={1}>{t('speedChallenge.explanation')}</Text>
+                                    <Text fontSize="xs" color={monoText} lineHeight="1.6">{toDisplay(ex.explanation)}</Text>
                                 </Box>
                             )}
                         </Box>
@@ -168,7 +186,7 @@ const SpeedProblemPanel = ({ problem }) => {
 
             {/* Constraints */}
             <Box>
-                <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="0.1em" mb={3}>
+                <Text fontSize="xs" fontWeight="bold" color={labelColor} textTransform="uppercase" letterSpacing="0.1em" mb={3}>
                     {t('speedChallenge.constraints')}
                 </Text>
                 <VStack align="stretch" spacing={1.5}>
@@ -183,7 +201,7 @@ const SpeedProblemPanel = ({ problem }) => {
                                 flexShrink={0}
                                 opacity={0.7}
                             />
-                            <Text fontSize="xs" fontFamily="mono" color="gray.400" lineHeight="1.6">
+                            <Text fontSize="xs" fontFamily="mono" color={monoText} lineHeight="1.6">
                                 {c}
                             </Text>
                         </HStack>
@@ -193,7 +211,7 @@ const SpeedProblemPanel = ({ problem }) => {
 
             {/* Test cases preview */}
             <Box>
-                <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="0.1em" mb={3}>
+                <Text fontSize="xs" fontWeight="bold" color={labelColor} textTransform="uppercase" letterSpacing="0.1em" mb={3}>
                     {t('speedChallenge.testCases')}
                 </Text>
                 <VStack align="stretch" spacing={2}>
@@ -203,13 +221,14 @@ const SpeedProblemPanel = ({ problem }) => {
                             spacing={3}
                             p={3}
                             borderRadius="8px"
-                            bg="rgba(15,23,42,0.5)"
-                            border="1px solid rgba(255,255,255,0.05)"
+                            bg={softCardBg}
+                            border="1px solid"
+                            borderColor={cardBorder}
                         >
-                            <Text fontSize="10px" fontFamily="mono" color="gray.600" minW="16px">
+                            <Text fontSize="10px" fontFamily="mono" color={mutedColor} minW="16px">
                                 #{i + 1}
                             </Text>
-                            <Text fontSize="xs" fontFamily="mono" color="gray.400" flex={1} isTruncated>
+                            <Text fontSize="xs" fontFamily="mono" color={monoText} flex={1} isTruncated>
                                 {toDisplay(tc.input)}
                             </Text>
                             <Text fontSize="xs" fontFamily="mono" color="green.400">

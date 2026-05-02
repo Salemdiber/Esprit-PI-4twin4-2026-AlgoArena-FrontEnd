@@ -36,6 +36,7 @@ const LanguageSelector = ({
         <Select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
+            aria-label="Programming language"
             bg="var(--color-bg-primary)"
             border="1px solid"
             borderColor="var(--color-border)"

@@ -23,7 +23,7 @@ const ContactSupportForm = ({ isOpen, onClose, onViewHistory }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="var(--color-bg-card)" color="var(--color-text-primary)" border="1px solid var(--color-border)" boxShadow="var(--shadow-custom)">
         <ModalHeader>{t('support.contactSupport')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
