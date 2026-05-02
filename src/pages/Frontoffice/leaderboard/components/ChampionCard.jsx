@@ -8,7 +8,7 @@
  *  • "Champion" floating badge above rank number
  *  • Aura ring around avatar
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Flex, Text, Image, Grid } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,17 @@ import StreakIndicator from './StreakIndicator';
 
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
+
+const useDeferredAnimation = (delayMs = 900) => {
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => setReady(true), delayMs);
+        return () => window.clearTimeout(timeoutId);
+    }, [delayMs]);
+
+    return ready;
+};
 
 const glowAnimation = {
     animate: {
@@ -36,6 +47,7 @@ const glowAnimation = {
 
 const ChampionCard = ({ player }) => {
     const { t } = useTranslation();
+    const animationsReady = useDeferredAnimation();
 
     return (
         <Box position="relative">
@@ -64,7 +76,7 @@ const ChampionCard = ({ player }) => {
                 transform="scale(1.05)"
                 cursor="pointer"
                 variants={glowAnimation}
-                animate="animate"
+                animate={animationsReady ? 'animate' : undefined}
                 whileHover={{ scale: 1.07 }}
                 transition={{ duration: 0.3 }}
             >
@@ -141,13 +153,13 @@ const ChampionCard = ({ player }) => {
                             inset={0}
                             borderRadius="full"
                             border="2px solid rgba(34, 211, 238, 0.3)"
-                            animate={{
+                            animate={animationsReady ? {
                                 boxShadow: [
                                     '0 0 20px rgba(34, 211, 238, 0.2)',
                                     '0 0 40px rgba(34, 211, 238, 0.4)',
                                     '0 0 20px rgba(34, 211, 238, 0.2)',
                                 ],
-                            }}
+                            } : undefined}
                             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                         />
                     </Box>
@@ -176,8 +188,8 @@ const ChampionCard = ({ player }) => {
                         </Text>
                         <MotionFlex
                             justify="center"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={false}
+                            animate={animationsReady ? { opacity: 1, y: 0 } : undefined}
                             transition={{ duration: 0.8, delay: 0.3 }}
                         >
                             <Text

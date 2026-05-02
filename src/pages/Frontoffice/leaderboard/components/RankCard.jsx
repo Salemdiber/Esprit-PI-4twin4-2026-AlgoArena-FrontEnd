@@ -7,7 +7,7 @@
  *
  * Current-user rows get a highlighted border + glow.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Flex, Text, Image, Grid, Badge, useColorModeValue } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,17 @@ import TrendIndicator from './TrendIndicator';
 
 const MotionBox = m.create(Box);
 const MotionFlex = m.create(Flex);
+
+const useDeferredAnimation = (delayMs = 900) => {
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => setReady(true), delayMs);
+        return () => window.clearTimeout(timeoutId);
+    }, [delayMs]);
+
+    return ready;
+};
 
 /* ──────── colour maps for border accents per rank / tier ──────── */
 const useRankColors = () => {
@@ -64,6 +75,7 @@ const StageCard = ({ player }) => {
     const stageBoxShadow = useStageBoxShadow();
     const rank = player.rankPosition;
     const colors = rankBorderColors[rank] || rankBorderColors[2];
+    const animationsReady = useDeferredAnimation();
 
     return (
         <MotionBox
@@ -75,8 +87,8 @@ const StageCard = ({ player }) => {
             borderColor="var(--color-border)"
             boxShadow={stageBoxShadow[rank]}
             cursor="pointer"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={false}
+            animate={animationsReady ? { opacity: 1, y: 0 } : undefined}
             transition={{ duration: 0.6, delay: rank === 2 ? 0.1 : 0.2 }}
             whileHover={{
                 y: -4,
@@ -139,8 +151,8 @@ const StageCard = ({ player }) => {
                     </Text>
                     <MotionFlex
                         justify="center"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={false}
+                        animate={animationsReady ? { opacity: 1, y: 0 } : undefined}
                         transition={{ duration: 0.8, delay: 0.4 }}
                     >
                         <Text
@@ -195,6 +207,7 @@ const CompactCard = ({ player }) => {
     const { cyan, emerald } = useRankColors();
     const mode = useColorModeValue('light', 'dark');
     const isUser = player.isCurrentUser;
+    const animationsReady = useDeferredAnimation(1200);
 
     return (
         <MotionBox
@@ -213,8 +226,8 @@ const CompactCard = ({ player }) => {
                     : 'var(--shadow-sm)'
             }
             cursor="pointer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={false}
+            animate={animationsReady ? { opacity: 1, y: 0 } : undefined}
             transition={{ duration: 0.5, delay: 0.05 * player.rankPosition }}
             whileHover={{
                 y: -2,

@@ -7,11 +7,8 @@
  */
 import React from 'react';
 import { Box, Grid, GridItem } from '@chakra-ui/react';
-import { m } from 'framer-motion';
 import ChampionCard from './ChampionCard';
 import RankCard from './RankCard';
-
-const MotionBox = m.create(Box);
 
 const ArenaStage = ({ players }) => {
     // Expect at least 3 players
@@ -22,11 +19,8 @@ const ArenaStage = ({ players }) => {
     if (!champion || !second || !third) return null;
 
     return (
-        <MotionBox
+        <Box
             mb={20}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
         >
             <Grid
                 templateColumns={{ base: '1fr', lg: 'repeat(3, 1fr)' }}
@@ -48,7 +42,7 @@ const ArenaStage = ({ players }) => {
                     <RankCard player={third} variant="stage" />
                 </GridItem>
             </Grid>
-        </MotionBox>
+        </Box>
     );
 };
 

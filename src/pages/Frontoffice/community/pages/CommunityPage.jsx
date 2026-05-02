@@ -12,6 +12,27 @@ import { countCommentTree } from '../utils/commentTree';
 
 const CreatePostDialog = lazy(() => import('../components/create/CreatePostDialog'));
 
+const useIdleReady = (delayMs = 1200) => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const mount = () => setReady(true);
+    const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? window.requestIdleCallback(mount, { timeout: delayMs })
+      : window.setTimeout(mount, delayMs);
+
+    return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
+    };
+  }, [delayMs]);
+
+  return ready;
+};
+
 // New slim shell for /community.
 //
 // Design direction: forum / Q&A (StackOverflow + GitHub Discussions).
@@ -34,6 +55,7 @@ const CommunityPage = () => {
   const [sortOrder, setSortOrder] = useState('recent');
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const showSidebarDetails = useIdleReady();
 
   // Section split: "discussion" = anything that isn't flagged as a problem.
   const sectioned = useMemo(() => {
@@ -228,19 +250,23 @@ const CommunityPage = () => {
             </section>
 
             <aside className="hidden xl:flex flex-col gap-4 sticky top-28 h-fit">
-              <CommunityStats
-                totalPosts={posts.length}
-                totalDiscussions={sectioned.discussion.length}
-                totalProblems={sectioned.problems.length}
-                totalSolved={totalSolved}
-                totalContributors={topContributors.length}
-                topContributors={topContributors}
-              />
-              <TagCloud
-                trendingTags={trendingTags}
-                selectedTag={selectedTag}
-                onSelectTag={setSelectedTag}
-              />
+              {showSidebarDetails && (
+                <>
+                  <CommunityStats
+                    totalPosts={posts.length}
+                    totalDiscussions={sectioned.discussion.length}
+                    totalProblems={sectioned.problems.length}
+                    totalSolved={totalSolved}
+                    totalContributors={topContributors.length}
+                    topContributors={topContributors}
+                  />
+                  <TagCloud
+                    trendingTags={trendingTags}
+                    selectedTag={selectedTag}
+                    onSelectTag={setSelectedTag}
+                  />
+                </>
+              )}
             </aside>
           </div>
         </div>

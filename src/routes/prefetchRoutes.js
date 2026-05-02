@@ -57,9 +57,9 @@ export const prefetchLikelyRoutes = (isAdmin = false) => {
     };
 
     if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        window.requestIdleCallback(preload, { timeout: 2500 });
+        window.requestIdleCallback(preload, { timeout: 8000 });
         return;
     }
 
-    window.setTimeout(preload, 1500);
+    window.setTimeout(preload, 8000);
 };

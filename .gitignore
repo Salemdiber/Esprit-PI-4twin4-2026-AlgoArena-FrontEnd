@@ -25,6 +25,7 @@ dist-ssr
 
 # Performance testing reports - local only, never commit
 perf-reports/
+.unlighthouse/
 *.report.html
 lighthouse-*.html
 lighthouse-*.json
