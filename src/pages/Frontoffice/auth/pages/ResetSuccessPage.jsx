@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Text, Icon, VStack } from '@chakra-ui/react';
+import { Box, Button, Text, Icon, useColorModeValue } from '@chakra-ui/react';
 import { m } from 'framer-motion';
 import AuthCard from '../components/AuthCard';
 import AuthHeader from '../components/AuthHeader';
@@ -28,6 +28,7 @@ const ResetSuccessPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [countdown, setCountdown] = useState(5);
+    const noticeColor = useColorModeValue('gray.600', 'gray.500');
 
     useEffect(() => {
         if (countdown > 0) {
@@ -60,7 +61,7 @@ const ResetSuccessPage = () => {
             />
 
             {/* Auto-redirect notice */}
-            <Text textAlign="center" color="gray.500" fontSize="xs" mb={6}>
+            <Text textAlign="center" color={noticeColor} fontSize="xs" mb={6}>
                 {t('auth.resetSuccess.redirecting', { countdown })}
             </Text>
 

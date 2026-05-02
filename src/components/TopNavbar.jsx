@@ -5,9 +5,12 @@ import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
 import { auditLogService } from '../services/auditLogService';
+import { settingsService } from '../services/settingsService';
+import { toMediaUrl } from '../utils/mediaUrl';
 
 const NOTIFICATION_STORAGE_KEY = 'algoarena-admin-read-notifications';
 const NOTIFICATION_LIMIT = 5;
+const NOTIFICATION_REFRESH_MS = 5000;
 
 const readStoredNotificationIds = () => {
     try {
@@ -101,25 +104,31 @@ const mapNotification = (log, readIds) => ({
     unread: !readIds.has(log?._id) && !(log?.read === true || log?.isRead === true),
 });
 
-const keepCurrentReadIds = (currentReadIds, feedIds) => {
-    const nextReadIds = new Set();
-    for (const id of currentReadIds) {
-        if (feedIds.has(id)) nextReadIds.add(id);
+const playNotificationSound = () => {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const gain = context.createGain();
+        gain.gain.setValueAtTime(0.0001, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.5);
+        gain.connect(context.destination);
+
+        [660, 880].forEach((frequency, index) => {
+            const oscillator = context.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, context.currentTime + index * 0.12);
+            oscillator.connect(gain);
+            oscillator.start(context.currentTime + index * 0.12);
+            oscillator.stop(context.currentTime + index * 0.12 + 0.16);
+        });
+
+        window.setTimeout(() => context.close().catch(() => {}), 700);
+    } catch {
+        // Browser autoplay policies can block this until the first user gesture.
     }
-    return nextReadIds;
 };
-
-const mergeBackendReadFlags = (rows, readIds) => {
-    const nextReadIds = new Set(readIds);
-    rows.forEach((log) => {
-        if ((log?.read === true || log?.isRead === true) && log?._id) {
-            nextReadIds.add(log._id);
-        }
-    });
-    return nextReadIds;
-};
-
-const mapNotifications = (rows, readIds) => rows.map((log) => mapNotification(log, readIds)).filter((item) => item.id);
 
 const TopNavbar = ({ onToggleSidebar }) => {
     const { t } = useTranslation();
@@ -127,11 +136,15 @@ const TopNavbar = ({ onToggleSidebar }) => {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [readNotificationIds, setReadNotificationIds] = useState(() => new Set());
+    const [notificationCenterEnabled, setNotificationCenterEnabled] = useState(true);
+    const [liveAlert, setLiveAlert] = useState(null);
     const [notifLoading, setNotifLoading] = useState(true);
     const [notifError, setNotifError] = useState('');
     const dropdownRef = useRef(null);
     const notifRef = useRef(null);
     const readIdsRef = useRef(new Set());
+    const seenNotificationIdsRef = useRef(new Set());
+    const hasLoadedNotificationsRef = useRef(false);
     const navigate = useNavigate();
     const { currentUser, logout } = useAuth();
 
@@ -158,6 +171,18 @@ const TopNavbar = ({ onToggleSidebar }) => {
     }, []);
 
     useEffect(() => {
+        let cancelled = false;
+        settingsService.getSettings()
+            .then((data) => {
+                if (!cancelled) setNotificationCenterEnabled(data?.notificationCenterEnabled !== false);
+            })
+            .catch(() => {
+                if (!cancelled) setNotificationCenterEnabled(true);
+            });
+        return () => { cancelled = true; };
+    }, []);
+
+    useEffect(() => {
         readIdsRef.current = readNotificationIds;
     }, [readNotificationIds]);
 
@@ -172,7 +197,14 @@ const TopNavbar = ({ onToggleSidebar }) => {
 
     useEffect(() => {
         const loadNotifications = async () => {
-            setNotifLoading(true);
+            if (!notificationCenterEnabled) {
+                setNotifications([]);
+                setNotifLoading(false);
+                setNotifError('');
+                return;
+            }
+
+            if (!hasLoadedNotificationsRef.current) setNotifLoading(true);
             try {
                 const result = await auditLogService.getLogs({ page: 1, limit: NOTIFICATION_LIMIT });
                 const rows = Array.isArray(result?.data) ? result.data : [];
@@ -185,8 +217,20 @@ const TopNavbar = ({ onToggleSidebar }) => {
                     persistReadNotificationIds(nextReadIds);
                 }
 
-                setNotifications(mapNotifications(rows, nextReadIds));
+                const mappedNotifications = rows.map((log) => mapNotification(log, nextReadIds)).filter((item) => item.id);
+                const firstNewUnread = mappedNotifications.find((item) => item.unread && !seenNotificationIdsRef.current.has(item.id));
+                const hadPreviousNotifications = seenNotificationIdsRef.current.size > 0;
+
+                if (firstNewUnread && hadPreviousNotifications) {
+                    playNotificationSound();
+                    setLiveAlert(firstNewUnread);
+                    window.setTimeout(() => setLiveAlert((current) => (current?.id === firstNewUnread.id ? null : current)), 6000);
+                }
+
+                seenNotificationIdsRef.current = new Set(currentIds);
+                setNotifications(mappedNotifications);
                 setNotifError('');
+                hasLoadedNotificationsRef.current = true;
             } catch (error) {
                 console.error('Failed to load admin notifications', error);
                 setNotifications([]);
@@ -197,12 +241,19 @@ const TopNavbar = ({ onToggleSidebar }) => {
         };
 
         loadNotifications();
-        const intervalId = window.setInterval(loadNotifications, 30000);
+        const intervalId = window.setInterval(loadNotifications, NOTIFICATION_REFRESH_MS);
+        const handleAdminAction = () => {
+            window.setTimeout(loadNotifications, 350);
+        };
+        window.addEventListener('algoarena:admin-action', handleAdminAction);
+        window.addEventListener('focus', loadNotifications);
 
         return () => {
             window.clearInterval(intervalId);
+            window.removeEventListener('algoarena:admin-action', handleAdminAction);
+            window.removeEventListener('focus', loadNotifications);
         };
-    }, [t]);
+    }, [notificationCenterEnabled, t]);
 
     const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
 
@@ -305,7 +356,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
                                     className="absolute top-1 right-1 min-w-5 h-5 px-1 flex items-center justify-center bg-red-500 rounded-full text-[10px] font-bold text-white"
                                     style={{ borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--color-bg-secondary)' }}
                                 >
-                                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                                    {unreadNotificationCount}
                                 </span>
                             )}
                         </button>
@@ -331,7 +382,11 @@ const TopNavbar = ({ onToggleSidebar }) => {
                             </div>
 
                             <div style={{ overflowY: 'auto', flex: 1 }}>
-                                {notifLoading ? (
+                                {!notificationCenterEnabled ? (
+                                    <div className="px-4 py-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                        Notification center is disabled in Settings.
+                                    </div>
+                                ) : notifLoading ? (
                                     <div className="px-4 py-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
                                         {t('topNav.loadingNotifications')}
                                     </div>
@@ -399,6 +454,50 @@ const TopNavbar = ({ onToggleSidebar }) => {
                         </div>
                     </div>
 
+                    {liveAlert && notificationCenterEnabled ? (
+                        <button
+                            type="button"
+                            className="fixed top-20 right-4 z-50 w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-3xl p-0 text-left shadow-[0_22px_70px_rgba(8,145,178,0.28)] border transition-all duration-300 hover:-translate-y-0.5"
+                            style={{
+                                background: 'linear-gradient(135deg, var(--color-bg-card), var(--color-bg-secondary))',
+                                borderColor: 'rgba(34,211,238,0.35)',
+                                color: 'var(--color-text-primary)',
+                            }}
+                            onClick={() => {
+                                setIsNotifOpen(true);
+                                setLiveAlert(null);
+                            }}
+                        >
+                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300" />
+                            <div className="relative flex gap-4 p-4">
+                                <div
+                                    className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                                    style={{
+                                        background: 'rgba(34,211,238,0.14)',
+                                        border: '1px solid rgba(34,211,238,0.35)',
+                                        color: 'var(--color-cyan-400)',
+                                    }}
+                                >
+                                    <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.9)]" />
+                                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h11zm0 0v1a3 3 0 11-6 0v-1" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="mb-1 flex items-center justify-between gap-3">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--color-cyan-400)' }}>Live admin alert</p>
+                                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: 'var(--color-info-bg)', color: 'var(--color-cyan-400)', border: '1px solid rgba(34,211,238,0.25)' }}>
+                                            now
+                                        </span>
+                                    </div>
+                                    <p className="truncate font-heading text-base font-bold" style={{ color: 'var(--color-text-heading)' }}>{liveAlert.title}</p>
+                                    <p className="mt-1 line-clamp-2 text-sm leading-5" style={{ color: 'var(--color-text-muted)' }}>{liveAlert.message}</p>
+                                    <p className="mt-3 text-xs font-semibold" style={{ color: 'var(--color-cyan-400)' }}>Open notification center</p>
+                                </div>
+                            </div>
+                        </button>
+                    ) : null}
+
                     {/* Profile Dropdown */}
                     <div className="relative" ref={dropdownRef}>
                         <button
@@ -408,7 +507,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
                         >
                             {currentUser?.avatar ? (
                                 <img
-                                    src={currentUser.avatar.startsWith('uploads/') ? `/${currentUser.avatar}` : currentUser.avatar}
+                                    src={toMediaUrl(currentUser.avatar)}
                                     alt={t('topNav.adminAlt')}
                                     className="w-9 h-9 rounded-full border-2 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)] object-cover"
                                 />
@@ -435,7 +534,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     {currentUser?.avatar ? (
                                         <img
-                                            src={currentUser.avatar.startsWith('uploads/') ? `/${currentUser.avatar}` : currentUser.avatar}
+                                            src={toMediaUrl(currentUser.avatar)}
                                             alt={t('topNav.adminAlt')}
                                             className="w-12 h-12 rounded-full border-2 border-cyan-400 object-cover"
                                         />

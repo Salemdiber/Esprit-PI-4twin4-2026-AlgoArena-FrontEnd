@@ -6,20 +6,18 @@ import { LazyMotion } from 'framer-motion';
 // Accessibility
 import AccessibilityProvider from './accessibility/context/AccessibilityContext';
 import useAccessibility from './accessibility/hooks/useAccessibility';
-import GlobalAccessibilityUI from './accessibility/components/GlobalAccessibilityUI';
 
 // Loading System
 import { LoadingProvider } from './shared/context/LoadingContext';
 import RouteLoader from './shared/components/RouteLoader';
+import PageRouteSkeleton from './shared/components/PageRouteSkeleton';
 import NavigationProgress from './shared/components/NavigationProgress';
 import ErrorBoundary from './components/ErrorBoundary';
-
-// Public layout is always loaded; admin stays behind its protected route.
-import PublicLayout from './layout/PublicLayout';
 
 // ─── Lazy-loaded pages (code-split per route) ───
 
 // Public
+const PublicLayout = lazy(() => import('./layout/PublicLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage/LandingPage'));
 const AdminLayout = lazy(() => import('./layout/AdminLayout'));
 
@@ -50,6 +48,7 @@ import { SupportProvider } from './features/support/SupportProvider';
 import { prefetchLikelyRoutes } from './routes/prefetchRoutes';
 
 const ChatPanel = lazy(() => import('./features/chat/ChatPanel'));
+const GlobalAccessibilityUI = lazy(() => import('./accessibility/components/GlobalAccessibilityUI'));
 
 // Frontoffice Challenge Pages
 const ChallengesListPage = lazy(() => import('./pages/Frontoffice/challenges/pages/ChallengesListPage'));
@@ -78,7 +77,7 @@ const Dashboard = lazy(() => import('./pages/Backoffice/Dashboard'));
 const Users = lazy(() => import('./pages/Backoffice/Users'));
 const Battles = lazy(() => import('./pages/Backoffice/Battles'));
 const Challenges = lazy(() => import('./pages/Backoffice/Challenges'));
-const AILogs = lazy(() => import('./pages/Backoffice/AILogs'));
+const SupportCenter = lazy(() => import('./pages/Backoffice/SupportCenter'));
 const AIAgents = lazy(() => import('./pages/Backoffice/AIAgents'));
 const Leaderboards = lazy(() => import('./pages/Backoffice/Leaderboards'));
 const Analytics = lazy(() => import('./pages/Backoffice/Analytics'));
@@ -422,7 +421,9 @@ const DeferredGlobalUi = () => {
   return (
     <>
       <NavigationProgress />
-      <GlobalAccessibilityUI />
+      <Suspense fallback={null}>
+        <GlobalAccessibilityUI />
+      </Suspense>
       <IdleRoutePrefetcher />
     </>
   );
@@ -446,7 +447,7 @@ function App() {
               <ChatProvider>
                 <SupportProvider>
                   <FeatureScopedProviders>
-                        <Suspense fallback={<RouteLoader />}>
+                        <Suspense fallback={<PageRouteSkeleton />}>
                           <MaintenanceGate>
                             <SpeedChallengeGate>
                               <Routes>
@@ -487,7 +488,8 @@ function App() {
                             <Route path="users" element={<Users />} />
                             <Route path="battles" element={<Battles />} />
                             <Route path="challenges" element={<Challenges />} />
-                            <Route path="ai-logs" element={<AILogs />} />
+                            <Route path="support-center" element={<SupportCenter />} />
+                            <Route path="ai-logs" element={<Navigate to="/admin/support-center" replace />} />
                             <Route path="ai-agents" element={<AIAgents />} />
                             <Route path="leaderboards" element={<Leaderboards />} />
                             <Route path="analytics" element={<Analytics />} />

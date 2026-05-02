@@ -5,9 +5,12 @@ import { PlusIcon, SparkleIcon, TrendingIcon } from '../shared/icons';
 // Top of the feed: brand line, KPI strip, section tabs, primary CTA.
 // Redesigned for a more premium, creative look with gradient accents,
 // glassmorphism cards, and refined typography.
-const SectionTab = ({ active, onClick, count, label }) => (
+const SectionTab = ({ active, onClick, count, label, panelId }) => (
   <button
     type="button"
+    role="tab"
+    aria-selected={active}
+    aria-controls={panelId}
     onClick={onClick}
     className={`inline-flex h-11 min-w-[9rem] items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition-all duration-200 ${
       active
@@ -142,12 +145,14 @@ const FeedHeader = ({
           onClick={() => onChangeSection('discussion')}
           label="Discussion"
           count={sectionCounts.discussion ?? 0}
+          panelId="community-feed-panel"
         />
         <SectionTab
           active={activeSection === 'problems'}
           onClick={() => onChangeSection('problems')}
           label="Problems"
           count={sectionCounts.problems ?? 0}
+          panelId="community-feed-panel"
         />
       </div>
     </header>

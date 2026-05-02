@@ -18,7 +18,7 @@ const Stat = ({ value, label, accent = false }) => (
     >
       {Number.isFinite(value) ? value : 0}
     </span>
-    <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] opacity-70">
+    <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
       {label}
     </span>
   </div>

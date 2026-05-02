@@ -14,7 +14,7 @@ import { useAuth, redirectBasedOnRole } from '../auth/context/AuthContext';
 import { useToast } from '@chakra-ui/react';
 import {
     Box, Flex, Text, Button, VStack, HStack, Image, Icon, Heading,
-    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner, Skeleton,
+    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Spinner, Skeleton, useColorModeValue,
 } from '@chakra-ui/react';
 import { MdOutlineEdit, MdTimer, MdSwapHoriz, MdEmojiEvents, MdKey, MdBolt } from 'react-icons/md';
 import { m, AnimatePresence } from 'framer-motion';
@@ -98,6 +98,22 @@ const PHASE = {
 const IntroScreen = React.memo(({ onStart, loading = false }) => {
     const { t } = useTranslation();
     const [enableFloat, setEnableFloat] = useState(false);
+    const introBg = useColorModeValue('linear-gradient(135deg, #f8fafc 0%, #ecfeff 42%, #eef2ff 100%)', '#0f172a');
+    const gridImage = useColorModeValue(
+        'linear-gradient(to right, rgba(14,116,144,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(79,70,229,0.1) 1px, transparent 1px)',
+        'linear-gradient(to right, rgba(30,41,59,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(30,41,59,0.6) 1px, transparent 1px)'
+    );
+    const blueOrb = useColorModeValue('cyan.200', 'blue.800');
+    const cyanOrb = useColorModeValue('violet.200', 'cyan.700');
+    const cardBg = useColorModeValue('rgba(255,255,255,0.88)', 'rgba(15,23,42,0.95)');
+    const cardBorder = useColorModeValue('rgba(14,116,144,0.2)', 'rgba(34,211,238,0.15)');
+    const cardShadow = useColorModeValue('0 28px 70px -38px rgba(14,116,144,0.58), 0 12px 40px -28px rgba(79,70,229,0.45)', '0 24px 48px rgba(0,0,0,0.5)');
+    const panelBg = useColorModeValue('rgba(248,250,252,0.82)', 'rgba(255,255,255,0.03)');
+    const panelBorder = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.07)');
+    const titleColor = useColorModeValue('var(--color-text-heading)', 'white');
+    const bodyColor = useColorModeValue('var(--color-text-secondary)', 'gray.400');
+    const labelColor = useColorModeValue('var(--color-text-muted)', 'gray.500');
+    const ruleColor = useColorModeValue('var(--color-text-secondary)', 'gray.300');
     const rules = useMemo(
         () => ([
             { icon: MdOutlineEdit, text: t('speedChallenge.rule1') },
@@ -121,7 +137,7 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
         minH="100vh"
         pt={["80px", "80px", "96px"]}
         pb={["96px", "96px", "120px"]}
-        bg="#0f172a"
+        bg={introBg}
         display="flex"
         alignItems="center"
         justifyContent="center"
@@ -135,7 +151,7 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                 inset={0}
                 opacity={0.25}
                 backgroundSize="40px 40px"
-                backgroundImage="linear-gradient(to right, rgba(30,41,59,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(30,41,59,0.6) 1px, transparent 1px)"
+                backgroundImage={gridImage}
             />
             <Box
                 position="absolute"
@@ -143,7 +159,7 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                 left="15%"
                 w="360px"
                 h="360px"
-                bg="blue.800"
+                bg={blueOrb}
                 borderRadius="full"
                 filter="blur(120px)"
                 opacity={0.15}
@@ -154,7 +170,7 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                 right="15%"
                 w="360px"
                 h="360px"
-                bg="cyan.700"
+                bg={cyanOrb}
                 borderRadius="full"
                 filter="blur(120px)"
                 opacity={0.15}
@@ -200,11 +216,12 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                 zIndex={10}
             >
                 <Box
-                    bg="rgba(15,23,42,0.95)"
+                    bg={cardBg}
                     backdropFilter="blur(20px)"
                     borderRadius={['16px', '20px', '24px']}
-                    border="1px solid rgba(34,211,238,0.15)"
-                    boxShadow={['0 6px 20px rgba(0,0,0,0.5)', '0 12px 30px rgba(0,0,0,0.5)', '0 24px 48px rgba(0,0,0,0.5)']}
+                    border="1px solid"
+                    borderColor={cardBorder}
+                    boxShadow={cardShadow}
                     overflow="hidden"
                 >
                 {/* Top gradient bar */}
@@ -245,14 +262,14 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                                 fontSize={{ base: '3xl', md: '4xl' }}
                                 fontWeight="black"
                                 fontFamily="heading"
-                                color="white"
+                                color={titleColor}
                                 lineHeight={1.1}
                             >
                                 {t('speedChallenge.speedChallenge')}
                             </Text>
                         </Flex>
-                        <Text fontSize="sm" color="gray.400" maxW="380px" lineHeight="1.8">
-                            {t('speedChallenge.introDescPart1')} <strong style={{ color: '#22d3ee' }}>{t('speedChallenge.fifteenMinutes')}</strong> {t('speedChallenge.introDescPart2')} <strong style={{ color: 'white' }}>{t('speedChallenge.autoAssigned')}</strong> {t('speedChallenge.appliedToAccount')}
+                        <Text fontSize="sm" color={bodyColor} maxW="380px" lineHeight="1.8">
+                            {t('speedChallenge.introDescPart1')} <strong style={{ color: '#0891b2' }}>{t('speedChallenge.fifteenMinutes')}</strong> {t('speedChallenge.introDescPart2')} <strong style={{ color: 'var(--color-text-heading)' }}>{t('speedChallenge.autoAssigned')}</strong> {t('speedChallenge.appliedToAccount')}
                         </Text>
                     </VStack>
 
@@ -261,13 +278,14 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                         w="100%"
                         p={5}
                         borderRadius="14px"
-                        bg="rgba(255,255,255,0.03)"
-                        border="1px solid rgba(255,255,255,0.07)"
+                        bg={panelBg}
+                        border="1px solid"
+                        borderColor={panelBorder}
                     >
                         <Text
                             fontSize="xs"
                             fontFamily="mono"
-                            color="gray.500"
+                            color={labelColor}
                             letterSpacing="0.1em"
                             textTransform="uppercase"
                             mb={4}
@@ -278,7 +296,7 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                             {rules.map((rule, i) => (
                                     <HStack key={i} spacing={3} align="flex-start">
                                         <Icon as={rule.icon} boxSize={6} color="brand.500" mt="2px" />
-                                        <Text fontSize="sm" color="gray.300" lineHeight="1.6">
+                                        <Text fontSize="sm" color={ruleColor} lineHeight="1.6">
                                             {rule.text}
                                         </Text>
                                     </HStack>
@@ -291,7 +309,7 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
                         <Text
                             fontSize="xs"
                             fontFamily="mono"
-                            color="gray.500"
+                            color={labelColor}
                             letterSpacing="0.1em"
                             textTransform="uppercase"
                             mb={3}
@@ -372,15 +390,22 @@ const IntroScreen = React.memo(({ onStart, loading = false }) => {
     );
 });
 
-const SpeedChallengeSkeleton = React.memo(() => (
-    <Flex direction="column" minH="100vh" bg="#0f172a" overflow="hidden">
+const SpeedChallengeSkeleton = React.memo(() => {
+    const shellBg = useColorModeValue('#f8fafc', '#0f172a');
+    const headerBg = useColorModeValue('rgba(255,255,255,0.9)', '#0b1220');
+    const borderColor = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.06)');
+    const tabBg = useColorModeValue('rgba(236,254,255,0.75)', 'rgba(11,18,32,0.9)');
+
+    return (
+    <Flex direction="column" minH="100vh" bg={shellBg} overflow="hidden">
         <Flex
             align="center"
             justify="space-between"
             px={4}
             py={2.5}
-            bg="#0b1220"
-            borderBottom="1px solid rgba(255,255,255,0.06)"
+            bg={headerBg}
+            borderBottom="1px solid"
+            borderColor={borderColor}
             gap={2}
         >
             <HStack spacing={3}>
@@ -390,7 +415,7 @@ const SpeedChallengeSkeleton = React.memo(() => (
             <Skeleton width="200px" height="20px" borderRadius="6px" />
             <Skeleton width="120px" height="20px" borderRadius="6px" />
         </Flex>
-        <Box px={3} py={2} bg="rgba(11,18,32,0.9)">
+        <Box px={3} py={2} bg={tabBg}>
             <Skeleton height="28px" borderRadius="8px" />
         </Box>
         <Flex flex={1} overflow="hidden" minH={0}>
@@ -403,7 +428,8 @@ const SpeedChallengeSkeleton = React.memo(() => (
             </Box>
         </Flex>
     </Flex>
-));
+    );
+});
 
 const ProblemTabItem = React.memo(({ columnIndex, style, problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt }) => {
     const p = problems[columnIndex];
@@ -448,6 +474,8 @@ const ProblemTabItem = React.memo(({ columnIndex, style, problems, currentIndex,
 const ProblemTabs = React.memo(({ problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt }) => {
     const containerRef = useRef(null);
     const { width } = useElementSize(containerRef);
+    const tabsBg = useColorModeValue('rgba(236,254,255,0.78)', 'rgba(11,18,32,0.9)');
+    const tabsBorder = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.04)');
     const itemSize = useMemo(() => (width < 520 ? 200 : 240), [width]);
     const cellProps = useMemo(
         () => ({ problems, currentIndex, setCurrentIndex, solvedIds, onInterrupt }),
@@ -459,8 +487,9 @@ const ProblemTabs = React.memo(({ problems, currentIndex, setCurrentIndex, solve
             ref={containerRef}
             px={3}
             py={1.5}
-            bg="rgba(11,18,32,0.9)"
-            borderBottom="1px solid rgba(255,255,255,0.04)"
+            bg={tabsBg}
+            borderBottom="1px solid"
+            borderColor={tabsBorder}
             gap={1}
             flexShrink={0}
         >
@@ -499,6 +528,18 @@ const ChallengeArena = React.memo(({
     onFinish,
 }) => {
     const { t } = useTranslation();
+    const shellBg = useColorModeValue('#f8fafc', '#0f172a');
+    const headerBg = useColorModeValue('rgba(255,255,255,0.94)', '#0b1220');
+    const panelBg = useColorModeValue('#f8fafc', '#0f172a');
+    const footerBg = useColorModeValue('rgba(255,255,255,0.94)', '#0b1220');
+    const borderColor = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.06)');
+    const titleColor = useColorModeValue('var(--color-text-heading)', 'white');
+    const dividerColor = useColorModeValue('rgba(14,116,144,0.18)', 'rgba(255,255,255,0.08)');
+    const hintModalBg = useColorModeValue('white', '#0f172a');
+    const hintModalText = useColorModeValue('var(--color-text-heading)', 'white');
+    const hintBoxBg = useColorModeValue('rgba(236,254,255,0.8)', 'rgba(255,255,255,0.03)');
+    const hintBoxBorder = useColorModeValue('rgba(14,116,144,0.14)', 'rgba(255,255,255,0.06)');
+    const hintBodyColor = useColorModeValue('var(--color-text-secondary)', 'gray.200');
     const [disableCopyPaste, setDisableCopyPaste] = useState(false);
     const [disableTabSwitch, setDisableTabSwitch] = useState(false);
     const activeSubmissionRef = useRef(0);
@@ -626,7 +667,7 @@ const ChallengeArena = React.memo(({
     const isSolved = solvedIds.includes(problem?.id);
 
     return (
-        <Flex direction="column" minH="100vh" maxH="100vh" bg="#0f172a" overflow="hidden">
+        <Flex direction="column" minH="100vh" maxH="100vh" bg={shellBg} overflow="hidden">
             {/* â”€â”€ Top Navigation Bar â”€â”€ */}
             <Flex
                 as="header"
@@ -634,8 +675,9 @@ const ChallengeArena = React.memo(({
                 justify="space-between"
                 px={4}
                 py={2.5}
-                bg="#0b1220"
-                borderBottom="1px solid rgba(255,255,255,0.06)"
+                bg={headerBg}
+                borderBottom="1px solid"
+                borderColor={borderColor}
                 flexShrink={0}
                 gap={2}
                 flexWrap="wrap"
@@ -651,10 +693,10 @@ const ChallengeArena = React.memo(({
                         loading="lazy"
                         objectFit="contain"
                     />
-                    <Box w="1px" h="20px" bg="rgba(255,255,255,0.08)" />
+                    <Box w="1px" h="20px" bg={dividerColor} />
                     <HStack spacing={2}>
                         <Icon as={MdBolt} boxSize={4} color="brand.500" />
-                        <Text fontSize="sm" fontWeight="semibold" color="white">
+                        <Text fontSize="sm" fontWeight="semibold" color={titleColor}>
                             {t('speedChallenge.speedChallenge')}
                         </Text>
                     </HStack>
@@ -714,8 +756,9 @@ const ChallengeArena = React.memo(({
                     w={{ base: '100%', lg: '42%' }}
                     display={{ base: 'none', lg: 'flex' }}
                     flexDirection="column"
-                    bg="#0f172a"
-                    borderRight="1px solid rgba(255,255,255,0.06)"
+                    bg={panelBg}
+                    borderRight="1px solid"
+                    borderColor={borderColor}
                     overflow="hidden"
                 >
                     <AnimatePresence mode="wait">
@@ -771,8 +814,9 @@ const ChallengeArena = React.memo(({
                     <Box
                         px={4}
                         py={3}
-                        bg="#0b1220"
-                        borderTop="1px solid rgba(255,255,255,0.06)"
+                        bg={footerBg}
+                        borderTop="1px solid"
+                        borderColor={borderColor}
                         flexShrink={0}
                     >
                         <Flex align="center" justify="space-between" gap={3} flexWrap="wrap">
@@ -874,7 +918,7 @@ const ChallengeArena = React.memo(({
 
                 <Modal isOpen={hintOpen} onClose={() => setHintOpen(false)} isCentered size="lg">
                     <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(6px)" />
-                    <ModalContent bg="#0f172a" border="1px solid rgba(34,211,238,0.18)" color="white">
+                    <ModalContent bg={hintModalBg} border="1px solid rgba(34,211,238,0.18)" color={hintModalText}>
                         <ModalCloseButton color="gray.400" />
                         <ModalHeader>
                             <Text fontSize="xs" fontFamily="mono" color="cyan.300" letterSpacing="0.1em" textTransform="uppercase">
@@ -898,10 +942,11 @@ const ChallengeArena = React.memo(({
                                 <Box
                                     p={4}
                                     borderRadius="12px"
-                                    bg="rgba(255,255,255,0.03)"
-                                    border="1px solid rgba(255,255,255,0.06)"
+                                    bg={hintBoxBg}
+                                    border="1px solid"
+                                    borderColor={hintBoxBorder}
                                 >
-                                    <Text color="gray.200" lineHeight="1.8" whiteSpace="pre-wrap">
+                                    <Text color={hintBodyColor} lineHeight="1.8" whiteSpace="pre-wrap">
                                         {hintText || 'No hint loaded yet.'}
                                     </Text>
                                 </Box>

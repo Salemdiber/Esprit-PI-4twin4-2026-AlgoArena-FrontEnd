@@ -152,7 +152,7 @@
     --cmty-skeleton-base: rgba(255, 255, 255, 0.05);
     --cmty-skeleton-shimmer: rgba(255, 255, 255, 0.02);
     /* Subtle text shade between muted and the canvas */
-    --cmty-text-subtle: #64748b; /* slate-500 */
+    --cmty-text-subtle: #94a3b8; /* slate-400 */
     --cmty-text-faint: #94a3b8; /* slate-400 */
     /* Stat block in VoteCounter */
     --cmty-stat-bg: rgba(255, 255, 255, 0.03);

@@ -40,7 +40,7 @@ const ScheduleMeetingForm = ({ isOpen, onClose, onViewHistory }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="var(--color-bg-card)" color="var(--color-text-primary)" border="1px solid var(--color-border)" boxShadow="var(--shadow-custom)">
         <ModalHeader>{t('support.scheduleMeeting')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getDiceBearUrl } from '../../services/dicebear';
 import { getReCaptchaV3Token, mountReCaptchaV3, unmountReCaptchaV3 } from '../../services/recaptchaV3';
-import { Box, Heading, Text, Button, VStack, HStack, Input, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon, Grid, Image, Spinner } from '@chakra-ui/react';
+import { Box, Heading, Text, Button, VStack, HStack, Input, Link, Flex, InputGroup, InputLeftElement, InputRightElement, IconButton, Icon, Grid, Image, Spinner, useColorModeValue } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { m } from 'framer-motion';
 import AuthLayout from '../../layout/AuthLayout';
@@ -249,6 +249,27 @@ const SignUp = () => {
     const passwordHasError = hasSensitivePasswordContent || (password.length > 0 && password.length < 6);
     const passwordIsSuccess = password.length >= 8 && !passwordHasError;
 
+    const promoPanelBg = useColorModeValue(
+        'linear-gradient(145deg, #f0fdfa 0%, #eff6ff 48%, #f5f3ff 100%)',
+        'rgba(15,23,42,0.5)'
+    );
+    const promoGridImage = useColorModeValue(
+        'linear-gradient(to right, rgba(14,116,144,0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(79,70,229,0.1) 1px, transparent 1px)',
+        'linear-gradient(to right, rgba(30,41,59,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(30,41,59,0.5) 1px, transparent 1px)'
+    );
+    const promoOverlay = useColorModeValue(
+        'linear(to-b, rgba(255,255,255,0.05), rgba(255,255,255,0.35), rgba(224,242,254,0.85))',
+        'linear(to-b, transparent, transparent, rgba(15,23,42,0.9))'
+    );
+    const promoCardBg = useColorModeValue('rgba(255,255,255,0.78)', 'rgba(30,41,59,0.8)');
+    const promoCardBorder = useColorModeValue('rgba(14,116,144,0.22)', 'var(--color-border)');
+    const promoCardShadow = useColorModeValue('0 18px 42px -28px rgba(14,116,144,0.45)', 'none');
+    const promoMuted = useColorModeValue('var(--color-text-secondary)', 'gray.400');
+    const promoSoftMuted = useColorModeValue('var(--color-text-muted)', 'gray.500');
+    const promoBarBg = useColorModeValue('rgba(14,116,144,0.16)', 'gray.600');
+    const promoAvatarBg = useColorModeValue('rgba(15,23,42,0.72)', 'gray.600');
+    const promoBorderEdge = useColorModeValue('rgba(14,116,144,0.18)', 'whiteAlpha.50');
+
     const getFieldStyles = ({ hasError, isSuccess }) => ({
         ...inputStyles,
         borderColor: hasError ? 'red.300' : isSuccess ? 'green.300' : inputStyles.borderColor,
@@ -276,9 +297,9 @@ const SignUp = () => {
                 <Box className="glass-panel" borderRadius="16px" boxShadow="0px 8px 24px -4px rgba(15,23,42,0.5)" overflow="hidden" display="flex" flexDirection={{ base: 'column', lg: 'row' }} minH="600px">
 
                     {/* Left Panel — Gamified Preview */}
-                    <Box display={{ base: 'none', lg: 'flex' }} w={{ lg: '42%' }} bg="rgba(15,23,42,0.5)" position="relative" flexDirection="column" justifyContent="space-between" p={10} borderRight="1px solid" borderColor="whiteAlpha.50">
-                        <Box position="absolute" inset={0} opacity={0.3} backgroundSize="40px 40px" backgroundImage="linear-gradient(to right, rgba(30,41,59,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(30,41,59,0.5) 1px, transparent 1px)" />
-                        <Box position="absolute" inset={0} bgGradient="linear(to-b, transparent, transparent, rgba(15,23,42,0.9))" />
+                    <Box display={{ base: 'none', lg: 'flex' }} w={{ lg: '42%' }} bg={promoPanelBg} position="relative" flexDirection="column" justifyContent="space-between" p={10} borderRight="1px solid" borderColor={promoBorderEdge}>
+                        <Box position="absolute" inset={0} opacity={0.45} backgroundSize="40px 40px" backgroundImage={promoGridImage} />
+                        <Box position="absolute" inset={0} bgGradient={promoOverlay} />
 
                         <Box position="relative" zIndex={10}>
                             {/* Live badge */}
@@ -292,28 +313,28 @@ const SignUp = () => {
                             <Heading fontFamily="heading" fontSize="3xl" fontWeight="bold" color="var(--color-text-primary)" lineHeight="tight">
                                 {t('auth.signUp.riseThrough')}<br />{t('auth.signUp.the')}<Text as="span" bgGradient="linear(to-r, brand.500, blue.500)" bgClip="text" color="transparent">{t('auth.signUp.ranks')}</Text>
                             </Heading>
-                            <Text mt={4} color="gray.400" fontSize="sm" lineHeight="relaxed">{t('auth.signUp.joinDevs')}</Text>
+                            <Text mt={4} color={promoMuted} fontSize="sm" lineHeight="relaxed">{t('auth.signUp.joinDevs')}</Text>
                         </Box>
 
                         {/* Stats cards */}
                         <VStack spacing={4} position="relative" zIndex={10} mt={8}>
-                            <Box w="100%" bg="rgba(30,41,59,0.8)" backdropFilter="blur(8px)" border="1px solid" borderColor="var(--color-border)" borderRadius="lg" p={4} transition="transform 0.3s" _hover={{ transform: 'scale(1.05)' }}>
+                            <Box w="100%" bg={promoCardBg} backdropFilter="blur(12px)" border="1px solid" borderColor={promoCardBorder} borderRadius="lg" p={4} boxShadow={promoCardShadow} transition="transform 0.3s" _hover={{ transform: 'scale(1.05)' }}>
                                 <Flex justify="space-between" align="center" mb={2}>
-                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">{t('auth.signUp.currentRank')}</Text>
+                                    <Text fontSize="xs" color={promoMuted} fontFamily="mono">{t('auth.signUp.currentRank')}</Text>
                                     <HStack spacing={1}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
                                         <Text fontSize="xs" fontWeight="bold" color="yellow.400">{rankPreview.startName} · {rankPreview.startTitle}</Text>
                                     </HStack>
                                 </Flex>
-                                <Box w="100%" bg="gray.600" h="6px" borderRadius="full" overflow="hidden">
+                                <Box w="100%" bg={promoBarBg} h="6px" borderRadius="full" overflow="hidden">
                                     <Box h="100%" w="18%" borderRadius="full" bgGradient="linear(to-r, brand.500, cyan.400)" boxShadow="0 0 10px rgba(34,211,238,0.5)" />
                                 </Box>
-                                <Flex justify="space-between" mt={1}><Text fontSize="10px" color="gray.500">{t('auth.signUp.xpStart')}</Text><Text fontSize="10px" color="gray.500">{t('auth.signUp.xpEnd')}</Text></Flex>
+                                <Flex justify="space-between" mt={1}><Text fontSize="10px" color={promoSoftMuted}>{t('auth.signUp.xpStart')}</Text><Text fontSize="10px" color={promoSoftMuted}>{t('auth.signUp.xpEnd')}</Text></Flex>
                             </Box>
 
-                            <Flex w="100%" bg="rgba(30,41,59,0.8)" backdropFilter="blur(8px)" border="1px solid" borderColor="var(--color-border)" borderRadius="lg" p={4} align="center" gap={4}>
+                            <Flex w="100%" bg={promoCardBg} backdropFilter="blur(12px)" border="1px solid" borderColor={promoCardBorder} borderRadius="lg" p={4} boxShadow={promoCardShadow} align="center" gap={4}>
                                 <Flex w={10} h={10} borderRadius="full" bgGradient="linear(to-br, purple.500, purple.700)" align="center" justify="center" fontWeight="bold" color="var(--color-text-primary)" fontSize="sm">{rankPreview.tiers}</Flex>
-                                <Box><Text fontSize="xs" color="gray.400">{t('auth.signUp.rankLadder')}</Text><Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)">{rankPreview.topName}</Text></Box>
+                                <Box><Text fontSize="xs" color={promoMuted}>{t('auth.signUp.rankLadder')}</Text><Text fontSize="sm" fontWeight="bold" color="var(--color-text-primary)">{rankPreview.topName}</Text></Box>
                                 <Box ml="auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg></Box>
                             </Flex>
                         </VStack>
@@ -324,9 +345,9 @@ const SignUp = () => {
                                 {['photo-1534528741775-53994a69daeb', 'photo-1506794778202-cad84cf45f1d', 'photo-1507003211169-0a1dd7228f2d'].map((id, i) => (
                                     <Image key={id} src={`https://images.unsplash.com/${id}?auto=format&fit=crop&w=64&h=64`} alt="" w={8} h={8} borderRadius="full" border="2px solid var(--color-bg-primary)" ml={i > 0 ? '-8px' : 0} objectFit="cover" />
                                 ))}
-                                <Flex w={8} h={8} borderRadius="full" border="2px solid var(--color-bg-primary)" bg="gray.600" align="center" justify="center" fontSize="10px" fontWeight="bold" color="var(--color-text-primary)" ml="-8px">{t('auth.signUp.plus2k')}</Flex>
+                                <Flex w={8} h={8} borderRadius="full" border="2px solid var(--color-bg-primary)" bg={promoAvatarBg} align="center" justify="center" fontSize="10px" fontWeight="bold" color="white" ml="-8px">{t('auth.signUp.plus2k')}</Flex>
                             </Flex>
-                            <Text fontSize="xs" color="gray.500" mt={2}>{t('auth.signUp.joinCommunity')}</Text>
+                            <Text fontSize="xs" color={promoSoftMuted} mt={2}>{t('auth.signUp.joinCommunity')}</Text>
                         </Box>
                     </Box>
 

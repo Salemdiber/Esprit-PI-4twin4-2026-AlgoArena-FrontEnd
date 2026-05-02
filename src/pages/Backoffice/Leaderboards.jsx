@@ -30,11 +30,31 @@ const toNumber = (value) => {
 
 const isAdminUser = (user) => normalizeString(user?.role) === 'admin';
 
+const getApiOrigin = () => {
+    const raw = String(import.meta.env.VITE_API_URL || '').trim();
+    if (/^https?:\/\//i.test(raw)) {
+        try {
+            return new URL(raw).origin;
+        } catch {
+            return window.location.origin;
+        }
+    }
+    if (raw.startsWith('/')) return window.location.origin;
+    return `${window.location.protocol}//${window.location.hostname}:3000`;
+};
+
+const resolveMediaUrl = (url) => {
+    if (!url) return '';
+    if (/^(https?:|data:|blob:)/i.test(url)) return url;
+    if (String(url).startsWith('/uploads/') || String(url).startsWith('uploads/')) {
+        return `${getApiOrigin()}${String(url).startsWith('/') ? url : `/${url}`}`;
+    }
+    return String(url).startsWith('/') ? url : `/${String(url).replace(/^\//, '')}`;
+};
+
 const getAvatarUrl = (user) => {
     if (user?.avatar) {
-        if (String(user.avatar).startsWith('http')) return user.avatar;
-        if (String(user.avatar).startsWith('/')) return user.avatar;
-        return `/${String(user.avatar).replace(/^\//, '')}`;
+        return resolveMediaUrl(user.avatar);
     }
 
     const label = encodeURIComponent(user?.username || 'Player');
@@ -224,7 +244,7 @@ const PodiumCard = ({ entry, position }) => {
                 <div className="text-center">
                     <div className="relative inline-block mb-3">
                         <img src={entry.avatar} alt={entry.displayName} className={`${avatarSizeClass} rounded-full border-4 ${classes.ring} mx-auto`} />
-                        <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${badgeToneClass} text-xs font-bold px-2 py-0.5 rounded-full`}>
+                        <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${badgeToneClass} text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap min-w-max`}>
                             {position === 1 ? t('admin.leaderboards.podiumChampion') : position === 2 ? t('admin.leaderboards.podiumRunnerUp') : t('admin.leaderboards.podiumThird')}
                         </div>
                     </div>
@@ -278,13 +298,6 @@ const LeaderboardRow = ({ entry, rank }) => {
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${leagueStyles}`}>
                     {entry.league}
                 </span>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <button title={t('admin.leaderboards.viewProfile')} className="action-btn action-btn-view" onClick={() => entry.onViewDetails?.(entry)}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                    </svg>
-                </button>
             </td>
         </tr>
     );
@@ -345,7 +358,6 @@ const Leaderboards = () => {
     const [users, setUsers] = useState([]);
     const [loadError, setLoadError] = useState('');
     const [leagueFilter, setLeagueFilter] = useState('ALL');
-    const [selectedUser, setSelectedUser] = useState(null);
     const { currentUser } = useAuth();
 
     useEffect(() => {
@@ -388,11 +400,7 @@ const Leaderboards = () => {
                 if (right.wins !== left.wins) return right.wins - left.wins;
                 return left.username.localeCompare(right.username);
             })
-            .map((row, index) => ({
-                ...row,
-                rankPosition: index + 1,
-                onViewDetails: setSelectedUser,
-            }));
+            .map((row, index) => ({ ...row, rankPosition: index + 1 }));
     }, [users, currentUser, leagueFilter]);
 
     const podium = leaderboardRows.slice(0, 3);
@@ -469,13 +477,12 @@ const Leaderboards = () => {
                                 <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thChallenges')}</th>
                                 <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thStreak')}</th>
                                 <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thLeague')}</th>
-                                <th style={{ color: 'var(--color-text-muted)' }} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">{t('admin.leaderboards.thActions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800/50">
                             {!isLoading && contenders.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-10 text-center">
+                                    <td colSpan="6" className="px-6 py-10 text-center">
                                         <p style={{ color: 'var(--color-text-heading)' }} className="font-semibold">{t('admin.leaderboards.noUsersFilter')}</p>
                                         <p style={{ color: 'var(--color-text-muted)' }} className="text-sm mt-1">{t('admin.leaderboards.tryBroaderFilter')}</p>
                                     </td>
@@ -488,8 +495,6 @@ const Leaderboards = () => {
                     </table>
                 </div>
             </div>
-
-            <UserDetailsModal user={selectedUser} onClose={() => setSelectedUser(null)} />
         </div>
     );
 };

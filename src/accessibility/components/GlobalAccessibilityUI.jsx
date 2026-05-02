@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { IconButton, useDisclosure, Icon } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
 import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import AccessibilityDrawer from './AccessibilityDrawer';
+
+const AccessibilityDrawer = lazy(() => import('./AccessibilityDrawer'));
+const POSITION_STORAGE_KEY = 'fo_accessibility_button_position';
+const DEFAULT_POSITION = { right: 30, bottom: 110 };
 
 const AccessibilityIcon = (props) => (
     <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -14,31 +17,73 @@ const AccessibilityIcon = (props) => (
     </Icon>
 );
 
+const clampPosition = (value) => ({
+    right: Math.max(16, Math.min(window.innerWidth - 70, value.right)),
+    bottom: Math.max(16, Math.min(window.innerHeight - 70, value.bottom)),
+});
+
 const GlobalAccessibilityUI = () => {
     const { t } = useTranslation();
     const location = useLocation();
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const isCommunityPage = location.pathname.startsWith('/community');
+    const [position, setPosition] = useState(() => {
+        try {
+            const stored = JSON.parse(localStorage.getItem(POSITION_STORAGE_KEY) || 'null');
+            if (Number.isFinite(stored?.right) && Number.isFinite(stored?.bottom)) {
+                return clampPosition(stored);
+            }
+        } catch {
+            // Ignore malformed persisted positions.
+        }
+        return DEFAULT_POSITION;
+    });
+
+    const dragConstraints = useMemo(() => ({ top: -window.innerHeight + 80, right: 0, bottom: window.innerHeight - 80, left: -window.innerWidth + 80 }), []);
+
+    useEffect(() => {
+        localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
+    }, [position]);
+
+    useEffect(() => {
+        const handleResize = () => setPosition((current) => clampPosition(current));
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    if (location.pathname.startsWith('/admin')) {
+        return null;
+    }
 
 
     return (
         <>
-            <AccessibilityDrawer isOpen={isOpen} onClose={onClose} />
+            {isOpen && (
+                <Suspense fallback={null}>
+                    <AccessibilityDrawer isOpen={isOpen} onClose={onClose} />
+                </Suspense>
+            )}
             <m.div
                 drag
                 dragMomentum={false}
+                dragSnapToOrigin
+                dragConstraints={dragConstraints}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 style={{
                     position: 'fixed',
-                    bottom: '110px',
-                    right: isCommunityPage ? 'auto' : '30px',
-                    left: isCommunityPage ? '30px' : 'auto',
+                    bottom: `${position.bottom}px`,
+                    right: `${position.right}px`,
                     zIndex: 9999,
                     cursor: 'grab',
                 }}
                 onDragStart={() => { document.body.style.cursor = 'grabbing'; }}
-                onDragEnd={() => { document.body.style.cursor = 'auto'; }}
+                onDragEnd={(_, info) => {
+                    document.body.style.cursor = 'auto';
+                    setPosition(clampPosition({
+                        right: position.right - info.offset.x,
+                        bottom: position.bottom - info.offset.y,
+                    }));
+                }}
             >
                 <IconButton
                     borderRadius="full"

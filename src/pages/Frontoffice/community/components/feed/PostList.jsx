@@ -36,9 +36,9 @@ const EmptyState = ({ onCreate, isLoggedIn, hasFilters }) => (
     <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400/10 to-teal-400/5 ring-1 ring-cyan-400/25 shadow-lg shadow-cyan-900/10 flex items-center justify-center text-[var(--cmty-active-text)] mb-5">
       <MessageIcon size={24} className="drop-shadow-sm" />
     </div>
-    <h3 className="relative text-lg font-bold text-[var(--color-text-heading)] tracking-tight">
+    <h2 className="relative text-lg font-bold text-[var(--color-text-heading)] tracking-tight">
       {hasFilters ? 'No posts match your filters' : 'No posts yet'}
-    </h3>
+    </h2>
     <p className="relative mt-2 text-sm text-[var(--color-text-muted)] max-w-sm leading-relaxed">
       {hasFilters
         ? 'Try clearing the search or tag filter.'
@@ -106,7 +106,7 @@ const PostList = ({
   }
 
   return (
-    <div className="space-y-2.5">
+    <div id="community-feed-panel" role="tabpanel" className="space-y-2.5">
       {posts.map((post) => (
         <PostRow
           key={String(post._id)}

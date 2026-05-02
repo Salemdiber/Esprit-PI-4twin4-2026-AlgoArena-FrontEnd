@@ -18,13 +18,13 @@ const SupportRequestHistory = ({ isOpen, onClose }) => {
   const renderList = (filter) => {
     const filtered = items.filter((i) => (filter === 'open' ? ['pending', 'in_review'].includes(i.status) : filter === 'resolved' ? ['resolved', 'closed'].includes(i.status) : true));
     if (loading) return <Skeleton h="80px" />;
-    if (!filtered.length) return <Text color="gray.400">{t('support.noRequests')}</Text>;
+    if (!filtered.length) return <Text color="var(--color-text-muted)">{t('support.noRequests')}</Text>;
     return (
       <VStack align="stretch" spacing={3}>
         {filtered.map((i) => (
-          <Box key={i._id} p={3} borderWidth="1px" borderColor="whiteAlpha.200" borderRadius="lg">
-            <Text fontFamily="mono" fontSize="xs">{i.referenceNumber}</Text>
-            <Text fontWeight="600">{i.subject}</Text>
+          <Box key={i._id} p={3} borderWidth="1px" borderColor="var(--color-border)" bg="var(--color-bg-secondary)" borderRadius="lg">
+            <Text fontFamily="mono" fontSize="xs" color="var(--color-cyan-400)">{i.referenceNumber}</Text>
+            <Text fontWeight="600" color="var(--color-text-heading)">{i.subject}</Text>
             <Badge colorScheme={statusColor[i.status] || 'gray'}>{t(`support.status_${i.status}`)}</Badge>
           </Box>
         ))}
@@ -35,7 +35,7 @@ const SupportRequestHistory = ({ isOpen, onClose }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="var(--color-bg-card)" color="var(--color-text-primary)" border="1px solid var(--color-border)" boxShadow="var(--shadow-custom)">
         <ModalHeader>{t('support.myRequests')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
 import Logo from '../assets/logo_algoarena.png';
 import LanguageSwitcher from './LanguageSwitcher';
+import { toMediaUrl } from '../utils/mediaUrl';
 
 const IconWrapper = ({ children }) => (
     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +78,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                     icon={<IconWrapper><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></IconWrapper>} />
                 <SidebarLink to="/admin/challenges" label={t('sidebar.challenges')} onClick={onClose}
                     icon={<IconWrapper><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></IconWrapper>} />
-                <SidebarLink to="/admin/ai-logs" label={t('sidebar.aiLogs')} onClick={onClose}
+                <SidebarLink to="/admin/support-center" label="Support Center" onClick={onClose}
                     icon={<IconWrapper><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></IconWrapper>} />
                 <SidebarLink to="/admin/ai-agents" label={t('sidebar.aiAgents')} onClick={onClose}
                     icon={<IconWrapper><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v2m0 12v2m8-8h-2M6 12H4m12.364 5.364l-1.414-1.414M9.05 9.05 7.636 7.636m8.728 0L14.95 9.05M9.05 14.95l-1.414 1.414" /><circle cx="12" cy="12" r="3" /></IconWrapper>} />
@@ -106,7 +107,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                 <div className="flex items-center gap-3 px-4 py-3 rounded-lg glass-panel spotlight-hover cursor-pointer group">
                     {currentUser?.avatar ? (
                         <img
-                            src={currentUser.avatar.startsWith('uploads/') ? `/${currentUser.avatar}` : currentUser.avatar}
+                            src={toMediaUrl(currentUser.avatar)}
                             alt={t('topNav.adminAlt')}
                             className="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover"
                         />

@@ -105,6 +105,13 @@ export const userService = {
         });
     },
 
+    getLeaderboardUsers: async ({ limit = 20 } = {}) => {
+        const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+        return apiClient(`/user/leaderboard?limit=${safeLimit}`, {
+            method: 'GET',
+        });
+    },
+
     createAdmin: async (data) => {
         return apiClient('/user/admin', {
             method: 'POST',

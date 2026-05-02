@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../Frontoffice/auth/context/AuthContext';
 import { userService } from '../../services/userService';
 import TwoFactorSection from '../Frontoffice/profile/components/TwoFactorSection';
+import { toMediaUrl } from '../../utils/mediaUrl';
 
 const Profile = () => {
     const { currentUser, updateCurrentUser, logout } = useAuth();
@@ -152,7 +153,7 @@ const Profile = () => {
                                     </Flex>
                                 ) : (
                                     <Avatar
-                                        src={currentUser.avatar?.startsWith('uploads/') ? `/${currentUser.avatar}` : currentUser.avatar}
+                                        src={toMediaUrl(currentUser.avatar)}
                                         name={currentUser.username}
                                         w="128px" h="128px"
                                         border="4px solid" borderColor="cyan.400"

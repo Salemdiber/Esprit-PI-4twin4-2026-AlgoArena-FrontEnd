@@ -53,15 +53,15 @@ const PostRow = ({
   const answers = countCommentTree(post?.comments || []);
   const isProblem = post?.type === 'problem';
   const tags = Array.isArray(post?.tags) ? post.tags.filter(Boolean).slice(0, 4) : [];
+  const titleId = `community-post-title-${postId || 'unknown'}`;
 
   return (
-    <article
+    <div
       role="link"
       tabIndex={0}
       onClick={goToDetail}
       onKeyDown={onKeyDown}
       className="group relative grid grid-cols-1 md:grid-cols-[auto,1fr,auto] gap-3 md:gap-5 px-4 md:px-6 py-5 rounded-2xl bg-[var(--cmty-card-bg)] hover:bg-[var(--cmty-card-bg-hover)] ring-1 ring-[var(--cmty-card-ring)] hover:ring-[var(--cmty-card-ring-hover)] hover:shadow-xl hover:shadow-cyan-900/10 cursor-pointer transition-all duration-300"
-      aria-label={`Open post: ${post?.title || 'Untitled'}`}
     >
       {/* Animated accent bar on the left */}
       <div className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full bg-gradient-to-b from-cyan-400/0 via-cyan-400/0 to-cyan-400/0 group-hover:from-cyan-400/60 group-hover:via-teal-400/40 group-hover:to-transparent transition-all duration-500" />
@@ -86,9 +86,9 @@ const PostRow = ({
           <StatusBadge variant={isProblem ? (post?.problemType || 'problem') : 'discussion'} />
         </div>
 
-        <h3 className="text-base md:text-lg font-bold text-[var(--color-text-heading)] group-hover:text-[var(--cmty-active-text)] transition-colors duration-200 leading-snug tracking-tight">
+        <h2 id={titleId} className="text-base md:text-lg font-bold text-[var(--color-text-heading)] group-hover:text-[var(--cmty-active-text)] transition-colors duration-200 leading-snug tracking-tight">
           {post?.title || 'Untitled post'}
-        </h3>
+        </h2>
 
         {post?.content && (
           <p className="text-[13px] text-[var(--color-text-muted)] leading-relaxed line-clamp-2 group-hover:text-[var(--color-text-secondary)] transition-colors duration-200">
@@ -151,7 +151,7 @@ const PostRow = ({
           } transition-all duration-200`}
         />
       </div>
-    </article>
+    </div>
   );
 };
 

@@ -31,6 +31,7 @@ const BattleFilters = ({ onFilterChange }) => {
         statuses: [],
         search: '',
     });
+    const [searchInput, setSearchInput] = useState('');
 
     useEffect(() => {
         onFilterChange?.(filters);
@@ -46,8 +47,18 @@ const BattleFilters = ({ onFilterChange }) => {
         });
     };
 
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            setFilters(prev => (
+                prev.search === searchInput ? prev : { ...prev, search: searchInput }
+            ));
+        }, 300);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [searchInput]);
+
     const handleSearch = (e) => {
-        setFilters(prev => ({ ...prev, search: e.target.value }));
+        setSearchInput(e.target.value);
     };
 
     const modes = [
@@ -123,7 +134,7 @@ const BattleFilters = ({ onFilterChange }) => {
                         type="search"
                         aria-label={t('battles.search')}
                         placeholder={t('battles.opponentNamePlaceholder')}
-                        value={filters.search}
+                        value={searchInput}
                         onChange={handleSearch}
                         className="input-normalized"
                         w="100%"

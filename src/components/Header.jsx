@@ -26,31 +26,23 @@ import {
     Tooltip,
     Badge,
     Divider,
-    Input,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    ModalCloseButton,
-    useToast,
 } from '@chakra-ui/react';
 import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { lazy, Suspense, useState, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { MessageCircle, LifeBuoy } from 'lucide-react';
 import Logo from '../assets/logo_algoarena.png';
 import { useAuth } from '../pages/Frontoffice/auth/context/AuthContext';
-import { billingService } from '../services/billingService';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useChat } from '../features/chat/ChatProvider';
 import { useSupport } from '../features/support/SupportProvider';
-import AccessibilityDrawer from '../accessibility/components/AccessibilityDrawer';
 import { prefetchRoute } from '../routes/prefetchRoutes';
 import { startNavigationProgress } from '../shared/navigation/progress';
+
+const AccessibilityDrawer = lazy(() => import('../accessibility/components/AccessibilityDrawer'));
+const WalletModal = lazy(() => import('./WalletModal'));
 
 /* ─── Rank colour palette ─────────────────────────────────────────── */
 /* ─── Rank colour palette ─────────────────────────────────────────── */
@@ -318,32 +310,6 @@ const Header = () => {
     const { currentUser, isLoggedIn, logout, coinBalance } = useAuth();
     const { toggleChat, unreadCount, isChatOpen } = useChat();
     const { openHub } = useSupport();
-    const toast = useToast();
-    const [coinTopUp, setCoinTopUp] = useState(3);
-
-    const topUpAmount = Math.max(1, Number(coinTopUp) || 1);
-
-    const handleRechargeCoins = useCallback(async () => {
-        try {
-            const checkout = await billingService.createHintCreditsCheckout({ amount: topUpAmount });
-            const checkoutUrl = checkout?.url || checkout?.checkoutUrl || checkout?.sessionUrl;
-
-            if (!checkoutUrl) {
-                throw new Error('Stripe checkout url missing');
-            }
-
-            window.location.assign(checkoutUrl);
-        } catch (error) {
-            toast({
-                title: 'Stripe checkout failed',
-                description: error?.message || 'Unable to start payment.',
-                status: 'error',
-                duration: 4500,
-                isClosable: true,
-            });
-        }
-    }, [toast, topUpAmount]);
-
     /* Primary navigation — the main pages users visit */
     const primaryNav = useMemo(
         () => [
@@ -989,125 +955,22 @@ const Header = () => {
                 </DrawerContent>
             </Drawer>
 
-            <Modal isOpen={isWalletOpen} onClose={onWalletClose} size="lg" motionPreset="slideInBottom" isCentered>
-                <ModalOverlay bg="rgba(2, 6, 23, 0.72)" backdropFilter="blur(10px)" />
-                <ModalContent bg={useColorModeValue('white', '#0f172a')} borderRadius="24px" border="1px solid" borderColor={useColorModeValue('gray.200', 'whiteAlpha.200')} boxShadow="0 24px 80px rgba(0,0,0,0.35)">
-                    <ModalHeader pb={2}>
-                        <Text fontSize="sm" fontWeight="700" letterSpacing="0.12em" textTransform="uppercase" color={useColorModeValue('cyan.600', 'cyan.300')}>
-                            Wallet
-                        </Text>
-                        <Text mt={1}>Arena Coins Wallet</Text>
-                    </ModalHeader>
-                    <ModalCloseButton />
-                    <ModalBody pb={6}>
-                        <Box
-                            p={5}
-                            borderRadius="20px"
-                            bg={useColorModeValue('linear-gradient(135deg, rgba(34,211,238,0.10), rgba(14,165,233,0.05))', 'linear-gradient(135deg, rgba(34,211,238,0.14), rgba(14,165,233,0.08))')}
-                            border="1px solid"
-                            borderColor={useColorModeValue('cyan.100', 'whiteAlpha.100')}
-                            mb={5}
-                        >
-                            <HStack justify="space-between" align="start" gap={4} flexWrap="wrap">
-                                <Box>
-                                    <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.12em" color={useColorModeValue('gray.500', 'gray.400')} fontWeight="700">
-                                        Current user
-                                    </Text>
-                                    <Text fontSize="lg" fontWeight="900" color={useColorModeValue('gray.800', 'white')} mt={1} noOfLines={1}>
-                                        {currentUser?.username || 'Guest user'}
-                                    </Text>
-                                    <Text mt={2} fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
-                                        Your Arena Coins are used for hints and premium actions.
-                                    </Text>
-                                </Box>
+            {isWalletOpen && (
+                <Suspense fallback={null}>
+                    <WalletModal
+                        isOpen={isWalletOpen}
+                        onClose={onWalletClose}
+                        currentUser={currentUser}
+                        coinBalance={coinBalance}
+                    />
+                </Suspense>
+            )}
 
-                                <Box px={4} py={3} borderRadius="16px" bg={useColorModeValue('white', 'whiteAlpha.100')} border="1px solid" borderColor={useColorModeValue('cyan.100', 'whiteAlpha.200')} minW="150px" textAlign="right">
-                                    <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color={useColorModeValue('gray.500', 'gray.400')}>
-                                        Current balance
-                                    </Text>
-                                    <Text fontSize="4xl" fontWeight="900" lineHeight="1" color={useColorModeValue('cyan.600', 'cyan.300')} mt={1}>
-                                        {coinBalance}
-                                    </Text>
-                                    <Text mt={1} fontSize="sm" fontWeight="700" color={useColorModeValue('gray.700', 'gray.200')}>
-                                        Arena Coins
-                                    </Text>
-                                </Box>
-                            </HStack>
-                        </Box>
-
-                        <Box p={4} borderRadius="18px" bg={useColorModeValue('gray.50', 'whiteAlpha.50')} border="1px solid" borderColor={useColorModeValue('gray.200', 'whiteAlpha.100')}>
-                            <Text fontSize="sm" fontWeight="700" color={useColorModeValue('gray.700', 'gray.200')} mb={2}>
-                                Top up Arena Coins
-                            </Text>
-                            <HStack spacing={3} align="stretch">
-                                <Box flex="1">
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        step={1}
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        value={coinTopUp}
-                                        onChange={(e) => setCoinTopUp(e.target.value)}
-                                        size="lg"
-                                        placeholder="3"
-                                        bg={useColorModeValue('white', 'gray.900')}
-                                        borderColor={useColorModeValue('gray.200', 'whiteAlpha.200')}
-                                        borderRadius="14px"
-                                        fontSize="lg"
-                                        fontWeight="800"
-                                        textAlign="center"
-                                        _focusVisible={{ borderColor: 'cyan.400', boxShadow: '0 0 0 1px var(--chakra-colors-cyan-400)' }}
-                                    />
-                                    <HStack mt={3} spacing={2} flexWrap="wrap">
-                                        {[3, 5, 10].map((preset) => (
-                                            <Button
-                                                key={preset}
-                                                size="sm"
-                                                variant={topUpAmount === preset ? 'solid' : 'outline'}
-                                                colorScheme="cyan"
-                                                borderRadius="999px"
-                                                onClick={() => setCoinTopUp(String(preset))}
-                                            >
-                                                {preset}
-                                            </Button>
-                                        ))}
-                                    </HStack>
-                                    <Text mt={3} fontSize="sm" color={useColorModeValue('gray.500', 'gray.400')}>
-                                        1 credit = $1.99
-                                    </Text>
-                                    <Text mt={1} fontSize="sm" fontWeight="700" color={useColorModeValue('gray.700', 'gray.200')}>
-                                        Total: ${(topUpAmount * 1.99).toFixed(2)}
-                                    </Text>
-                                </Box>
-                                <Button
-                                    alignSelf="end"
-                                    size="lg"
-                                    px={6}
-                                    borderRadius="16px"
-                                    bg="linear-gradient(135deg, #22d3ee 0%, #38bdf8 100%)"
-                                    color="#082f49"
-                                    fontWeight="800"
-                                    boxShadow="0 12px 28px rgba(34,211,238,0.28)"
-                                    _hover={{ transform: 'translateY(-1px)', boxShadow: '0 16px 34px rgba(34,211,238,0.34)' }}
-                                    _active={{ transform: 'translateY(0px)' }}
-                                    onClick={handleRechargeCoins}
-                                >
-                                    Recharge
-                                </Button>
-                            </HStack>
-                        </Box>
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button variant="ghost" onClick={onWalletClose} borderRadius="14px">
-                            Close
-                        </Button>
-                    </ModalFooter>
-                </ModalContent>
-            </Modal>
-
-            {/* Accessibility Settings Drawer */}
-            <AccessibilityDrawer isOpen={isA11yOpen} onClose={onA11yClose} />
+            {isA11yOpen && (
+                <Suspense fallback={null}>
+                    <AccessibilityDrawer isOpen={isA11yOpen} onClose={onA11yClose} />
+                </Suspense>
+            )}
 
         </Box>
     );

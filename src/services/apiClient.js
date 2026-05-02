@@ -152,5 +152,12 @@ export const apiClient = async (endpoint, options = {}) => {
         throw error;
     }
 
+    const method = String(fetchOptions.method || 'GET').toUpperCase();
+    if (typeof window !== 'undefined' && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        window.dispatchEvent(new CustomEvent('algoarena:admin-action', {
+            detail: { endpoint, method, at: Date.now() },
+        }));
+    }
+
     return data;
 };

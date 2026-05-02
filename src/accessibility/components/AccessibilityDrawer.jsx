@@ -2,9 +2,8 @@
  * AccessibilityDrawer – Chakra Drawer containing all accessibility controls
  *
  * Sections:
- *  1. Visual Modes (high contrast, reduced motion, dyslexia font, font scale)
- *  2. Color Vision Support (color-blind mode + profile selector)
- *  3. Voice Mode (text-to-speech + voice commands)
+ *  1. Visual Modes (high contrast, dyslexia font, font scale)
+ *  2. Voice Mode (text-to-speech + voice commands)
  */
 import React from 'react';
 import {
@@ -182,18 +181,6 @@ const AccessibilityDrawer = ({ isOpen, onClose }) => {
                                     <Switch
                                         isChecked={settings.highContrast}
                                         onChange={(e) => updateSetting('highContrast', e.target.checked)}
-                                        colorScheme="brand"
-                                        size="md"
-                                    />
-                                </ControlRow>
-
-                                <ControlRow
-                                    label={t('accessibility.reducedMotion')}
-                                    description={t('accessibility.reducedMotionDesc')}
-                                >
-                                    <Switch
-                                        isChecked={settings.reducedMotion}
-                                        onChange={(e) => updateSetting('reducedMotion', e.target.checked)}
                                         colorScheme="brand"
                                         size="md"
                                     />

@@ -24,6 +24,7 @@ const routePrefetchers = [
     { match: (path) => path === '/admin/battles', load: () => import('../pages/Backoffice/Battles') },
     { match: (path) => path === '/admin/challenges', load: () => import('../pages/Backoffice/Challenges') },
     { match: (path) => path === '/admin/analytics', load: () => import('../pages/Backoffice/Analytics') },
+    { match: (path) => path === '/admin/support-center', load: () => import('../pages/Backoffice/SupportCenter') },
 ];
 
 const normalizePath = (path) => {

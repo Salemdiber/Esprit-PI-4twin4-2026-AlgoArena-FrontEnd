@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Flex, Text, HStack } from '@chakra-ui/react';
+import { Box, Flex, Text, HStack, useColorModeValue } from '@chakra-ui/react';
 
 const STEPS = [
     { index: 1, difficulty: 'EASY', color: '#22c55e' },
@@ -10,6 +10,11 @@ const STEPS = [
 
 const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
     const { t } = useTranslation();
+    const inactiveBorder = useColorModeValue('rgba(14,116,144,0.16)', 'rgba(255,255,255,0.1)');
+    const inactiveBg = useColorModeValue('rgba(255,255,255,0.72)', 'rgba(30,41,59,0.6)');
+    const inactiveText = useColorModeValue('var(--color-text-muted)', 'gray.500');
+    const inactiveLabel = useColorModeValue('var(--color-text-muted)', 'gray.600');
+    const inactiveLine = useColorModeValue('rgba(14,116,144,0.18)', 'rgba(255,255,255,0.07)');
     return (
         <Flex align="center" gap={0}>
             {STEPS.map((step, i) => {
@@ -43,14 +48,14 @@ const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
                                         ? '#22c55e'
                                         : isCurrent
                                             ? step.color
-                                            : 'rgba(255,255,255,0.1)'
+                                            : inactiveBorder
                                 }
                                 bg={
                                     isSolved
                                         ? 'rgba(34,197,94,0.15)'
                                         : isCurrent
                                             ? `rgba(${hexToRgb(step.color)},0.12)`
-                                            : 'rgba(30,41,59,0.6)'
+                                            : inactiveBg
                                 }
                                 boxShadow={
                                     isCurrent
@@ -69,7 +74,7 @@ const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
                                         fontSize="sm"
                                         fontWeight="bold"
                                         fontFamily="mono"
-                                        color={isCurrent ? step.color : 'gray.500'}
+                                        color={isCurrent ? step.color : inactiveText}
                                     >
                                         {step.index}
                                     </Text>
@@ -81,7 +86,7 @@ const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
                                 fontSize="9px"
                                 fontWeight="semibold"
                                 color={
-                                    isSolved ? '#22c55e' : isCurrent ? step.color : 'gray.600'
+                                    isSolved ? '#22c55e' : isCurrent ? step.color : inactiveLabel
                                 }
                                 letterSpacing="0.08em"
                                 textTransform="uppercase"
@@ -99,7 +104,7 @@ const ProblemStepper = ({ currentIndex, solvedIds, problems }) => {
                                 bg={
                                     isPast || isSolved
                                         ? 'linear-gradient(90deg, #22c55e, rgba(34,197,94,0.3))'
-                                        : 'rgba(255,255,255,0.07)'
+                                        : inactiveLine
                                 }
                                 borderRadius="full"
                                 transition="background 0.5s ease"
