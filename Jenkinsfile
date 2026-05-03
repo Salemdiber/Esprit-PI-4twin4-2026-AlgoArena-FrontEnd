@@ -3,6 +3,8 @@ pipeline {
 
   options {
     timestamps()
+    timeout(time: 45, unit: 'MINUTES')  // Timeout global du pipeline
+    buildDiscarder(logRotator(numToKeepStr: '10'))
   }
 
   tools {
@@ -57,13 +59,25 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 10, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: false
+        script {
+          // Retry pour gérer les déconnexions temporaires d'agent
+          retry(2) {
+            timeout(time: 15, unit: 'MINUTES') {
+              def qg = waitForQualityGate()
+              if (qg.status != 'OK') {
+                unstable("Quality Gate status: ${qg.status}")
+              }
+            }
+          }
         }
       }
     }
 
     stage('Docker build and push') {
+      // Exécute seulement si les étapes précédentes sont OK
+      when {
+        expression { currentBuild.result != 'FAILURE' }
+      }
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
@@ -80,6 +94,9 @@ pipeline {
     }
 
     stage('Trigger CD') {
+      when {
+        expression { currentBuild.result != 'FAILURE' }
+      }
       steps {
         build job: env.CD_JOB_NAME, wait: false, parameters: [
           string(name: 'IMAGE_TAG', value: "${env.DOCKER_REGISTRY}/${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"),
@@ -92,6 +109,15 @@ pipeline {
   post {
     always {
       archiveArtifacts artifacts: 'coverage/**', allowEmptyArchive: false
+    }
+    success {
+      echo 'Pipeline terminé avec succès!'
+    }
+    unstable {
+      echo 'Pipeline instable - Quality Gate non respecté mais pas bloquant'
+    }
+    failure {
+      echo 'Pipeline échoué - vérifier les logs'
     }
   }
 }
