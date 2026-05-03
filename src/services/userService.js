@@ -1,0 +1,178 @@
+import { apiClient } from './apiClient';
+
+export const userService = {
+    // ------------------------------------
+    // Front Office Profile API
+    // ------------------------------------
+
+    // In some cases to load logged-in profile we can use /user/me if it exists,
+    // or /user/:id (where id is stored locally from login). We assume /user/:id or /user/me
+    getProfile: async (id, token = null) => {
+        return apiClient(id === 'me' ? '/user/me' : `/user/${id}`, {
+            method: 'GET',
+            token, // Bypass cookie race conditions
+        });
+    },
+
+    /**
+     * Persist the Speed Challenge placement result to the user profile.
+     * Called once right after the challenge finishes.
+     * @param {{ rank: string, xp: number, level?: string }} data
+     */
+    updatePlacement: async (data) => {
+        return apiClient('/user/me/placement', {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateProfile: async (data) => {
+        // PATCH /user/me
+        // data: { username?, email?, bio? }
+        return apiClient('/user/me', {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+
+    uploadAvatar: async (formData) => {
+        // PATCH /user/me/avatar
+        // uses FormData
+        return apiClient('/user/me/avatar', {
+            method: 'PATCH',
+            body: formData,
+        });
+    },
+
+    changePassword: async (data) => {
+        // PATCH /user/me/password
+        // data: { currentPassword, newPassword, confirmPassword }
+        return apiClient('/user/me/password', {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteAccount: async (password) => {
+        // DELETE /user/me
+        // data: { password }
+        return apiClient('/user/me', {
+            method: 'DELETE',
+            body: JSON.stringify({ password }),
+        });
+    },
+
+    completeSpeedChallenge: async () => {
+        // POST /user/me/speed-challenge/complete
+        // Marks the speed challenge as completed in the user profile
+        return apiClient('/user/me/speed-challenge/complete', {
+            method: 'POST',
+        });
+    },
+
+    saveSpeedTestSession: async (sessionData) => {
+        // POST /user/me/speed-challenge/session/save
+        // Saves the ongoing speed test session for resuming later
+        return apiClient('/user/me/speed-challenge/session/save', {
+            method: 'POST',
+            body: JSON.stringify(sessionData),
+        });
+    },
+
+    getSpeedTestSession: async () => {
+        // GET /user/me/speed-challenge/session
+        // Retrieves the saved speed test session
+        return apiClient('/user/me/speed-challenge/session', {
+            method: 'GET',
+        });
+    },
+
+    clearSpeedTestSession: async () => {
+        // POST /user/me/speed-challenge/session/clear
+        // Clears the saved speed test session
+        return apiClient('/user/me/speed-challenge/session/clear', {
+            method: 'POST',
+        });
+    },
+
+    // ------------------------------------
+    // Back Office User Management API
+    // ------------------------------------
+
+    getUsers: async () => {
+        return apiClient('/user', {
+            method: 'GET',
+        });
+    },
+
+    getLeaderboardUsers: async ({ limit = 20 } = {}) => {
+        const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+        return apiClient(`/user/leaderboard?limit=${safeLimit}`, {
+            method: 'GET',
+        });
+    },
+
+    createAdmin: async (data) => {
+        return apiClient('/user/admin', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    getUserById: async (id) => {
+        return apiClient(`/user/${id}`, {
+            method: 'GET',
+        });
+    },
+
+    updateUserByAdmin: async (id, data) => {
+        return apiClient(`/user/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+
+    uploadAvatarByAdmin: async (id, formData) => {
+        return apiClient(`/user/${id}/avatar`, {
+            method: 'PATCH',
+            body: formData,
+        });
+    },
+
+    updateStatusByAdmin: async (id, status) => {
+        return apiClient(`/user/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+    },
+
+    // ------------------------------------
+    // Gamification
+    // ------------------------------------
+
+    /**
+     * Adds/subtracts XP for the authenticated user.
+     * Backend will automatically recalculate rank.
+     * @param {number} xpDelta
+     */
+    updateMyXp: async (xpDelta) => {
+        return apiClient('/user/me/xp', {
+            method: 'PATCH',
+            body: JSON.stringify({ xpDelta: Number(xpDelta) }),
+        });
+    },
+
+    // Accessibility settings (per-user)
+    getAccessibilitySettings: async () => {
+        return apiClient('/user/me/settings/accessibility', {
+            method: 'GET',
+        });
+    },
+
+    updateAccessibilitySettings: async (settings) => {
+        return apiClient('/user/me/settings/accessibility', {
+            method: 'PATCH',
+            body: JSON.stringify(settings),
+        });
+    },
+};

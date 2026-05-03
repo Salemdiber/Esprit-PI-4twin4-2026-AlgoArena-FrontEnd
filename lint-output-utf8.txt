@@ -1,0 +1,395 @@
+﻿
+> next-gen@0.0.0 lint
+> eslint .
+
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\accessibility\components\GlobalAccessibilityUI.jsx
+  3:10  error  'useLocation' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u       no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\accessibility\utils\speechUtils.js
+  147:18  error  'e' is defined but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\components\AIAgent.jsx
+   66:33  error  'puter' is not defined  no-undef
+   96:36  error  'puter' is not defined  no-undef
+  164:36  error  'puter' is not defined  no-undef
+  203:44  error  'puter' is not defined  no-undef
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\components\StatCard.jsx
+  3:21  error  'title' is defined but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\editor\components\CodeEditor.jsx
+  73:38  error  'editor' is defined but never used   no-unused-vars
+  73:46  error  '_monaco' is defined but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\editor\components\EditorToolbar.jsx
+  10:43  error  'useColorModeValue' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Backoffice\Challenges.jsx
+  1:27  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Backoffice\Profile.jsx
+  128:30   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  194:51   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  196:79   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  196:128  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  202:51   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  205:79   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  205:128  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  211:51   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  213:79   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  213:128  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  229:51   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  231:95   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  231:144  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  237:51   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  239:95   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  239:144  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  245:51   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  247:95   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  247:144  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  275:79   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  285:103  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\SignIn.jsx
+   1:27  error  'useRef' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+  31:12  error  'recaptchaToken' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  54:18  error  'err' is defined but never used                                                                 no-unused-vars
+  63:11  error  'inputTextColor' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\SignUp.jsx
+    1:27  error  'useRef' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+    8:19  error  'redirectBasedOnRole' is defined but never used. Allowed unused vars must match /^[A-Z_]/u      no-unused-vars
+   42:12  error  'recaptchaToken' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   63:22  error  'err' is defined but never used                                                                 no-unused-vars
+   83:22  error  'err' is defined but never used                                                                 no-unused-vars
+  117:18  error  'err' is defined but never used                                                                 no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\auth\context\AuthContext.jsx
+   55:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   89:22  error  'err' is defined but never used                                                                                                 no-unused-vars
+  202:18  error  'err' is defined but never used                                                                                                 no-unused-vars
+  227:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\auth\pages\ForgotPasswordPage.jsx
+  57:11  error  'toast' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\battles\components\BattleCard.jsx
+  17:11  error  'isActive' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\battles\components\BattleFilters.jsx
+  17:8  warning  React Hook useEffect has a missing dependency: 'onFilterChange'. Either include it or remove the dependency array. If 'onFilterChange' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\battles\components\BattleTimeline.jsx
+  10:35  error  'currentRoundIndex' is defined but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\battles\components\PerformanceAnalytics.jsx
+  29:73  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  27 |
+  28 |     // Opponent efficiency (derived, slightly lower)
+> 29 |     const oppEfficiency = Math.max(0, playerEfficiency - 6 - Math.floor(Math.random() * 5));
+     |                                                                         ^^^^^^^^^^^^^ Cannot call impure function
+  30 |
+  31 |     // Code quality (derived from efficiency with small variance)
+  32 |     const playerQuality = Math.min(100, playerEfficiency + 4);  react-hooks/purity
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\battles\hooks\useBattleState.jsx
+   19:5   error  'createRound' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                              no-unused-vars
+   20:5   error  'getTotalPlayerScore' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                      no-unused-vars
+   21:5   error  'getTotalOpponentScore' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                    no-unused-vars
+   22:5   error  'getProgressPercent' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                       no-unused-vars
+  421:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  429:16  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\battles\types\battle.types.js
+  203:42  error  'side' is assigned a value but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\components\ChallengeCard.jsx
+  142:40  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+  154:66  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  159:66  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  169:70  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\components\ChallengeHeader.jsx
+  60:26  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  71:28  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  78:73  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  81:48  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  89:67  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  96:28  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\components\ProblemDescription.jsx
+   48:30  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   58:30  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   82:72  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+   88:84  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   92:58  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   98:62  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  103:35  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  107:69  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  111:42  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  116:41  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  136:73  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  141:52  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  142:52  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  145:52  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  146:52  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  150:56  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  151:56  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  160:69  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  168:43  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  172:46  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  182:73  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  195:44  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+  204:54  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                          react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\components\TerminalPanel.jsx
+   43:9   error  'executionState' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                       no-unused-vars
+   50:11  error  'anyFailed' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                            no-unused-vars
+  126:46  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  163:76  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  180:65  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                                                                 react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\context\ChallengeContext.jsx
+  249:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\hooks\useChallengeExecution.js
+  33:9  error  'code' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\hooks\useChallenges.js
+  24:9  error  'getUserProgress' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\challenges\pages\ChallengePlayPage.jsx
+   57:9   error  'setLanguage' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                          no-unused-vars
+   96:67  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   99:34  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  129:30  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  134:28  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  145:68  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  146:47  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  163:34  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\leaderboard\pages\LeaderboardPage.jsx
+  22:21  error  'stopSpeaking' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\profile\components\ProfileInfoSection.jsx
+  141:36  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  184:44  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  226:50  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  274:44  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\profile\context\ProfileContext.jsx
+  124:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\pages\Frontoffice\profile\pages\TwoFactorSetupPage.jsx
+  147:32   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  195:99   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  198:46   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  243:111  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  246:58   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  255:72   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  277:89   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  294:72   error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+  326:111  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  329:58   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  372:89   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  389:72   error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+  454:100  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  457:46   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\sections\Arena.jsx
+  140:98   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  143:84   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  143:138  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  148:72   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  152:50   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  153:108  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  175:50   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  176:94   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  185:90   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  199:54   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  200:112  error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  215:54   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  219:84   error  React Hook "useColorModeValue" is called conditionally. React Hooks must be called in the exact same order in every component render                         react-hooks/rules-of-hooks
+  266:76   error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\sections\Games.jsx
+  140:9  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  138 |     // Run animation when game changes
+  139 |     useEffect(() => {
+> 140 |         runGameAnimation(currentGame);
+      |         ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  141 |         return clearTimeouts;
+  142 |     }, [currentGame]);
+  143 |  react-hooks/set-state-in-effect
+  142:8  warning  React Hook useEffect has a missing dependency: 'runGameAnimation'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\sections\Hero.jsx
+  32:29  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  30 |         const newPixels = [];
+  31 |         for (let i = 0; i < gridSize * gridSize; i++) {
+> 32 |             const hasLang = Math.random() > 0.7;
+     |                             ^^^^^^^^^^^^^ Cannot call impure function
+  33 |             newPixels.push({
+  34 |                 id: i,
+  35 |                 lang: hasLang ? languages[Math.floor(Math.random() * languages.length)] : null,  react-hooks/purity
+  35:54  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  33 |             newPixels.push({
+  34 |                 id: i,
+> 35 |                 lang: hasLang ? languages[Math.floor(Math.random() * languages.length)] : null,
+     |                                                      ^^^^^^^^^^^^^ Cannot call impure function
+  36 |             });
+  37 |         }
+  38 |         return newPixels;                                                            react-hooks/purity
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\sections\TryChallenge.jsx
+  205:48  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+  224:54  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+  261:62  error  React Hook "useColorModeValue" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\services\apiClient.js
+  68:18  error  'e' is defined but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\services\authService.js
+  36:18  error  'e' is defined but never used  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\components\AppLoader.jsx
+  45:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  43 |     useEffect(() => {
+  44 |         if (!isLoading) {
+> 45 |             setProgress(100);
+     |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  46 |             return;
+  47 |         }
+  48 |         setProgress(0);  react-hooks/set-state-in-effect
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\context\ThemeContext.jsx
+   68:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  66 |
+  67 |         // Set initial
+> 68 |         setResolvedColorMode(mq.matches ? 'dark' : 'light');
+     |         ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  69 |
+  70 |         mq.addEventListener('change', handler);
+  71 |         return () => mq.removeEventListener('change', handler);  react-hooks/set-state-in-effect
+  101:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-refresh/only-export-components
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\cursor\CustomCursor.jsx
+  10:17  error  'useRef' is defined but never used. Allowed unused vars must match /^[A-Z_]/u     no-unused-vars
+  10:25  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\cursor\useCrosshairCursor.js
+  29:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  27 |         if (isTouch) return;
+  28 |
+> 29 |         setIsVisible(true);
+     |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |
+  31 |         const onMouseMove = (e) => {
+  32 |             mouseRef.current.x = e.clientX;  react-hooks/set-state-in-effect
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\cursor\useCursor.js
+  19:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  17 |         if (isTouch) return;
+  18 |
+> 19 |         setIsVisible(true);
+     |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  20 |
+  21 |         const onMouseMove = (e) => {
+  22 |             posRef.current.x = e.clientX;  react-hooks/set-state-in-effect
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\skeletons\ActiveBattleSkeleton.jsx
+   93:47  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  91 |                                     key={i}
+  92 |                                     height="16px"
+> 93 |                                     width={`${Math.random() * 50 + 30}%`}
+     |                                               ^^^^^^^^^^^^^ Cannot call impure function
+  94 |                                     mb={2}
+  95 |                                     speed={speed}
+  96 |                                     startColor="rgba(30,41,59,0.4)"         react-hooks/purity
+  123:47  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  121 |                                     key={i}
+  122 |                                     height="14px"
+> 123 |                                     width={`${Math.random() * 60 + 20}%`}
+      |                                               ^^^^^^^^^^^^^ Cannot call impure function
+  124 |                                     mb={2}
+  125 |                                     speed={speed}
+  126 |                                     startColor="rgba(30,41,59,0.4)"  react-hooks/purity
+
+D:\4TWIN\Pi-JS\Next-Gen-V3\AlgoArenaFrontEnd\src\shared\skeletons\ChallengePlaySkeleton.jsx
+  74:47  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  72 |                                     key={i}
+  73 |                                     height="16px"
+> 74 |                                     width={`${Math.random() * 40 + 40}%`}
+     |                                               ^^^^^^^^^^^^^ Cannot call impure function
+  75 |                                     mb={2}
+  76 |                                     speed={speed}
+  77 |                                     startColor="rgba(30,41,59,0.4)"  react-hooks/purity
+  95:47  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  93 |                                     key={i}
+  94 |                                     height="14px"
+> 95 |                                     width={`${Math.random() * 50 + 30}%`}
+     |                                               ^^^^^^^^^^^^^ Cannot call impure function
+  96 |                                     mb={2}
+  97 |                                     speed={speed}
+  98 |                                     startColor="rgba(30,41,59,0.4)"  react-hooks/purity
+
+Γ£û 162 problems (160 errors, 2 warnings)
+
