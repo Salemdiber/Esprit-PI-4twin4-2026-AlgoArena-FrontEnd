@@ -1,0 +1,154 @@
+/* ==========================================
+   Code Crosshair Cursor Styles
+   ========================================== */
+
+/* Main Container – Invisible hit area */
+.custom-cursor {
+    width: 0;
+    height: 0;
+    /* Positioned via JS translate3d */
+    opacity: 1 !important;
+    /* JS ensures visibility */
+    transition: width 0.3s ease, height 0.3s ease, opacity 0.2s ease;
+}
+
+/* Hide on touch devices or when explicitely hidden */
+.custom-cursor.hidden {
+    display: none !important;
+}
+
+/* Inner Dot – The precise tip */
+.cursor-inner-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: #22d3ee;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease;
+    z-index: 2;
+}
+
+/* Outer Ring – The targeting reticle */
+.cursor-outer-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition:
+        width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+        height 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+        border-color 0.3s ease,
+        transform 0.3s ease;
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
+    z-index: 1;
+}
+
+/* Crosshair Lines – Subtle targeting lines */
+.cursor-crosshair-lines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s ease;
+    opacity: 0.6;
+}
+
+.line-v,
+.line-h {
+    position: absolute;
+    background: rgba(34, 211, 238, 0.4);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.line-v {
+    width: 1px;
+    height: 16px;
+}
+
+.line-h {
+    width: 16px;
+    height: 1px;
+}
+
+
+/* ------------------------------------------
+   Hover State (Buttons, Links)
+   ------------------------------------------ */
+.custom-cursor.cursor-hover .cursor-outer-ring {
+    width: 48px;
+    height: 48px;
+    border-color: rgba(34, 211, 238, 0.8);
+    background: rgba(34, 211, 238, 0.05);
+    /* Subtle fill */
+    box-shadow: 0 0 25px rgba(34, 211, 238, 0.2);
+}
+
+.custom-cursor.cursor-hover .cursor-inner-dot {
+    background: #06b6d4;
+    /* Darker cyan core */
+    transform: translate(-50%, -50%) scale(0.6);
+    /* Shrink dot for precision */
+}
+
+/* Extend crosshairs on hover */
+.custom-cursor.cursor-hover .line-v {
+    height: 26px;
+    opacity: 0.8;
+}
+
+.custom-cursor.cursor-hover .line-h {
+    width: 26px;
+    opacity: 0.8;
+}
+
+
+/* ------------------------------------------
+   Click State (Active)
+   ------------------------------------------ */
+.custom-cursor.cursor-click .cursor-outer-ring {
+    transform: translate(-50%, -50%) scale(0.8);
+    border-color: #22d3ee;
+    border-width: 2px;
+}
+
+.custom-cursor.cursor-click .cursor-inner-dot {
+    transform: translate(-50%, -50%) scale(1.4);
+}
+
+
+/* ------------------------------------------
+   Hidden State (Text Inputs)
+   ------------------------------------------ */
+.custom-cursor.cursor-hidden {
+    opacity: 0 !important;
+}
+
+
+/* ------------------------------------------
+   High Contrast Mode
+   ------------------------------------------ */
+.custom-cursor.high-contrast .cursor-outer-ring {
+    border-width: 2px;
+    border-color: #22d3ee;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.custom-cursor.high-contrast .line-v,
+.custom-cursor.high-contrast .line-h {
+    background: #22d3ee;
+    opacity: 1;
+}
