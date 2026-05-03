@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /api/
-Disallow: /auth/callback
-Disallow: /reset-password/
-Disallow: /profile
-
-Sitemap: https://algo-arena.vercel.app/sitemap.xml

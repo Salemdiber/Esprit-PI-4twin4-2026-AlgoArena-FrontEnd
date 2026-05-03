@@ -1,3 +1,0 @@
-/**
- * Leaderboard Module – barrel export
- */
