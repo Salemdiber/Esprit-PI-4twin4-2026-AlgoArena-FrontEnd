@@ -11,9 +11,8 @@ pipeline {
   }
 
   environment {
-    DOCKER_REGISTRY = 'docker.io'
-    DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
-    CONTAINER_NAME = 'algoarena-frontend'
+    NAMESPACE = 'algoarena'
+    KUBECONFIG_CREDENTIALS_ID = 'kubeconfig-algoarena'
   }
 
   stages {
@@ -23,7 +22,7 @@ pipeline {
       }
     }
 
-    stage('Deploy') {
+    stage('Resolve image') {
       steps {
         script {
           def imageToDeploy = params.IMAGE_TAG?.trim() ? params.IMAGE_TAG.trim() : params.IMAGE_LATEST?.trim()
@@ -32,12 +31,42 @@ pipeline {
             error('IMAGE_TAG or IMAGE_LATEST must be provided to deploy the frontend image.')
           }
 
-          docker.withRegistry("https://${env.DOCKER_REGISTRY}", env.DOCKER_CREDENTIALS_ID) {
-            sh "docker pull ${imageToDeploy}"
-            sh "docker stop ${env.CONTAINER_NAME} || true"
-            sh "docker rm ${env.CONTAINER_NAME} || true"
-            sh "docker run -d --name ${env.CONTAINER_NAME} -p 80:80 ${imageToDeploy}"
-          }
+          env.RESOLVED_IMAGE_TAG = imageToDeploy
+        }
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
+          sh '''
+          export KUBECONFIG="$KUBECONFIG_FILE"
+
+          kubectl apply -f 01-namespace.yaml
+          kubectl apply -f nginx-config.yaml
+          kubectl apply -f 04-frontend.yaml
+          kubectl apply -f 05-ingress.yaml
+
+          kubectl set image deployment/algoarena-frontend \
+            frontend="$RESOLVED_IMAGE_TAG" \
+            -n "$NAMESPACE"
+
+          kubectl rollout status deployment/algoarena-frontend -n "$NAMESPACE" --timeout=180s
+          '''
+        }
+      }
+    }
+
+    stage('Health checks') {
+      steps {
+        withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
+          sh '''
+          export KUBECONFIG="$KUBECONFIG_FILE"
+
+          kubectl get pods -n "$NAMESPACE"
+          kubectl get --raw "/api/v1/namespaces/$NAMESPACE/services/algoarena-frontend:80/proxy/"
+          kubectl get --raw "/api/v1/namespaces/$NAMESPACE/services/algoarena-backend:3000/proxy/api/system-health"
+          '''
         }
       }
     }
