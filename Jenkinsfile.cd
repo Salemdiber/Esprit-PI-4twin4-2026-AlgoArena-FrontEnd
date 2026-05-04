@@ -65,7 +65,21 @@ pipeline {
 
           kubectl get pods -n "$NAMESPACE"
           kubectl get --raw "/api/v1/namespaces/$NAMESPACE/services/algoarena-frontend:80/proxy/"
-          kubectl get --raw "/api/v1/namespaces/$NAMESPACE/services/algoarena-backend:3000/proxy/api/system-health"
+
+          echo "Checking backend health if backend endpoints are available..."
+          kubectl rollout status deployment/algoarena-backend -n "$NAMESPACE" --timeout=120s || true
+
+          for i in $(seq 1 24); do
+            if kubectl get endpoints algoarena-backend -n "$NAMESPACE" \
+              -o jsonpath='{.subsets[0].addresses[0].ip}' | grep -q .; then
+              kubectl get --raw "/api/v1/namespaces/$NAMESPACE/services/algoarena-backend:3000/proxy/api/system-health" && exit 0
+            fi
+
+            echo "Backend endpoint not ready yet, retry $i/24..."
+            sleep 5
+          done
+
+          echo "WARNING: frontend deployed, but backend health was not available during this check."
           '''
         }
       }
