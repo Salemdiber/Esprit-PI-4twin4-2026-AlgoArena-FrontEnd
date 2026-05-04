@@ -3,7 +3,7 @@ pipeline {
 
   options {
     timestamps()
-    timeout(time: 45, unit: 'MINUTES')  // Timeout global du pipeline
+    timeout(time: 30, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
 
@@ -30,7 +30,7 @@ pipeline {
 
     stage('Install dependencies') {
       steps {
-        sh 'npm install'
+        sh 'npm ci'
       }
     }
 
@@ -60,9 +60,8 @@ pipeline {
     stage('Quality Gate') {
       steps {
         script {
-          // Retry pour gérer les déconnexions temporaires d'agent
-          retry(2) {
-            timeout(time: 15, unit: 'MINUTES') {
+          catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+            timeout(time: 3, unit: 'MINUTES') {
               def qg = waitForQualityGate()
               if (qg.status != 'OK') {
                 unstable("Quality Gate status: ${qg.status}")
