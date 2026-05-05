@@ -515,12 +515,12 @@ function App() {
                 <ChatPanelMount />
               </ChatProvider>
             </AuthProvider>
-          </LoadingProvider>
-        </AccessibilityProvider>
-      </LazyMotion>
-      <VercelAnalytics />
-    </Router>
-    </ErrorBoundary>
+          </Router>
+        </LoadingProvider>
+      </AccessibilityProvider>
+    </LazyMotion>
+    <VercelAnalytics />
+  </ErrorBoundary>
   );
 }
 
