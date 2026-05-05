@@ -23,6 +23,7 @@ const AUTH_CHANNEL_NAME = 'auth_sync_channel';
 
 
 const STORAGE_KEY = 'fo_auth';
+let refreshAccessTokenPromise = null;
 
 /* Real user state persistence (for role UI logic offline etc.), token is in cookie */
 const readStorage = () => {
@@ -51,6 +52,35 @@ const writeStorage = (data) => {
         removeToken();
         window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: null } }));
     }
+};
+
+const refreshAccessToken = async () => {
+    if (!refreshAccessTokenPromise) {
+        refreshAccessTokenPromise = fetch(buildApiUrl('/auth/refresh'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Accept-Language': i18n.language || 'en' },
+        })
+            .then(async (response) => {
+                if (response.status === 401 || response.status === 403) return null;
+                if (!response.ok) return undefined;
+                const data = await response.json().catch(() => null);
+                if (data?.access_token) {
+                    setToken(data.access_token);
+                    return data.access_token;
+                }
+                return undefined;
+            })
+            .catch((error) => {
+                console.error('Token refresh failed:', error);
+                return undefined;
+            })
+            .finally(() => {
+                refreshAccessTokenPromise = null;
+            });
+    }
+
+    return refreshAccessTokenPromise;
 };
 
 const DEFAULT_AVATAR =
@@ -108,7 +138,22 @@ export const AuthProvider = ({ children }) => {
     /* Rehydrate on mount */
     useEffect(() => {
         const initAuth = async () => {
-            const storedToken = getToken();
+            let storedToken = getToken();
+            if (!storedToken) {
+                const refreshedToken = await refreshAccessToken();
+                if (refreshedToken) {
+                    storedToken = refreshedToken;
+                } else if (refreshedToken === undefined) {
+                    const stored = readStorage();
+                    if (stored?.user) {
+                        setCurrentUser(stored.user);
+                        setCoinBalance(Number(stored.user?.hintCredits ?? 1));
+                        setIsAuthLoading(false);
+                        return;
+                    }
+                }
+            }
+
             if (!storedToken) {
                 writeStorage(null);
                 setCurrentUser(null);
@@ -136,37 +181,17 @@ export const AuthProvider = ({ children }) => {
         initAuth();
     }, []);
 
-    /* Proactive Background Token Refresh Loop based on User Activity */
+    /* Proactive Background Token Refresh Loop */
     useEffect(() => {
-        let lastActivity = Date.now();
-
-        const updateActivity = () => {
-            lastActivity = Date.now();
-        };
-
-        const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-        activityEvents.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
-
         const doRefresh = async () => {
-            const token = getToken();
-            if (!token) return;
-
-            const isUserActive = (Date.now() - lastActivity) < 15 * 60 * 1000;
-            if (!isUserActive) return;
+            const hasSession = Boolean(getToken() || readStorage()?.user);
+            if (!hasSession) return;
 
             try {
-                const refreshResp = await fetch(buildApiUrl('/auth/refresh'), {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Accept-Language': 'en' },
-                });
-                if (refreshResp.ok) {
-                    const data = await refreshResp.json();
-                    if (data?.access_token) {
-                        setToken(data.access_token);
-                    }
-                } else if (refreshResp.status === 401) {
-                    logout();
+                const token = await refreshAccessToken();
+                if (token === null) {
+                    writeStorage(null);
+                    setCurrentUser(null);
                     toast({
                         title: i18n.t('auth.context.sessionExpiredTitle'),
                         description: i18n.t('auth.context.sessionExpiredLogin'),
@@ -174,6 +199,7 @@ export const AuthProvider = ({ children }) => {
                         duration: 5000,
                         isClosable: true,
                     });
+                    navigate('/signin');
                 }
             } catch (error) {
                 console.error("Proactive background refresh failed:", error);
@@ -194,9 +220,8 @@ export const AuthProvider = ({ children }) => {
         return () => {
             clearInterval(refreshInterval);
             document.removeEventListener('visibilitychange', onVisibilityChange);
-            activityEvents.forEach(event => window.removeEventListener(event, updateActivity));
         };
-    }, []);
+    }, [navigate, toast]);
 
     const isLoggedIn = !!currentUser;
 
@@ -283,7 +308,20 @@ export const AuthProvider = ({ children }) => {
      * Used after OAuth redirect to re-fetch user data
      */
     const reload = useCallback(async () => {
-        const storedToken = getToken();
+        let storedToken = getToken();
+        if (!storedToken) {
+            const refreshedToken = await refreshAccessToken();
+            if (refreshedToken) {
+                storedToken = refreshedToken;
+            } else if (refreshedToken === undefined) {
+                const stored = readStorage();
+                if (stored?.user) {
+                    setCurrentUser(stored.user);
+                    setCoinBalance(Number(stored.user?.hintCredits ?? 1));
+                    return;
+                }
+            }
+        }
         if (!storedToken) {
             writeStorage(null);
             setCurrentUser(null);
