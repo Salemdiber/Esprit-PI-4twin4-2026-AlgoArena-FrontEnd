@@ -349,11 +349,11 @@ export default defineConfig({
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
       "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Resource-Policy": "same-origin",
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      "Cross-Origin-Resource-Policy": "cross-origin",
       "X-XSS-Protection": "1; mode=block",
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' http: https: ws: wss:; frame-src 'self' https://www.google.com https://www.gstatic.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://esprit-pi-4twin4-2026-algoarena-backend.onrender.com",
     },
     proxy: {
       "/api/docs": createProxyConfig(),
