@@ -30,8 +30,14 @@ const getPuterClient = () => {
             script.async = true;
             script.defer = true;
             script.dataset.puterSdk = 'true';
-            script.onload = () => resolve(window.puter);
-            script.onerror = reject;
+            script.onload = () => {
+                console.log('Puter.js SDK loaded successfully');
+                resolve(window.puter);
+            };
+            script.onerror = (err) => {
+                console.error('Failed to load Puter.js SDK:', err);
+                reject(new Error('Puter.js SDK failed to load'));
+            };
             document.head.appendChild(script);
         });
     }
@@ -118,6 +124,7 @@ const AIAgent = () => {
         } catch (error) {
             console.error("Audio playback error:", error);
             setPlayingMessageId(null);
+            // Show a temporary error indicator (could add toast here)
         }
     };
 

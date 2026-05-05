@@ -147,41 +147,53 @@ export const AuthProvider = ({ children }) => {
         const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
         activityEvents.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
 
-        // Runs every 10 minutes (600,000 ms)
-        const refreshInterval = setInterval(async () => {
+        const doRefresh = async () => {
             const token = getToken();
-            if (!token) return; // Not signed in, ignore
+            if (!token) return;
 
-            const isTabVisible = document.visibilityState === 'visible';
-            const isUserActive = (Date.now() - lastActivity) < 15 * 60 * 1000; // Active within 15 minutes
+            const isUserActive = (Date.now() - lastActivity) < 15 * 60 * 1000;
+            if (!isUserActive) return;
 
-            if (isTabVisible && isUserActive) {
-                try {
-                    const refreshResp = await fetch(buildApiUrl('/auth/refresh'), { method: 'POST', credentials: 'include' });
-                    if (refreshResp.ok) {
-                        const data = await refreshResp.json();
-                        if (data?.access_token) {
-                            setToken(data.access_token);
-                        }
-                    } else if (refreshResp.status === 401) {
-                        // Refresh token invalid -> Logout cleanly across all tabs
-                        logout();
-                        toast({
-                            title: i18n.t('auth.context.sessionExpiredTitle'),
-                            description: i18n.t('auth.context.sessionExpiredLogin'),
-                            status: 'warning',
-                            duration: 5000,
-                            isClosable: true,
-                        });
+            try {
+                const refreshResp = await fetch(buildApiUrl('/auth/refresh'), {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Accept-Language': 'en' },
+                });
+                if (refreshResp.ok) {
+                    const data = await refreshResp.json();
+                    if (data?.access_token) {
+                        setToken(data.access_token);
                     }
-                } catch (error) {
-                    console.error("Proactive background refresh failed:", error);
+                } else if (refreshResp.status === 401) {
+                    logout();
+                    toast({
+                        title: i18n.t('auth.context.sessionExpiredTitle'),
+                        description: i18n.t('auth.context.sessionExpiredLogin'),
+                        status: 'warning',
+                        duration: 5000,
+                        isClosable: true,
+                    });
                 }
+            } catch (error) {
+                console.error("Proactive background refresh failed:", error);
             }
-        }, 10 * 60 * 1000);
+        };
+
+        // Refresh every 5 minutes (access token lives 15 min)
+        const refreshInterval = setInterval(doRefresh, 5 * 60 * 1000);
+
+        // Also refresh when tab becomes visible again
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                doRefresh();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
 
         return () => {
             clearInterval(refreshInterval);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
             activityEvents.forEach(event => window.removeEventListener(event, updateActivity));
         };
     }, []);
