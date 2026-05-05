@@ -14,7 +14,7 @@ pipeline {
   environment {
     SONAR_PROJECT_KEY = 'algo-arena-frontend'
     SONAR_PROJECT_NAME = 'AlgoArena Frontend'
-    SONAR_INCLUSIONS = 'src/hooks/useChallenge.js,src/i18n/index.js,src/pages/Frontoffice/auth/context/authContextUtils.js,src/pages/Frontoffice/battles/types/battle.types.js,src/pages/Frontoffice/leaderboard/utils/leaderboardUtils.js,src/pages/Frontoffice/speedchallenge/data/speedChallengeProblems.js,src/services/apiClient.js,src/services/communityService.js,src/services/cookieUtils.js,src/services/diagnosticsCollector.js,src/services/dicebear.js'
+    SONAR_INCLUSIONS = 'src/hooks/useChallenge.js,src/i18n/index.js,src/pages/Frontoffice/auth/context/authContextUtils.js,src/pages/Frontoffice/leaderboard/utils/leaderboardUtils.js,src/services/apiClient.js,src/services/communityService.js,src/services/cookieUtils.js,src/services/diagnosticsCollector.js'
     DOCKER_IMAGE_NAME = 'salemdiber/algo-arena-frontend'
     DOCKER_REGISTRY = 'docker.io'
     DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
