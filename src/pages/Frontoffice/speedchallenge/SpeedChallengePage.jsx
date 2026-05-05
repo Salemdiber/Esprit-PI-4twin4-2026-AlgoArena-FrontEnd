@@ -28,6 +28,7 @@ import {
 import { userService } from '../../../services/userService';
 import { settingsService } from '../../../services/settingsService';
 import { apiClient } from '../../../services/apiClient';
+import { buildApiUrl } from '../../../services/backendUrl';
 
 import Logo from '../../../assets/logo_algoarena.png';
 import { useTranslation } from 'react-i18next';
@@ -1231,7 +1232,7 @@ const SpeedChallengePage = () => {
                 });
                 console.debug('Using placementProblems from user, mapped count=', mapped.length);
             } else {
-                const resp = await fetch('/api/onboarding-test');
+                const resp = await fetch(buildApiUrl('/onboarding-test'));
                 const json = await resp.json();
                 const items = json?.problems || [];
                 console.debug('/api/onboarding-test returned', items.length, 'items, encoding=', json?.encoding);
@@ -1322,7 +1323,7 @@ const SpeedChallengePage = () => {
                     solved: finalSolvedIds.includes(p.id),
                 }));
 
-                fetch('/api/classify', {
+                fetch(buildApiUrl('/classify'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ solutions, totalSeconds: used }),

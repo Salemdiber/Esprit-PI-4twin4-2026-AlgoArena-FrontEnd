@@ -17,6 +17,7 @@ import ChallengePlayWorkspace from '../components/ChallengePlayWorkspace';
 import ChallengePlaySkeleton from '../../../../shared/skeletons/ChallengePlaySkeleton';
 import { judgeService } from '../../../../services/judgeService';
 import { getToken } from '../../../../services/cookieUtils';
+import { buildApiUrl } from '../../../../services/backendUrl';
 
 const OWNER_STALE_MS = 6000;
 const AUTOSAVE_INTERVAL_MS = 30000;
@@ -288,7 +289,6 @@ const ChallengePlayPage = () => {
 
     useEffect(() => {
         if (!shouldProtectAttempt) return undefined;
-        const apiBase = import.meta.env.VITE_API_URL || '/api';
         const handleBeforeUnload = (event) => {
             if (!hasUnsavedProgress || isChallengeSolved) return;
             try {
@@ -300,7 +300,7 @@ const ChallengePlayPage = () => {
                     elapsedTime: elapsedSeconds,
                     mode: 'challenge',
                 });
-                const url = `${apiBase}/challenges/${id}/attempt/save`;
+                const url = buildApiUrl(`/challenges/${id}/attempt/save`);
                 if (token) {
                     const xhr = new XMLHttpRequest();
                     xhr.open('PUT', url, false);

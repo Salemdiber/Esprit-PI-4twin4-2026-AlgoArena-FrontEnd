@@ -15,6 +15,7 @@ import { userService } from '../../../../services/userService';
 import { setToken, removeToken, getToken } from '../../../../services/cookieUtils';
 import { useToast } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../../../../services/backendUrl';
 export { hasCompletedSpeedChallenge, redirectBasedOnRole } from './authContextUtils';
 
 const AuthContext = createContext(null);
@@ -156,7 +157,7 @@ export const AuthProvider = ({ children }) => {
 
             if (isTabVisible && isUserActive) {
                 try {
-                    const refreshResp = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+                    const refreshResp = await fetch(buildApiUrl('/auth/refresh'), { method: 'POST', credentials: 'include' });
                     if (refreshResp.ok) {
                         const data = await refreshResp.json();
                         if (data?.access_token) {

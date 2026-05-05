@@ -1,7 +1,7 @@
 import { getAcceptLanguageHeader } from '../i18n';
+import { buildApiUrl } from './backendUrl';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
-const ENDPOINT = `${API_BASE}/challenges`;
+const ENDPOINT = buildApiUrl('/challenges');
 
 const langHeaders = () => ({ 'Accept-Language': getAcceptLanguageHeader() });
 
