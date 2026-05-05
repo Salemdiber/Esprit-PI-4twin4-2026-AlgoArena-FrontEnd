@@ -188,7 +188,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "script-defer",
-      includeAssets: ["logo_algoarena.png", "assets/cursors/cursor.svg"],
+      includeAssets: ["logo_algoarena.svg", "logo_algoarena.png", "assets/cursors/cursor.svg"],
       manifest: {
         name: "AlgoArena",
         short_name: "AlgoArena",
@@ -200,9 +200,9 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "/logo_algoarena.png",
-            sizes: "512x512",
-            type: "image/png",
+            src: "/logo_algoarena.svg",
+            sizes: "any",
+            type: "image/svg+xml",
             purpose: "any",
           },
         ],
@@ -218,6 +218,9 @@ export default defineConfig({
             options: {
               cacheName: "algoarena-pages",
               networkTimeoutSeconds: 3,
+              precacheFallback: {
+                fallbackURL: "/index.html",
+              },
             },
           },
           {
