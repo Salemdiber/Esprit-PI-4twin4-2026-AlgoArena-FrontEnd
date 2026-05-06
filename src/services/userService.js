@@ -170,7 +170,7 @@ export const userService = {
     },
 
     updateAccessibilitySettings: async (settings) => {
-        return apiClient('/user/me/settings/accessibility', {
+        return apiClient('/user/me/settings/accessibility?cors=v2', {
             method: 'PATCH',
             body: JSON.stringify(settings),
         });

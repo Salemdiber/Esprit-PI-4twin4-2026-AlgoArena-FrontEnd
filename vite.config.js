@@ -213,17 +213,6 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.mode === "navigate",
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "algoarena-pages",
-              networkTimeoutSeconds: 3,
-              precacheFallback: {
-                fallbackURL: "/index.html",
-              },
-            },
-          },
-          {
             urlPattern: ({ request }) =>
               request.destination === "script" ||
               request.destination === "style",
