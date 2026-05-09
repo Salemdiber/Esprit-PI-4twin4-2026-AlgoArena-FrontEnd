@@ -7,6 +7,37 @@ import { useChat } from '../features/chat/ChatProvider';
 
 let puterSdkPromise = null;
 
+const asDisplayText = (value, fallback = '') => {
+    if (value == null) return fallback;
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) {
+        return value.map((item) => asDisplayText(item)).filter(Boolean).join('\n');
+    }
+    if (typeof value === 'object') {
+        if (typeof value.text === 'string') return value.text;
+        if (typeof value.content === 'string') return value.content;
+        if (typeof value.message === 'string') return value.message;
+        if (value.message) return asDisplayText(value.message, fallback);
+        if (Array.isArray(value.content)) return asDisplayText(value.content, fallback);
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return fallback;
+        }
+    }
+    return fallback;
+};
+
+const getAiResponseText = (response, fallback = '') => asDisplayText(
+    response?.message?.content
+    ?? response?.message
+    ?? response?.text
+    ?? response?.content
+    ?? response,
+    fallback,
+);
+
 const getPuterClient = () => {
     if (typeof window === 'undefined') {
         return Promise.reject(new Error('Browser unavailable'));
@@ -20,6 +51,10 @@ const getPuterClient = () => {
         puterSdkPromise = new Promise((resolve, reject) => {
             const existing = document.querySelector('script[data-puter-sdk="true"]');
             if (existing) {
+                if (window.puter) {
+                    resolve(window.puter);
+                    return;
+                }
                 existing.addEventListener('load', () => resolve(window.puter), { once: true });
                 existing.addEventListener('error', reject, { once: true });
                 return;
@@ -30,8 +65,18 @@ const getPuterClient = () => {
             script.async = true;
             script.defer = true;
             script.dataset.puterSdk = 'true';
-            script.onload = () => resolve(window.puter);
-            script.onerror = reject;
+            script.onload = () => {
+                console.log('Puter.js SDK loaded successfully');
+                if (window.puter) {
+                    resolve(window.puter);
+                } else {
+                    reject(new Error('Puter.js SDK loaded without a client'));
+                }
+            };
+            script.onerror = (err) => {
+                console.error('Failed to load Puter.js SDK:', err);
+                reject(new Error('Puter.js SDK failed to load'));
+            };
             document.head.appendChild(script);
         });
     }
@@ -41,6 +86,7 @@ const getPuterClient = () => {
 
 const AIAgent = () => {
     const { t } = useTranslation();
+    const tr = (key, fallback = '') => asDisplayText(t(key), fallback || key);
     const { currentUser, isLoggedIn } = useAuth();
   const { isChatOpen } = useChat();
   const location = useLocation();
@@ -52,10 +98,10 @@ const AIAgent = () => {
     const [playingMessageId, setPlayingMessageId] = useState(null);
 
     const [chatMessages, setChatMessages] = useState(() => [
-        { id: 1, text: t('aiAgent.initialChatMessage'), isUser: false, time: t('aiAgent.justNow') }
+        { id: 1, text: tr('aiAgent.initialChatMessage'), isUser: false, time: tr('aiAgent.justNow') }
     ]);
     const [navMessages, setNavMessages] = useState(() => [
-        { id: 1, text: t('aiAgent.initialNavMessage'), isUser: false, time: t('aiAgent.justNow') }
+        { id: 1, text: tr('aiAgent.initialNavMessage'), isUser: false, time: tr('aiAgent.justNow') }
     ]);
 
     const messagesEndRef = useRef(null);
@@ -106,7 +152,7 @@ const AIAgent = () => {
 
         try {
             const puterClient = await getPuterClient();
-            const audio = await puterClient.ai.txt2speech(text);
+            const audio = await puterClient.ai.txt2speech(asDisplayText(text));
             currentAudioPlaybackRef.current = audio;
 
             audio.onended = () => {
@@ -118,6 +164,7 @@ const AIAgent = () => {
         } catch (error) {
             console.error("Audio playback error:", error);
             setPlayingMessageId(null);
+            // Show a temporary error indicator (could add toast here)
         }
     };
 
@@ -137,7 +184,7 @@ Extract ONLY the single word destination representing the platform page. If uncl
 User input: "${userText}"`;
 
             const response = await puterClient.ai.chat([{ role: "user", content: systemPrompt }]);
-            let target = response.message.content.toLowerCase().replace(/[^a-z]/g, '');
+            let target = getAiResponseText(response, 'unknown').toLowerCase().replace(/[^a-z]/g, '');
 
             let route = '';
             let spokenText = '';
@@ -148,37 +195,37 @@ User input: "${userText}"`;
             const isAdmin = userRole === 'ADMIN' || userRole === 'ORGANIZER';
 
             switch (target) {
-                case 'signin': route = '/signin'; spokenText = t('aiAgent.navigatingToSignin'); break;
-                case 'signup': route = '/signup'; spokenText = t('aiAgent.navigatingToSignup'); break;
-                case 'home': route = '/'; spokenText = t('aiAgent.navigatingToHome'); break;
-                case 'challenges': route = '/challenges'; spokenText = t('aiAgent.navigatingToChallenges'); break;
-                case 'battles': route = '/battles'; spokenText = t('aiAgent.navigatingToBattles'); break;
-                case 'leaderboard': route = '/leaderboard'; spokenText = t('aiAgent.navigatingToLeaderboard'); break;
-                case 'community': route = '/community'; spokenText = t('aiAgent.navigatingToCommunity'); break;
+                case 'signin': route = '/signin'; spokenText = tr('aiAgent.navigatingToSignin'); break;
+                case 'signup': route = '/signup'; spokenText = tr('aiAgent.navigatingToSignup'); break;
+                case 'home': route = '/'; spokenText = tr('aiAgent.navigatingToHome'); break;
+                case 'challenges': route = '/challenges'; spokenText = tr('aiAgent.navigatingToChallenges'); break;
+                case 'battles': route = '/battles'; spokenText = tr('aiAgent.navigatingToBattles'); break;
+                case 'leaderboard': route = '/leaderboard'; spokenText = tr('aiAgent.navigatingToLeaderboard'); break;
+                case 'community': route = '/community'; spokenText = tr('aiAgent.navigatingToCommunity'); break;
                 case 'profile':
                     if (!isLoggedIn) {
                         route = null;
-                        spokenText = t('aiAgent.loginRequired');
+                        spokenText = tr('aiAgent.loginRequired', 'Please sign in first.');
                     } else {
                         route = '/profile';
-                        spokenText = t('aiAgent.openingProfile');
+                        spokenText = tr('aiAgent.openingProfile');
                     }
                     break;
                 case 'dashboard':
                     if (!isLoggedIn) {
                         route = null;
-                        spokenText = t('aiAgent.loginRequired');
+                        spokenText = tr('aiAgent.loginRequired', 'Please sign in first.');
                     } else if (!isAdmin) {
                         route = null;
-                        spokenText = t('aiAgent.dashboardRestricted');
+                        spokenText = tr('aiAgent.dashboardRestricted', 'Dashboard access is restricted.');
                     } else {
                         route = '/admin';
-                        spokenText = t('aiAgent.goingToDashboard');
+                        spokenText = tr('aiAgent.goingToDashboard');
                     }
                     break;
                 default:
                     route = null;
-                    spokenText = t('aiAgent.unrecognizedDestination');
+                    spokenText = tr('aiAgent.unrecognizedDestination');
             }
 
             const aiMsg = { id: Date.now() + 1, text: spokenText, isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
@@ -194,7 +241,7 @@ User input: "${userText}"`;
             }
         } catch (error) {
             console.error("Navigation Error:", error);
-            setNavMessages(prev => [...prev, { id: Date.now() + 1, text: t('aiAgent.systemOffline'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setNavMessages(prev => [...prev, { id: Date.now() + 1, text: tr('aiAgent.systemOffline'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         } finally {
             setIsLoading(false);
         }
@@ -221,18 +268,18 @@ Your primary responsibilities:
                 { role: "system", content: systemPrompt },
                 ...chatMessages.slice(1).map(m => ({
                     role: m.isUser ? "user" : "assistant",
-                    content: m.text
+                    content: asDisplayText(m.text)
                 })),
                 { role: "user", content: userText }
             ];
 
             const response = await puterClient.ai.chat(chatHistory);
-            const aiMsg = { id: Date.now() + 1, text: response.message.content, isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+            const aiMsg = { id: Date.now() + 1, text: getAiResponseText(response, tr('aiAgent.systemOffline')), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
             setChatMessages(prev => [...prev, aiMsg]);
 
         } catch (error) {
             console.error("Chat Error:", error);
-            setChatMessages(prev => [...prev, { id: Date.now() + 1, text: t('aiAgent.systemOffline'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setChatMessages(prev => [...prev, { id: Date.now() + 1, text: tr('aiAgent.systemOffline'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         } finally {
             setIsLoading(false);
         }
@@ -267,15 +314,16 @@ Your primary responsibilities:
                 try {
                     const puterClient = await getPuterClient();
                     const response = await puterClient.ai.speech2txt(audioFile);
-                    if (response && response.text) {
-                        processNavigation(response.text);
+                    const speechText = getAiResponseText(response);
+                    if (speechText) {
+                        processNavigation(speechText);
                     } else {
-                        setNavMessages(prev => [...prev, { id: Date.now(), text: t('aiAgent.couldNotHear'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                        setNavMessages(prev => [...prev, { id: Date.now(), text: tr('aiAgent.couldNotHear'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
                         setIsLoading(false);
                     }
                 } catch (err) {
                     console.error("Speech2txt error:", err);
-                    setNavMessages(prev => [...prev, { id: Date.now(), text: t('aiAgent.speechFailed'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                    setNavMessages(prev => [...prev, { id: Date.now(), text: tr('aiAgent.speechFailed'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
                     setIsLoading(false);
                 }
             };
@@ -284,7 +332,7 @@ Your primary responsibilities:
             setIsListening(true);
         } catch (err) {
             console.error("Microphone access denied or error:", err);
-            setNavMessages(prev => [...prev, { id: Date.now(), text: t('aiAgent.micDenied'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setNavMessages(prev => [...prev, { id: Date.now(), text: tr('aiAgent.micDenied'), isUser: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         }
     };
 
@@ -316,7 +364,7 @@ Your primary responsibilities:
                     onClick={() => setIsOpen(true)}
                     className="group relative w-16 h-16 rounded-full flex items-center justify-center text-white shadow-[0_0_25px_rgba(139,92,246,0.35),0_0_60px_rgba(34,211,238,0.15)] hover:shadow-[0_0_45px_rgba(139,92,246,0.55),0_0_80px_rgba(34,211,238,0.3)] hover:-translate-y-1 transition-all duration-300 border-0 overflow-visible"
                     style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 50%, #ec4899 100%)' }}
-                    aria-label={t('aiAgent.openAssistant')}
+                    aria-label={tr('aiAgent.openAssistant')}
                 >
                     <div className="absolute inset-0 bg-linear-to-br from-cyan-400/30 via-purple-500/20 to-pink-500/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="absolute inset-[-4px] rounded-full border border-dashed border-purple-400/40 animate-[spin_8s_linear_infinite] group-hover:border-purple-400/70 hidden md:block"></div>
@@ -347,10 +395,10 @@ Your primary responsibilities:
                                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-(--color-bg-secondary)"></div>
                                 </div>
                                 <div>
-                                    <h2 className="font-heading font-bold text-(--color-text-heading) text-lg tracking-wide">{t('aiAgent.algoArenaAI')}</h2>
+                                    <h2 className="font-heading font-bold text-(--color-text-heading) text-lg tracking-wide">{tr('aiAgent.algoArenaAI')}</h2>
                                     <p className="text-xs text-green-400 flex items-center gap-1.5 font-medium">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                                        {t('aiAgent.systemOnline')}
+                                        {tr('aiAgent.systemOnline')}
                                     </p>
                                 </div>
                             </div>
@@ -369,14 +417,14 @@ Your primary responsibilities:
                                     className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'chat' ? 'bg-linear-to-r from-cyan-500 to-blue-500 text-white shadow-[0_4px_12px_rgba(34,211,238,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                                    {t('aiAgent.chatAI')}
+                                    {tr('aiAgent.chatAI')}
                                 </button>
                                 <button
                                     onClick={() => setMode('nav')}
                                     className={`flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-all duration-300 ${mode === 'nav' ? 'bg-linear-to-r from-purple-500 to-indigo-500 text-white shadow-[0_4px_12px_rgba(168,85,247,0.3)]' : 'text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-hover-bg)'}`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                                    {t('aiAgent.audioNav')}
+                                    {tr('aiAgent.audioNav')}
                                 </button>
                             </div>
                         </div>
@@ -403,14 +451,14 @@ Your primary responsibilities:
                                 )}
                                 <div className={`max-w-[75%] ${msg.isUser ? 'order-1' : 'order-2'} group`}>
                                     <div className={`relative p-4 rounded-2xl ${msg.isUser ? 'bg-linear-to-br from-cyan-500 to-blue-600 rounded-tr-sm text-white shadow-[0_4px_12px_rgba(34,211,238,0.2)]' : 'bg-(--color-bg-elevated) rounded-tl-sm border border-(--color-border) text-(--color-text-primary) shadow-sm'} transition-all`}>
-                                        <p className="text-[13px] leading-[1.6] whitespace-pre-wrap">{msg.text}</p>
+                                        <p className="text-[13px] leading-[1.6] whitespace-pre-wrap">{asDisplayText(msg.text)}</p>
 
                                         {/* Playback Button Overlay for AI Messages */}
                                         {!msg.isUser && (
                                             <button
                                                 onClick={() => playMessageAudio(msg.id, msg.text)}
                                                 className={`absolute -right-3 -top-3 p-1.5 rounded-full shadow-lg transition-all duration-300 ${playingMessageId === msg.id ? 'bg-cyan-500 text-white ring-2 ring-cyan-500/50 opacity-100 scale-110' : 'bg-(--color-bg-secondary) text-(--color-text-muted) opacity-0 group-hover:opacity-100 border border-(--color-border) hover:text-cyan-400 hover:bg-(--color-hover-bg) hover:scale-105'} focus:outline-none`}
-                                                title={playingMessageId === msg.id ? t('aiAgent.stopPlayback') : t('aiAgent.readAloud')}
+                                                title={playingMessageId === msg.id ? tr('aiAgent.stopPlayback') : tr('aiAgent.readAloud')}
                                             >
                                                 {playingMessageId === msg.id ? (
                                                     <div className="flex items-center justify-center w-4 h-4 gap-[2px]">
@@ -444,7 +492,7 @@ Your primary responsibilities:
                                     {isListening ? (
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                                            <span className="text-sm text-(--color-text-primary) animate-pulse">{t('aiAgent.listening')}</span>
+                                            <span className="text-sm text-(--color-text-primary) animate-pulse">{tr('aiAgent.listening')}</span>
                                         </div>
                                     ) : (
                                         <>
@@ -469,7 +517,7 @@ Your primary responsibilities:
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     disabled={isLoading || isListening}
-                                    placeholder={mode === 'chat' ? t('aiAgent.chatPlaceholder') : t('aiAgent.navPlaceholder')}
+                                    placeholder={mode === 'chat' ? tr('aiAgent.chatPlaceholder') : tr('aiAgent.navPlaceholder')}
                                     className="w-full h-12 bg-(--color-bg-input) border border-(--color-border) rounded-xl pl-4 pr-12 text-[13px] text-(--color-text-primary) placeholder:text-(--color-text-muted) hover:border-(--color-border-hover) focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-(--color-focus-glow) transition-all duration-300 disabled:opacity-60 shadow-sm"
                                 />
                                 <button
@@ -502,7 +550,7 @@ Your primary responsibilities:
                         <div className="text-center mt-3">
                             <p className="text-[10px] text-(--color-text-muted) uppercase tracking-widest font-semibold flex items-center justify-center gap-1.5">
                                 <svg className="w-3 h-3 text-(--color-text-muted)" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
-                                {t('aiAgent.poweredBy')}
+                                {tr('aiAgent.poweredBy')}
                             </p>
                         </div>
                     </div>

@@ -7,6 +7,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { auditLogService } from '../services/auditLogService';
 import { settingsService } from '../services/settingsService';
 import { toMediaUrl } from '../utils/mediaUrl';
+import { buildApiUrl } from '../services/backendUrl';
 
 const NOTIFICATION_STORAGE_KEY = 'algoarena-admin-read-notifications';
 const NOTIFICATION_LIMIT = 5;
@@ -601,7 +602,7 @@ const TopNavbar = ({ onToggleSidebar }) => {
                                 </Link>
 
                                 <a
-                                    href="/api/docs"
+                                    href={buildApiUrl('/docs')}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="profile-dropdown-item"

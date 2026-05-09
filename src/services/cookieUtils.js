@@ -1,7 +1,13 @@
+const isSecureContext = () =>
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+
 export const setToken = (token) => {
     // Access token is short-lived (15 minutes)
     const maxAge = 15 * 60; // 15 minutes in seconds
-    document.cookie = `access_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+    const secure = isSecureContext();
+    const sameSite = secure ? 'None' : 'Lax';
+    const securePart = secure ? '; Secure' : '';
+    document.cookie = `access_token=${token}; path=/; max-age=${maxAge}; SameSite=${sameSite}${securePart}`;
 };
 
 export const getToken = () => {
@@ -10,5 +16,8 @@ export const getToken = () => {
 };
 
 export const removeToken = () => {
-    document.cookie = 'access_token=; path=/; max-age=0;';
+    const secure = isSecureContext();
+    const sameSite = secure ? 'None' : 'Lax';
+    const securePart = secure ? '; Secure' : '';
+    document.cookie = `access_token=; path=/; max-age=0; SameSite=${sameSite}${securePart}`;
 };

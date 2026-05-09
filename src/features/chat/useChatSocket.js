@@ -2,15 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getToken, setToken } from '../../services/cookieUtils';
 import { chatApi } from './chatApi';
 import { CHAT_PAGE_SIZE, CHAT_ROOM_ID, MAX_RECONNECT_ATTEMPTS } from './chatConstants';
+import { buildApiUrl, buildWsUrl } from '../../services/backendUrl';
 
 const toWsUrl = () => {
   const envWs = import.meta.env.VITE_WS_URL;
   if (envWs) return envWs;
-  const envApi = import.meta.env.VITE_API_URL;
-  if (envApi && envApi.startsWith('http')) {
-    return envApi.replace(/^http/i, 'ws').replace(/\/api\/?$/, '') + '/chat/ws';
-  }
-  return 'ws://localhost:3000/chat/ws';
+  return buildWsUrl('/chat/ws');
 };
 
 const normalizeIncoming = (payload) => ({
@@ -116,7 +113,7 @@ const handleSocketClose = async ({
 
   if (event.code === 4001) {
     try {
-      const refreshed = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`, {
+      const refreshed = await fetch(buildApiUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
       });

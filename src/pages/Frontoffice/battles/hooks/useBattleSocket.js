@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getToken } from '../../../../services/cookieUtils';
+import { buildWsUrl } from '../../../../services/backendUrl';
 
 const toAbsoluteWsUrl = (value) => {
   if (!value) return null;
@@ -29,7 +30,7 @@ const toWsUrl = () => {
     return `${secure}://${window.location.hostname}:3000${envWs.replace(/\/chat\/ws$/, '/battles/ws')}`;
   }
 
-  return 'ws://localhost:3000/battles/ws';
+  return buildWsUrl('/battles/ws');
 };
 
 export const useBattleSocket = ({

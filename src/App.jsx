@@ -2,6 +2,7 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Box } from '@chakra-ui/react';
 import { LazyMotion } from 'framer-motion';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 
 // Accessibility
 import AccessibilityProvider from './accessibility/context/AccessibilityContext';
@@ -514,11 +515,12 @@ function App() {
                 <ChatPanelMount />
               </ChatProvider>
             </AuthProvider>
-            </Router>
-          </LoadingProvider>
-        </AccessibilityProvider>
-      </LazyMotion>
-    </ErrorBoundary>
+          </Router>
+        </LoadingProvider>
+      </AccessibilityProvider>
+    </LazyMotion>
+    <VercelAnalytics />
+  </ErrorBoundary>
   );
 }
 

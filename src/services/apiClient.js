@@ -1,8 +1,7 @@
 import { getToken, removeToken, setToken } from './cookieUtils';
 import i18n, { getAcceptLanguageHeader } from '../i18n';
 import { recordNetworkFailure } from './diagnosticsCollector';
-
-const BASE_URL = import.meta?.env?.VITE_API_URL || '/api';
+import { buildApiUrl } from './backendUrl';
 
 let isRefreshing = false;
 let refreshQueue = [];
@@ -53,11 +52,11 @@ export const apiClient = async (endpoint, options = {}) => {
 
         while (attempt <= maxRetries) {
             try {
-                response = await fetch(`${BASE_URL}${endpoint}`, fetchOpts);
+                response = await fetch(buildApiUrl(endpoint), fetchOpts);
                 break;
             } catch (error) {
                 if (attempt === maxRetries) {
-                    recordNetworkFailure({ url: `${BASE_URL}${endpoint}`, method, status: 0 });
+                    recordNetworkFailure({ url: buildApiUrl(endpoint), method, status: 0 });
                     const networkError = new Error(i18n.t('errors.network'));
                     networkError.cause = error;
                     throw networkError;
@@ -107,7 +106,7 @@ export const apiClient = async (endpoint, options = {}) => {
 
         try {
             // Try refresh
-            const refreshResp = await fetch(`${BASE_URL}/auth/refresh`, {
+            const refreshResp = await fetch(buildApiUrl('/auth/refresh'), {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Accept-Language': getAcceptLanguageHeader() },
@@ -144,7 +143,7 @@ export const apiClient = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-        recordNetworkFailure({ url: `${BASE_URL}${endpoint}`, method: fetchOptions.method || 'GET', status: response.status });
+        recordNetworkFailure({ url: buildApiUrl(endpoint), method: fetchOptions.method || 'GET', status: response.status });
         const errorMsg = data?.message || data?.error || i18n.t('errors.generic');
         const error = new Error(errorMsg);
         error.status = response.status;

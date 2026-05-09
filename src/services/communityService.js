@@ -1,8 +1,8 @@
 import { apiClient } from "./apiClient";
 import { getToken } from "./cookieUtils";
 import { getAcceptLanguageHeader } from "../i18n";
+import { buildApiUrl } from './backendUrl';
 
-const BASE_URL = import.meta?.env?.VITE_API_URL || "/api";
 const AI_CACHE_TTL_MS = 30 * 60 * 1000;
 const AI_CACHE_MAX_ENTRIES = 300;
 
@@ -104,7 +104,7 @@ export async function callAI(
 
   const runOnce = async () => {
     await sleep(1500);
-    const response = await fetch(`${BASE_URL}/community/ai/generate`, {
+    const response = await fetch(buildApiUrl('/community/ai/generate'), {
       method: "POST",
       credentials: "include",
       headers,

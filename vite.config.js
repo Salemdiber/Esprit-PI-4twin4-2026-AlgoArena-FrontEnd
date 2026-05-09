@@ -188,7 +188,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "script-defer",
-      includeAssets: ["logo_algoarena.png", "assets/cursors/cursor.svg"],
+      includeAssets: ["logo_algoarena.svg", "logo_algoarena.png", "assets/cursors/cursor.svg"],
       manifest: {
         name: "AlgoArena",
         short_name: "AlgoArena",
@@ -200,9 +200,9 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "/logo_algoarena.png",
-            sizes: "512x512",
-            type: "image/png",
+            src: "/logo_algoarena.svg",
+            sizes: "any",
+            type: "image/svg+xml",
             purpose: "any",
           },
         ],
@@ -212,14 +212,6 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.mode === "navigate",
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "algoarena-pages",
-              networkTimeoutSeconds: 3,
-            },
-          },
           {
             urlPattern: ({ request }) =>
               request.destination === "script" ||
@@ -349,11 +341,11 @@ export default defineConfig({
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
       "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Resource-Policy": "same-origin",
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      "Cross-Origin-Resource-Policy": "cross-origin",
       "X-XSS-Protection": "1; mode=block",
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' http: https: ws: wss:; frame-src 'self' https://www.google.com https://www.gstatic.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://esprit-pi-4twin4-2026-algoarena-backend.onrender.com",
     },
     proxy: {
       "/api/docs": createProxyConfig(),
