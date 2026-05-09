@@ -8,7 +8,8 @@ import FeedToolbar from '../components/feed/FeedToolbar';
 import PostList from '../components/feed/PostList';
 import TagCloud from '../components/sidebar/TagCloud';
 import CommunityStats from '../components/sidebar/CommunityStats';
-import { countCommentTree } from '../utils/commentTree';
+import { communityService, callAI } from '../../../../services/communityService';
+import { countCommentTree, flattenCommentTexts } from '../utils/commentTree';
 
 const CreatePostDialog = lazy(() => import('../components/create/CreatePostDialog'));
 
@@ -46,7 +47,7 @@ const CommunityPage = () => {
   const isAdmin = role === 'ADMIN' || role === 'ORGANIZER';
 
   const { posts, setPosts, loading, error } = useCommunityPosts();
-  const { getPostReaction } = usePostReactions();
+  const { getPostReaction, togglePostReaction } = usePostReactions();
   const { isPostSaved, toggleSavePost } = useSavedPosts(currentUser?._id);
 
   const [activeSection, setActiveSection] = useState('discussion');
@@ -56,6 +57,9 @@ const CommunityPage = () => {
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const showSidebarDetails = useIdleReady();
+  const [summaryByPostId, setSummaryByPostId] = useState({});
+  const [summaryErrorByPostId, setSummaryErrorByPostId] = useState({});
+  const [summarizingPostId, setSummarizingPostId] = useState('');
 
   // Section split: "discussion" = anything that isn't flagged as a problem.
   const sectioned = useMemo(() => {
@@ -190,6 +194,73 @@ const CommunityPage = () => {
 
   const handleOpenCreate = () => setCreateDialogOpen(true);
 
+  const handleDeletePost = async (postId) => {
+    if (!postId) return;
+    const confirmed = window.confirm('Delete this post? This cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await communityService.deletePost(postId);
+      setPosts((prev) => prev.filter((post) => String(post?._id) !== String(postId)));
+    } catch (err) {
+      // Keep the feed stable; surface the error via summary error map.
+      setSummaryErrorByPostId((prev) => ({
+        ...prev,
+        [postId]: err?.message || 'Unable to delete post right now.',
+      }));
+    }
+  };
+
+  const handleTogglePin = async (post) => {
+    if (!post?._id) return;
+    try {
+      const updated = await communityService.setPostPinned(post._id, !post?.pinned);
+      setPosts((prev) =>
+        prev.map((item) => (String(item?._id) === String(post._id) ? updated : item)),
+      );
+    } catch (err) {
+      setSummaryErrorByPostId((prev) => ({
+        ...prev,
+        [post._id]: err?.message || 'Unable to update pin right now.',
+      }));
+    }
+  };
+
+  const handleSummarizeDiscussion = async (post) => {
+    if (!post?._id) return;
+    if (summarizingPostId) return;
+
+    const postId = String(post._id);
+    const commentTexts = flattenCommentTexts(post?.comments || []);
+    if (commentTexts.length === 0) {
+      setSummaryErrorByPostId((prev) => ({
+        ...prev,
+        [postId]: 'No comments to summarize yet.',
+      }));
+      return;
+    }
+
+    try {
+      setSummarizingPostId(postId);
+      setSummaryErrorByPostId((prev) => ({ ...prev, [postId]: '' }));
+
+      const discussionText = commentTexts.join('\n- ');
+      const summary = await callAI(
+        `Summarize this discussion in 1-2 short, clear sentences (max 35 words total). Use simple language and include only the main point and current outcome.\n\n${discussionText}`,
+        { maxTokens: 70, temperature: 0.2 },
+      );
+
+      setSummaryByPostId((prev) => ({ ...prev, [postId]: summary.trim() }));
+    } catch (err) {
+      setSummaryErrorByPostId((prev) => ({
+        ...prev,
+        [postId]: err?.message || 'Unable to summarize discussion right now.',
+      }));
+    } finally {
+      setSummarizingPostId('');
+    }
+  };
+
   useEffect(() => {
     const previousTitle = document.title;
     document.title = 'Community · AlgoArena';
@@ -241,10 +312,19 @@ const CommunityPage = () => {
                 isLoggedIn={isLoggedIn}
                 hasFilters={hasFilters}
                 getPostReaction={getPostReaction}
+                onToggleReaction={togglePostReaction}
                 isPostSaved={(id) =>
                   Boolean(currentUser?._id) && isPostSaved(id)
                 }
                 onToggleSave={toggleSavePost}
+                onDeletePost={handleDeletePost}
+                onTogglePin={handleTogglePin}
+                onSummarizeDiscussion={handleSummarizeDiscussion}
+                summaryByPostId={summaryByPostId}
+                summaryErrorByPostId={summaryErrorByPostId}
+                summarizingPostId={summarizingPostId}
+                isAdmin={isAdmin}
+                currentUserId={currentUser?._id}
                 onCreate={handleOpenCreate}
               />
             </section>

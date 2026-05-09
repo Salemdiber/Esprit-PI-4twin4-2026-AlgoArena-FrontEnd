@@ -66,8 +66,17 @@ const PostList = ({
   isLoggedIn,
   hasFilters,
   getPostReaction,
+  onToggleReaction,
   isPostSaved,
   onToggleSave,
+  onDeletePost,
+  onTogglePin,
+  onSummarizeDiscussion,
+  summaryByPostId,
+  summaryErrorByPostId,
+  summarizingPostId,
+  isAdmin,
+  currentUserId,
   onCreate,
 }) => {
   if (loading) {
@@ -112,8 +121,17 @@ const PostList = ({
           key={String(post._id)}
           post={post}
           reaction={getPostReaction?.(post._id)}
+          onToggleReaction={onToggleReaction}
           isSaved={isPostSaved?.(post._id)}
           onToggleSave={onToggleSave}
+          onDeletePost={onDeletePost}
+          onTogglePin={onTogglePin}
+          onSummarizeDiscussion={onSummarizeDiscussion}
+          summary={summaryByPostId?.[post._id]}
+          summaryError={summaryErrorByPostId?.[post._id]}
+          isSummarizing={summarizingPostId === post._id}
+          isAdmin={isAdmin}
+          currentUserId={currentUserId}
         />
       ))}
     </div>
